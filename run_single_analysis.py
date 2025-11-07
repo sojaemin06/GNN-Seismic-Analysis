@@ -16,7 +16,7 @@ from visualization.plot_opsvis import plot_with_opsvis
 from visualization.plot_hinges import plot_plastic_damage_distribution
 from visualization.animate_results import animate_and_plot_pushover, animate_and_plot_M_phi
 # --- ---
-# 가나다라
+
 # ### 11. 메인 실행 함수 ###
 def main(params):
     """
