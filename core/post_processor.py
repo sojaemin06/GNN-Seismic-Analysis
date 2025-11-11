@@ -61,6 +61,10 @@ def process_pushover_results(params, model_nodes):
         df_pushover_curve.to_csv(csv_path_curve, index=False, float_format='%.6f')
         print(f"Pushover curve data saved to: {csv_path_curve}")
 
+        # [신규] 해석이 조기 종료된 경우를 대비하여, 모든 후속 데이터프레임의 길이를
+        # 푸쉬오버 곡선의 길이에 맞춤
+        num_valid_steps = len(df_pushover_curve)
+
         
         # --- 6-2. 전단벽 내력(Forces) (모든 쉘) ---
         path_wall_forces = output_dir / f"{analysis_name}_all_wall_forces.out"
@@ -70,22 +74,22 @@ def process_pushover_results(params, model_nodes):
                 wall_forces_data = np.loadtxt(path_wall_forces)
                 if wall_forces_data.ndim == 1: wall_forces_data = wall_forces_data.reshape(1, -1) 
                 headers = ['Time']
+                # [수정] 'material stressAndStrain' 레코더는 GP당 6개 값(s11,s22,s12,e11,e22,e12)을 반환
                 for ele_tag in all_shell_tags:
                     for gp in range(1, 5): 
                         headers.extend([
-                            f'Ele{ele_tag}_GP{gp}_Nxx', f'Ele{ele_tag}_GP{gp}_Nyy', f'Ele{ele_tag}_GP{gp}_Nxy', 
-                            f'Ele{ele_tag}_GP{gp}_Mxx', f'Ele{ele_tag}_GP{gp}_Myy', f'Ele{ele_tag}_GP{gp}_Mxy',
-                            f'Ele{ele_tag}_GP{gp}_Vxz', f'Ele{ele_tag}_GP{gp}_Vyz'
+                            f'Ele{ele_tag}_GP{gp}_s11', f'Ele{ele_tag}_GP{gp}_s22', f'Ele{ele_tag}_GP{gp}_s12', 
+                            f'Ele{ele_tag}_GP{gp}_e11', f'Ele{ele_tag}_GP{gp}_e22', f'Ele{ele_tag}_GP{gp}_e12'
                         ])
 
                 if wall_forces_data.ndim > 1 and wall_forces_data.shape[1] == len(headers):
-                    df_wall_forces = pd.DataFrame(wall_forces_data, columns=headers)
+                    df_wall_forces = pd.DataFrame(wall_forces_data, columns=headers).head(num_valid_steps) # 길이 맞춤
                     csv_path_forces = output_dir / f"{analysis_name}_all_wall_forces.csv"
                     df_wall_forces.to_csv(csv_path_forces, index=False, float_format='%.6e')
                     print(f"Wall forces data saved to: {csv_path_forces}")
                     full_element_state_dfs['wall_forces_df'] = df_wall_forces 
                 else: 
-                    print(f"\n---! Warning: Wall force data column mismatch !---")
+                    print(f"\n---! Warning: Wall material data column mismatch! Expected {len(headers)}, got {wall_forces_data.shape[1]} !---")
             except Exception as e: print(f"\n---! Warning: Error processing wall force data: {e}")
         else: print("Skipping wall force processing (no file or no elements).")
         
@@ -98,20 +102,21 @@ def process_pushover_results(params, model_nodes):
                 col_rot_data = np.loadtxt(path_col_rot)
                 if col_rot_data.ndim == 1: col_rot_data = col_rot_data.reshape(1, -1)
                 
-                num_int_pts = params.get('num_int_pts', 5) 
+                # [수정] 'plasticRotation' 레코더는 Lobatto 적분 사용 시 양단(2개)의 결과만 반환합니다.
+                # num_int_pts 파라미터와 관계없이 2개의 적분점(ip=1, ip=num_int_pts)을 가정합니다.
                 headers = ['Time']
                 for ele_tag in all_column_tags: 
-                    for ip in range(1, num_int_pts + 1):
+                    for ip in [1, params.get('num_int_pts', 5)]: # IP 1과 마지막 IP
                         headers.extend([f'Ele{ele_tag}_IP{ip}_ry', f'Ele{ele_tag}_IP{ip}_rz', f'Ele{ele_tag}_IP{ip}_rx'])
                         
                 if col_rot_data.ndim > 1 and col_rot_data.shape[1] == len(headers):
-                    df_col_rot = pd.DataFrame(col_rot_data, columns=headers)
+                    df_col_rot = pd.DataFrame(col_rot_data, columns=headers).head(num_valid_steps) # 길이 맞춤
                     csv_path_rot = output_dir / f"{analysis_name}_all_col_plastic_rotation.csv"
                     df_col_rot.to_csv(csv_path_rot, index=False, float_format='%.6e')
                     print(f"Column plastic rotation data saved to: {csv_path_rot}")
                     full_element_state_dfs['col_rot_df'] = df_col_rot 
                 else: 
-                    print(f"\n---! Warning: Column plastic rotation data column mismatch !---")
+                    print(f"\n---! Warning: Column plastic rotation data column mismatch! Expected {len(headers)}, got {col_rot_data.shape[1]} !---")
             except Exception as e: print(f"\n---! Warning: Error processing column plastic rotation data !--- \nError details: {e}")
         else: print("Skipping column plastic rotation processing (no file or no elements).")
         
@@ -123,20 +128,21 @@ def process_pushover_results(params, model_nodes):
                 beam_rot_data = np.loadtxt(path_beam_rot)
                 if beam_rot_data.ndim == 1: beam_rot_data = beam_rot_data.reshape(1, -1)
 
-                num_int_pts = params.get('num_int_pts', 5)
+                # [수정] 'plasticRotation' 레코더는 Lobatto 적분 사용 시 양단(2개)의 결과만 반환합니다.
+                # num_int_pts 파라미터와 관계없이 2개의 적분점(ip=1, ip=num_int_pts)을 가정합니다.
                 headers = ['Time']
                 for ele_tag in all_beam_tags:
-                    for ip in range(1, num_int_pts + 1):
+                    for ip in [1, params.get('num_int_pts', 5)]: # IP 1과 마지막 IP
                         headers.extend([f'Ele{ele_tag}_IP{ip}_ry', f'Ele{ele_tag}_IP{ip}_rz', f'Ele{ele_tag}_IP{ip}_rx'])
 
                 if beam_rot_data.ndim > 1 and beam_rot_data.shape[1] == len(headers):
-                    df_beam_rot = pd.DataFrame(beam_rot_data, columns=headers)
+                    df_beam_rot = pd.DataFrame(beam_rot_data, columns=headers).head(num_valid_steps) # 길이 맞춤
                     csv_path_rot = output_dir / f"{analysis_name}_all_beam_plastic_rotation.csv"
                     df_beam_rot.to_csv(csv_path_rot, index=False, float_format='%.6e')
                     print(f"Beam plastic rotation data saved to: {csv_path_rot}")
                     full_element_state_dfs['beam_rot_df'] = df_beam_rot 
                 else:
-                    print(f"\n---! Warning: Beam plastic rotation data column mismatch !---")
+                    print(f"\n---! Warning: Beam plastic rotation data column mismatch! Expected {len(headers)}, got {beam_rot_data.shape[1]} !---")
             except Exception as e:
                 print(f"\n---! Warning: Error processing beam plastic rotation data !--- \nError details: {e}")
         else:
@@ -151,7 +157,7 @@ def process_pushover_results(params, model_nodes):
                 headers = ['Time']
                 for ele_tag in all_column_tags: headers.extend([f'Ele{ele_tag}_I_P', f'Ele{ele_tag}_I_Vy', f'Ele{ele_tag}_I_Vz', f'Ele{ele_tag}_I_T', f'Ele{ele_tag}_I_My', f'Ele{ele_tag}_I_Mz', f'Ele{ele_tag}_J_P', f'Ele{ele_tag}_J_Vy', f'Ele{ele_tag}_J_Vz', f'Ele{ele_tag}_J_T', f'Ele{ele_tag}_J_My', f'Ele{ele_tag}_J_Mz'])
                 if col_forces_data.ndim > 1 and col_forces_data.shape[1] == len(headers):
-                    df_col_forces = pd.DataFrame(col_forces_data, columns=headers)
+                    df_col_forces = pd.DataFrame(col_forces_data, columns=headers).head(num_valid_steps) # 길이 맞춤
                     csv_path_forces = output_dir / f"{analysis_name}_all_col_forces.csv"
                     df_col_forces.to_csv(csv_path_forces, index=False, float_format='%.6e')
                     print(f"Column element forces data saved to: {csv_path_forces}")
@@ -175,7 +181,7 @@ def process_pushover_results(params, model_nodes):
                         'Time': m_phi_data[:, 0],
                         'Moment_My_N-m': m_phi_data[:, 3], 
                         'Curvature_phi_y_rad/m': m_phi_data[:, 6] 
-                    })
+                    }).head(num_valid_steps) # 길이 맞춤
                     csv_path_m_phi = output_dir / f"{analysis_name}_M_phi_target_ele.csv"
                     df_m_phi.to_csv(csv_path_m_phi, index=False, float_format='%.6e')
                     print(f"Target Moment-Curvature data saved to: {csv_path_m_phi}")

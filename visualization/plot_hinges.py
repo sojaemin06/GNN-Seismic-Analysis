@@ -7,6 +7,7 @@ try:
     from mpl_toolkits.mplot3d import Axes3D
     from mpl_toolkits.mplot3d.art3d import Poly3DCollection
     from matplotlib.patches import Polygon
+    import matplotlib.colors as mcolors
     MPL_3D_AVAILABLE = True
 except ImportError:
     MPL_3D_AVAILABLE = False
@@ -54,8 +55,8 @@ def plot_plastic_damage_distribution(params, model_nodes_info, final_states_dfs)
              return
 
         num_int_pts = params.get('num_int_pts', 5)
-        ip_start = 1
-        ip_end = num_int_pts
+        ip_start = 1 # 'plasticRotation'은 항상 첫번째 적분점(I단)에서 결과를 줌
+        ip_end = num_int_pts # 'plasticRotation'은 항상 마지막 적분점(J단)에서 결과를 줌
         
     except KeyError as e:
         print(f"Error: 힌지 플로팅에 필요한 모델 정보가 없습니다: {e}")
@@ -78,6 +79,60 @@ def plot_plastic_damage_distribution(params, model_nodes_info, final_states_dfs)
         if n_i and n_j:
             if abs(n_i[2] - target_z) < z_tolerance and abs(n_j[2] - target_z) < z_tolerance:
                 ax_2d.plot([n_i[0], n_j[0]], [n_i[1], n_j[1]], '-', color=base_color, linewidth=base_lw, zorder=1)
+
+    # --- [개선] 1-2. 전단벽 손상 플로팅 (응력 기반 색상 매핑) ---
+    if wall_force_final is not None and not wall_force_final.empty:
+        # 응력 범위를 계산하여 컬러맵 정규화
+        all_stresses = []
+        for ele_tag in all_shell_elements.keys():
+            for gp in range(1, 5):
+                try:
+                    sxx = wall_force_final[f'Ele{ele_tag}_GP{gp}_s11'].values[0]
+                    syy = wall_force_final[f'Ele{ele_tag}_GP{gp}_s22'].values[0]
+                    sxy = wall_force_final[f'Ele{ele_tag}_GP{gp}_s12'].values[0]
+                    # 주응력 계산 (압축을 양수로)
+                    center = (sxx + syy) / 2
+                    radius = np.sqrt(((sxx - syy) / 2)**2 + sxy**2)
+                    s_principal_comp = -(center - radius) # 압축 응력
+                    all_stresses.append(s_principal_comp)
+                except KeyError:
+                    continue
+        
+        max_stress = max(all_stresses) if all_stresses else 1.0
+        norm = mcolors.Normalize(vmin=0, vmax=max_stress)
+        cmap = plt.cm.get_cmap('jet')
+
+        for ele_tag, (n1_tag, n2_tag, n3_tag, n4_tag) in all_shell_elements.items():
+            n1, n2, n3, n4 = (node_coords.get(t) for t in [n1_tag, n2_tag, n3_tag, n4_tag])
+            if not all((n1, n2, n3, n4)): continue
+
+            # 쉘이 선택된 Z-평면에 있는지 확인
+            if any(abs(n[2] - target_z) < z_tolerance for n in [n1, n2, n3, n4]):
+                try:
+                    # 쉘 요소의 평균 주 압축 응력 계산
+                    sxx_avg = np.mean([wall_force_final[f'Ele{ele_tag}_GP{gp}_s11'].values[0] for gp in range(1, 5)])
+                    syy_avg = np.mean([wall_force_final[f'Ele{ele_tag}_GP{gp}_s22'].values[0] for gp in range(1, 5)])
+                    sxy_avg = np.mean([wall_force_final[f'Ele{ele_tag}_GP{gp}_s12'].values[0] for gp in range(1, 5)])
+                    center, radius = (sxx_avg + syy_avg) / 2, np.sqrt(((sxx_avg - syy_avg) / 2)**2 + sxy_avg**2)
+                    stress_val = -(center - radius)
+                    color = cmap(norm(stress_val))
+                    verts_2d = [[n1[0], n1[1]], [n2[0], n2[1]], [n3[0], n3[1]], [n4[0], n4[1]]]
+                    poly_2d = Polygon(verts_2d, facecolor=color, edgecolor='black', alpha=0.7, linewidth=0.5, zorder=2)
+                    ax_2d.add_patch(poly_2d)
+                except (KeyError, IndexError):
+                    # 데이터가 없는 경우 회색으로 표시
+                    verts_2d = [[n1[0], n1[1]], [n2[0], n2[1]], [n3[0], n3[1]], [n4[0], n4[1]]]
+                    poly_2d = Polygon(verts_2d, facecolor='gray', edgecolor='black', alpha=0.3, linewidth=0.5, zorder=0)
+                    ax_2d.add_patch(poly_2d)
+    else:
+        # wall_force_final 데이터가 없을 경우 기존 로직 (회색 표시)
+        for (n1_tag, n2_tag, n3_tag, n4_tag) in all_shell_elements.values():
+            n1, n2, n3, n4 = (node_coords.get(t) for t in [n1_tag, n2_tag, n3_tag, n4_tag])
+            if not all((n1, n2, n3, n4)): continue
+            if any(abs(n[2] - target_z) < z_tolerance for n in [n1, n2, n3, n4]):
+                verts_2d = [[n1[0], n1[1]], [n2[0], n2[1]], [n3[0], n3[1]], [n4[0], n4[1]]]
+                poly_2d = Polygon(verts_2d, facecolor='gray', edgecolor='black', alpha=0.3, linewidth=0.5, zorder=0)
+                ax_2d.add_patch(poly_2d)
 
     # --- 2. 소성 힌지 심볼 플로팅 ---
     ROT_IO = 0.005  # Immediate Occupancy
@@ -167,6 +222,13 @@ def plot_plastic_damage_distribution(params, model_nodes_info, final_states_dfs)
     by_label = dict(zip(labels, handles))
     if by_label:
         ax_2d.legend(by_label.values(), by_label.keys(), loc='lower right')
+
+    # 컬러바 추가
+    if wall_force_final is not None and not wall_force_final.empty and all_stresses:
+        sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+        sm.set_array([])
+        cbar = fig_2d.colorbar(sm, ax=ax_2d, orientation='vertical', fraction=0.046, pad=0.04)
+        cbar.set_label('Principal Compressive Stress (Pa)')
 
     try:
         fig_2d.savefig(path_2d, dpi=300, bbox_inches='tight')

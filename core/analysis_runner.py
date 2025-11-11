@@ -210,7 +210,10 @@ def run_pushover_analysis(params, model_nodes):
     # --- [신규] 끝 ---
 
     if all_shell_tags:
-        ops.recorder('Element', '-file', str(path_wall_forces), '-time', '-ele', *all_shell_tags, 'forces')
+        # [수정] 'forces' 대신 'material stress'와 'material strain'을 기록하여 손상 평가
+        # 콘크리트(재료 11)의 응력/변형률을 각 가우스 포인트에서 기록
+        ops.recorder('Element', '-file', str(path_wall_forces), '-time', '-ele', *all_shell_tags, 
+                     'material', '1', 'stressAndStrain')
     elif params.get('build_core', True):
         print("Warning: No shell elements found to record (build_core=True).")
     

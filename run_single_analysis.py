@@ -61,7 +61,8 @@ def main(params):
     if not run_pushover_analysis(params, model_nodes_info):
         print("\n푸쉬오버 해석 실행 중 오류 발생.")
         ops.wipe()
-        pass 
+        # pass # 해석 실패 시 조용히 넘어가는 대신, None을 반환하여 실행 중단
+        return None
 
     # 6. 푸쉬오버 결과 처리 (4개 값 반환)
     df_curve, df_disp, final_states_dfs, df_m_phi = process_pushover_results(params, model_nodes_info)
@@ -98,7 +99,7 @@ if __name__ == '__main__':
     
     # --- 1. 빠른 테스트 / 상세 해석 설정 ---
     FAST_TEST_CONFIG = True 
-    BUILD_CORE_SWITCH = False 
+    BUILD_CORE_SWITCH = False
     
     if FAST_TEST_CONFIG:
         print("--- [!] 빠른 테스트 모드 (Fast Test Mode) 활성화 ---")
@@ -106,9 +107,9 @@ if __name__ == '__main__':
             'analysis_name': 'Run_Fast_Test_3x3_Core', 
             'output_dir': Path('results/Run_Fast_Test_3x3_Core'), 
             'target_drift': 0.04, 
-            'num_steps': 500,     
+            'num_steps': 1000,     
             'num_modes': 3,       
-            'num_int_pts': 2,     
+            'num_int_pts': 5,     
             'plot_z_line_index': 1, 
             
             # Geometry
@@ -117,7 +118,7 @@ if __name__ == '__main__':
             'num_stories': 6,     
             'bay_width_x': 6.0, 
             'bay_width_z': 6.0, 
-            'story_height': 3.0,
+            'story_height': 3.5,
             
             'build_core': BUILD_CORE_SWITCH,
             

@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import numpy as np
+import matplotlib.colors as mcolors
 
 # ### 9. 모듈형 함수: 애니메이션 및 플롯 저장 ###
 def animate_and_plot_pushover(df_curve, df_disp, perf_points, params, model_nodes_info, final_states_dfs):
@@ -8,7 +9,8 @@ def animate_and_plot_pushover(df_curve, df_disp, perf_points, params, model_node
     [수정] 요청사항 반영: 1x3 플롯으로 변경 (Pushover Curve, Deformation, Plastic Hinges)
     """
     print("\nCreating pushover animation (3-panel) with plastic hinges...")
-    
+
+    from matplotlib.patches import Polygon # Polygon을 임포트합니다.
     output_dir = params['output_dir']
     analysis_name = params['analysis_name']
     
@@ -41,17 +43,19 @@ def animate_and_plot_pushover(df_curve, df_disp, perf_points, params, model_node
     try:
         node_coords = model_nodes_info['all_node_coords']
         all_line_elements = model_nodes_info['all_line_elements']
+        all_shell_elements = model_nodes_info.get('all_shell_elements', {}) # 쉘 요소 정보 로드
         
-        all_column_tags = model_nodes_info.get('all_column_tags', [])
-        all_beam_tags_type2 = model_nodes_info.get('all_beam_tags_type2', [])
-        all_beam_tags_type3 = model_nodes_info.get('all_beam_tags_type3', [])
-        
+        all_column_tags = model_nodes_info.get('all_column_tags', []) 
+        all_beam_tags_type3 = model_nodes_info.get('all_beam_tags_type3', []) 
+
+        # 힌지 및 전단벽 손상 애니메이션을 위한 전체 시간 데이터 로드
         df_col_rot = final_states_dfs.get('col_rot_df')
         df_beam_rot = final_states_dfs.get('beam_rot_df')
+        df_wall_forces = final_states_dfs.get('wall_forces_df')
         
         num_int_pts = params.get('num_int_pts', 5)
-        ip_start = 1
-        ip_end = num_int_pts
+        ip_start = 1 # 'plasticRotation'은 항상 첫번째 적분점(I단)에서 결과를 줌
+        ip_end = num_int_pts # 'plasticRotation'은 항상 마지막 적분점(J단)에서 결과를 줌
         
         ROT_IO = 0.005  # Immediate Occupancy
         ROT_LS = 0.02   # Life Safety
@@ -61,10 +65,39 @@ def animate_and_plot_pushover(df_curve, df_disp, perf_points, params, model_node
         mkr_ls = {'marker': 'D', 'color': 'orange', 'markersize': 10, 'mew': 1.0, 'mec': 'black'}
         mkr_io = {'marker': 'o', 'color': 'blue', 'markersize': 8, 'mew': 0.5, 'mec': 'black'}
 
+        # [신규] 전단벽 애니메이션을 위한 컬러맵 설정
+        wall_polygons = []
+        cmap, norm = None, None
+        if df_wall_forces is not None and not df_wall_forces.empty:
+            print("Preparing shear wall stress data for animation...")
+            all_stresses = []
+            # 전체 시간 스텝에서 최대 응력 계산
+            for _, row in df_wall_forces.iterrows():
+                for ele_tag in all_shell_elements.keys():
+                    for gp in range(1, 5):
+                        try:
+                            sxx = row[f'Ele{ele_tag}_GP{gp}_s11']
+                            syy = row[f'Ele{ele_tag}_GP{gp}_s22']
+                            sxy = row[f'Ele{ele_tag}_GP{gp}_s12']
+                            center = (sxx + syy) / 2
+                            radius = np.sqrt(((sxx - syy) / 2)**2 + sxy**2)
+                            s_principal_comp = -(center - radius)
+                            all_stresses.append(s_principal_comp)
+                        except (KeyError, IndexError):
+                            continue
+            
+            if all_stresses:
+                max_stress = max(all_stresses)
+                norm = mcolors.Normalize(vmin=0, vmax=max_stress if max_stress > 0 else 1.0)
+                cmap = plt.cm.get_cmap('jet')
+            else:
+                df_wall_forces = None # 유효한 응력 데이터가 없으면 비활성화
+
     except Exception as e:
         print(f"Warning: Cannot load data for hinge animation: {e}")
         df_col_rot = None
         df_beam_rot = None
+        df_wall_forces = None
 
     # --- 3. 플롯 설정 (1x3) ---
     fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(22, 7), gridspec_kw={'width_ratios': [1, 0.8, 1]})
@@ -120,6 +153,19 @@ def animate_and_plot_pushover(df_curve, df_disp, perf_points, params, model_node
             if abs(n_i[2] - target_z) < z_tolerance and abs(n_j[2] - target_z) < z_tolerance:
                 ax3.plot([n_i[0], n_j[0]], [n_i[1], n_j[1]], '-', color='black', linewidth=1, zorder=1)
 
+    # [개선] ax3 배경에 쉘 요소(전단벽) 플로팅 및 Polygon 객체 저장
+    if all_shell_elements:
+        for ele_tag, (n1_tag, n2_tag, n3_tag, n4_tag) in all_shell_elements.items():
+            n1, n2, n3, n4 = (node_coords.get(t) for t in [n1_tag, n2_tag, n3_tag, n4_tag])
+            
+            if n1 and n2 and n3 and n4 and any(abs(n[2] - target_z) < z_tolerance for n in [n1, n2, n3, n4]):
+                verts_2d = [[n1[0], n1[1]], [n2[0], n2[1]], [n3[0], n3[1]], [n4[0], n4[1]]]
+                # 초기 색상은 회색, 나중에 animate 함수에서 업데이트
+                poly_2d = Polygon(verts_2d, facecolor='gray', edgecolor='black', alpha=0.7, linewidth=0.5, zorder=2)
+                ax3.add_patch(poly_2d)
+                # 나중에 참조할 수 있도록 태그와 함께 저장
+                wall_polygons.append({'tag': ele_tag, 'patch': poly_2d})
+    
     # ax3 힌지 아티스트 정의
     hinge_io_plot_ax3, = ax3.plot([], [], **mkr_io, linestyle='None', zorder=8)
     hinge_ls_plot_ax3, = ax3.plot([], [], **mkr_ls, linestyle='None', zorder=9)
@@ -140,10 +186,14 @@ def animate_and_plot_pushover(df_curve, df_disp, perf_points, params, model_node
         hinge_io_plot_ax3.set_data([], [])
         hinge_ls_plot_ax3.set_data([], [])
         hinge_cp_plot_ax3.set_data([], [])
+        
+        # 전단벽 색상 초기화
+        for poly_info in wall_polygons:
+            poly_info['patch'].set_facecolor('gray')
 
         return (line, point, structure_line, time_text_ax2, time_text_ax3, yield_point_artist, 
                 peak_point_artist, collapse_line_artist, 
-                hinge_io_plot_ax3, hinge_ls_plot_ax3, hinge_cp_plot_ax3)
+                hinge_io_plot_ax3, hinge_ls_plot_ax3, hinge_cp_plot_ax3) + tuple(p['patch'] for p in wall_polygons)
 
     def animate(i):
         current_index = i * step_size
@@ -225,14 +275,34 @@ def animate_and_plot_pushover(df_curve, df_disp, perf_points, params, model_node
                         elif theta_p >= ROT_IO:
                             io_x_ax3.append(loc_coords[0]); io_y_ax3.append(loc_coords[1])
                 except KeyError: continue
-        
+
+        # [신규] 전단벽 색상 업데이트
+        if df_wall_forces is not None and cmap is not None:
+            current_wall_force_step = df_wall_forces.iloc[current_index]
+            for poly_info in wall_polygons:
+                ele_tag = poly_info['tag']
+                patch = poly_info['patch']
+                try:
+                    # 쉘 요소의 평균 주 압축 응력 계산
+                    sxx_avg = np.mean([current_wall_force_step[f'Ele{ele_tag}_GP{gp}_s11'] for gp in range(1, 5)])
+                    syy_avg = np.mean([current_wall_force_step[f'Ele{ele_tag}_GP{gp}_s22'] for gp in range(1, 5)])
+                    sxy_avg = np.mean([current_wall_force_step[f'Ele{ele_tag}_GP{gp}_s12'] for gp in range(1, 5)])
+                    center, radius = (sxx_avg + syy_avg) / 2, np.sqrt(((sxx_avg - syy_avg) / 2)**2 + sxy_avg**2)
+                    stress_val = -(center - radius)
+                    color = cmap(norm(stress_val))
+                    patch.set_facecolor(color)
+                except (KeyError, IndexError):
+                    patch.set_facecolor('lightgrey') # 데이터 없으면 밝은 회색
+
         hinge_io_plot_ax3.set_data(io_x_ax3, io_y_ax3)
         hinge_ls_plot_ax3.set_data(ls_x_ax3, ls_y_ax3)
         hinge_cp_plot_ax3.set_data(cp_x_ax3, cp_y_ax3)
         
         # 4-4. 성능점 표시 (ax1)
         if perf_points.get('yield_disp', 0) > 0 and current_roof_disp >= perf_points['yield_disp']:
-            yield_point_artist.set_data([perf_points['yield_disp']], [perf_points['yield_shear'] / 1000])
+            # [수정] perf_points의 'yield_shear'는 N 단위이므로 kN으로 변환
+            yield_shear_kn = perf_points.get('yield_shear', 0) / 1000
+            yield_point_artist.set_data([perf_points['yield_disp']], [yield_shear_kn])
         if perf_points.get('peak_disp', 0) > 0 and current_roof_disp >= perf_points['peak_disp']:
             peak_point_artist.set_data([perf_points['peak_disp']], [perf_points['peak_shear'] / 1000])
         if perf_points.get('collapse_disp') is not None and current_roof_disp >= perf_points['collapse_disp']:
@@ -240,7 +310,7 @@ def animate_and_plot_pushover(df_curve, df_disp, perf_points, params, model_node
         
         return (line, point, structure_line, time_text_ax2, time_text_ax3, yield_point_artist, 
                 peak_point_artist, collapse_line_artist, 
-                hinge_io_plot_ax3, hinge_ls_plot_ax3, hinge_cp_plot_ax3)
+                hinge_io_plot_ax3, hinge_ls_plot_ax3, hinge_cp_plot_ax3) + tuple(p['patch'] for p in wall_polygons)
 
     # --- 5. 저장: 애니메이션 (MP4) ---
     anim = animation.FuncAnimation(fig, animate, init_func=init,
@@ -265,6 +335,13 @@ def animate_and_plot_pushover(df_curve, df_disp, perf_points, params, model_node
         animate(last_frame_index) 
         
         line.set_data(x_data_roof, y_data_shear) 
+
+        # [신규] 최종 플롯에 컬러바 추가
+        if df_wall_forces is not None and cmap is not None:
+            sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+            sm.set_array([])
+            cbar = fig.colorbar(sm, ax=ax3, orientation='vertical', fraction=0.08, pad=0.04)
+            cbar.set_label('Principal Compressive Stress (Pa)')
 
         fig.savefig(static_image_path, dpi=300, bbox_inches='tight')
         print(f"\nFinal static pushover plot (3-panel) saved to: {static_image_path}")
