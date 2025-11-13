@@ -3,13 +3,14 @@ import pandas as pd
 import traceback
 
 # ### 6. 모듈형 함수: 결과 처리 및 CSV 저장 ###
-def process_pushover_results(params, model_nodes):
+def process_pushover_results(params, model_nodes, direction='X'):
     """
     Pushover 해석으로 생성된 .out 파일들을 읽어 CSV로 변환 및 저장합니다.
     [수정] M-Phi 레코더의 열 개수(13->9) 및 인덱스(6,11 -> 2,5)를 수정합니다.
     [수정] 애니메이션을 위해 df_disp와 '전체 부재 데이터 DataFrame'을 반환합니다.
+    [신규] 'direction' 파라미터를 추가하여 방향별 결과 파일을 처리합니다.
     """
-    print("\nProcessing results and exporting to CSV...")
+    print(f"\nProcessing results for {direction}-direction and exporting to CSV...")
     df_disp = None 
     df_pushover_curve = None
     df_m_phi = None
@@ -20,27 +21,31 @@ def process_pushover_results(params, model_nodes):
         analysis_name = params['analysis_name']
         
         # --- 6-1. 푸쉬오버 곡선 (Roof Disp vs Base Shear) ---
-        path_disp = output_dir / f"{analysis_name}_all_floor_disp.out"
-        path_base = output_dir / f"{analysis_name}_base_shear.out"
+        path_disp = output_dir / f"{analysis_name}_all_floor_disp_{direction}.out"
+        path_base = output_dir / f"{analysis_name}_base_shear_{direction}.out"
 
         if not path_disp.exists() or not path_base.exists():
-            print(f"Error: Recorder files missing. Cannot process results.")
+            print(f"Error: Recorder files missing for {direction}-direction. Cannot process results.")
             return None, None, None, None
             
         roof_disp_data = np.loadtxt(path_disp)
         base_shear_data = np.loadtxt(path_base)
         
         if roof_disp_data.size == 0 or base_shear_data.size == 0:
-            print("Warning: Recorder files are empty. Analysis may have failed immediately.")
+            print(f"Warning: Recorder files for {direction}-direction are empty. Analysis may have failed immediately.")
             return None, None, None, None
             
         master_nodes = model_nodes['master_nodes']
         num_stories = len(master_nodes)
         
+        # Determine the correct displacement column based on direction
+        disp_col_name = f'Floor{num_stories}_Disp{direction}'
+        
         if roof_disp_data.ndim == 1: roof_disp_data = roof_disp_data.reshape(-1, 1 + num_stories)
         if base_shear_data.ndim == 1: base_shear_data = base_shear_data.reshape(-1, 1 + len(model_nodes['base_nodes']))
 
-        disp_cols = ['Time'] + [f'Floor{i+1}_DispX' for i in range(num_stories)]
+        # Adjust column names based on direction
+        disp_cols = ['Time'] + [f'Floor{i+1}_Disp{direction}' for i in range(num_stories)]
         df_disp = pd.DataFrame(roof_disp_data, columns=disp_cols)
         
         base_nodes = model_nodes['base_nodes']
@@ -48,7 +53,7 @@ def process_pushover_results(params, model_nodes):
         base_cols = ['Time'] + [f'BaseReaction_Node{tag}' for tag in base_node_tags]
         df_base_reactions = pd.DataFrame(base_shear_data, columns=base_cols)
         
-        roof_disp = df_disp[f'Floor{num_stories}_DispX'].values
+        roof_disp = df_disp[disp_col_name].values
         base_shear_total = -df_base_reactions.iloc[:, 1:].sum(axis=1).values
         
         df_pushover_curve = pd.DataFrame({
@@ -57,7 +62,7 @@ def process_pushover_results(params, model_nodes):
             'Pseudo_Time': df_disp['Time'].values
         })
         
-        csv_path_curve = output_dir / f"{analysis_name}_pushover_curve.csv"
+        csv_path_curve = output_dir / f"{analysis_name}_pushover_curve_{direction}.csv"
         df_pushover_curve.to_csv(csv_path_curve, index=False, float_format='%.6f')
         print(f"Pushover curve data saved to: {csv_path_curve}")
 
@@ -67,6 +72,8 @@ def process_pushover_results(params, model_nodes):
 
         
         # --- 6-2. 전단벽 내력(Forces) (모든 쉘) ---
+        # Note: Wall forces are typically not direction-specific in their recorder output names,
+        # but if they were, this would need adjustment. For now, assuming generic.
         path_wall_forces = output_dir / f"{analysis_name}_all_wall_forces.out"
         all_shell_tags = model_nodes.get('all_shell_tags', [])
         if path_wall_forces.exists() and all_shell_tags:
@@ -95,7 +102,7 @@ def process_pushover_results(params, model_nodes):
         
 
         # --- 6-3. 기둥 소성회전 (모든 기둥) ---
-        path_col_rot = output_dir / f"{analysis_name}_all_col_plastic_rotation.out"
+        path_col_rot = output_dir / f"{analysis_name}_all_col_plastic_rotation_{direction}.out"
         all_column_tags = model_nodes.get('all_column_tags', [])
         if path_col_rot.exists() and all_column_tags:
             try:
@@ -111,7 +118,7 @@ def process_pushover_results(params, model_nodes):
                         
                 if col_rot_data.ndim > 1 and col_rot_data.shape[1] == len(headers):
                     df_col_rot = pd.DataFrame(col_rot_data, columns=headers).head(num_valid_steps) # 길이 맞춤
-                    csv_path_rot = output_dir / f"{analysis_name}_all_col_plastic_rotation.csv"
+                    csv_path_rot = output_dir / f"{analysis_name}_all_col_plastic_rotation_{direction}.csv"
                     df_col_rot.to_csv(csv_path_rot, index=False, float_format='%.6e')
                     print(f"Column plastic rotation data saved to: {csv_path_rot}")
                     full_element_state_dfs['col_rot_df'] = df_col_rot 
@@ -121,7 +128,7 @@ def process_pushover_results(params, model_nodes):
         else: print("Skipping column plastic rotation processing (no file or no elements).")
         
         # --- 6-4. 보 소성회전 (모든 보) ---
-        path_beam_rot = output_dir / f"{analysis_name}_all_beam_plastic_rotation.out"
+        path_beam_rot = output_dir / f"{analysis_name}_all_beam_plastic_rotation_{direction}.out"
         all_beam_tags = model_nodes.get('all_beam_tags', [])
         if path_beam_rot.exists() and all_beam_tags:
             try:
@@ -137,7 +144,7 @@ def process_pushover_results(params, model_nodes):
 
                 if beam_rot_data.ndim > 1 and beam_rot_data.shape[1] == len(headers):
                     df_beam_rot = pd.DataFrame(beam_rot_data, columns=headers).head(num_valid_steps) # 길이 맞춤
-                    csv_path_rot = output_dir / f"{analysis_name}_all_beam_plastic_rotation.csv"
+                    csv_path_rot = output_dir / f"{analysis_name}_all_beam_plastic_rotation_{direction}.csv"
                     df_beam_rot.to_csv(csv_path_rot, index=False, float_format='%.6e')
                     print(f"Beam plastic rotation data saved to: {csv_path_rot}")
                     full_element_state_dfs['beam_rot_df'] = df_beam_rot 
@@ -149,7 +156,7 @@ def process_pushover_results(params, model_nodes):
             print("Skipping beam plastic rotation processing (no file or no elements).")
 
         # --- 6-5. 기둥 내력 (모든 기둥) ---
-        path_col_forces = output_dir / f"{analysis_name}_all_col_forces.out"
+        path_col_forces = output_dir / f"{analysis_name}_all_col_forces_{direction}.out"
         if path_col_forces.exists() and all_column_tags:
             try:
                 col_forces_data = np.loadtxt(path_col_forces)
@@ -158,7 +165,7 @@ def process_pushover_results(params, model_nodes):
                 for ele_tag in all_column_tags: headers.extend([f'Ele{ele_tag}_I_P', f'Ele{ele_tag}_I_Vy', f'Ele{ele_tag}_I_Vz', f'Ele{ele_tag}_I_T', f'Ele{ele_tag}_I_My', f'Ele{ele_tag}_I_Mz', f'Ele{ele_tag}_J_P', f'Ele{ele_tag}_J_Vy', f'Ele{ele_tag}_J_Vz', f'Ele{ele_tag}_J_T', f'Ele{ele_tag}_J_My', f'Ele{ele_tag}_J_Mz'])
                 if col_forces_data.ndim > 1 and col_forces_data.shape[1] == len(headers):
                     df_col_forces = pd.DataFrame(col_forces_data, columns=headers).head(num_valid_steps) # 길이 맞춤
-                    csv_path_forces = output_dir / f"{analysis_name}_all_col_forces.csv"
+                    csv_path_forces = output_dir / f"{analysis_name}_all_col_forces_{direction}.csv"
                     df_col_forces.to_csv(csv_path_forces, index=False, float_format='%.6e')
                     print(f"Column element forces data saved to: {csv_path_forces}")
                     full_element_state_dfs['col_forces_df'] = df_col_forces 
@@ -168,7 +175,7 @@ def process_pushover_results(params, model_nodes):
         else: print("Skipping column force processing (no file or no elements).")
         
         # --- [수정] 6-6. M-Phi (모멘트-곡률) 관계 ---
-        path_m_phi = output_dir / f"{analysis_name}_M_phi_target_ele.out"
+        path_m_phi = output_dir / f"{analysis_name}_M_phi_target_ele_{direction}.out"
         if path_m_phi.exists():
             try:
                 m_phi_data = np.loadtxt(path_m_phi)
@@ -182,7 +189,7 @@ def process_pushover_results(params, model_nodes):
                         'Moment_My_N-m': m_phi_data[:, 3], 
                         'Curvature_phi_y_rad/m': m_phi_data[:, 6] 
                     }).head(num_valid_steps) # 길이 맞춤
-                    csv_path_m_phi = output_dir / f"{analysis_name}_M_phi_target_ele.csv"
+                    csv_path_m_phi = output_dir / f"{analysis_name}_M_phi_target_ele_{direction}.csv"
                     df_m_phi.to_csv(csv_path_m_phi, index=False, float_format='%.6e')
                     print(f"Target Moment-Curvature data saved to: {csv_path_m_phi}")
                 else:

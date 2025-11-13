@@ -56,9 +56,9 @@ def run_gravity_analysis(params):
     return True
 
 # ### 4. 모듈형 함수: 고유치 해석 ###
-def run_eigen_analysis(params):
+def run_eigen_analysis(params, model_nodes):
     """
-    고유치 해석을 수행하고 주기를 출력합니다.
+    고유치 해석을 수행하고, X, Z 방향의 최종 누적 질량 참여율을 반환합니다.
     """
     print("\nRunning Eigenvalue Analysis...")
     num_modes = params['num_modes']
@@ -72,11 +72,11 @@ def run_eigen_analysis(params):
             eigenvalues = ops.eigen('-fullGenLapack', num_modes)
         except Exception as e2:
             print(f"Eigenvalue analysis failed again. Error: {e2}")
-            return False
+            return False, 0.0, 0.0
     
     if not eigenvalues or len(eigenvalues) == 0:
         print("Eigenvalue analysis failed to return values.")
-        return False
+        return False, 0.0, 0.0
 
     periods = []
     for val in eigenvalues:
@@ -85,83 +85,117 @@ def run_eigen_analysis(params):
         else:
             periods.append(float('inf')) # 0 또는 음의 고유치
 
-    print(f"Eigenvalues: {eigenvalues}")
     print(f"Periods (T1-T{num_modes}): {periods}")
     
-    print("\nModal Properties (Mass Participation Ratios):")
-    try:
-        ops.modalProperties('-print')
-    except Exception as e:
-        print(f"Could not print modal properties: {e}")
-    
-    return True
-
-# ### 5. 모듈형 함수: 푸쉬오버 해석 실행 ###
-def run_pushover_analysis(params, model_nodes):
-    """
-    푸쉬오버 해석을 실행하고 .out 레코더 파일을 생성합니다.
-    [수정] 모든 기둥/보의 'plasticRotation'과 모든 쉘의 'forces'를 기록하도록 변경합니다.
-    [수정] X방향 질량참여율이 가장 높은 모드를 찾아 해당 모드 형상으로 하중을 가력합니다.
-    [신규] M-Phi 관계를 기록하기 위한 특정 요소 레코더를 추가합니다.
-    """
-    print("\nStarting Pushover Analysis...")
-    
-    # --- [수정] 1. X방향 지배 모드 탐색 ---
-    print("Finding dominant mode in X-direction (DOF 1)...")
+    # [신규] 누적 질량 참여율 계산
     master_nodes = model_nodes['master_nodes']
-    num_modes = params['num_modes']
-    
-    best_mode = -1
-    max_mpr_x = 0.0
-    
-    total_mass = [0,0,0,0,0,0]
+    total_mass_x = 0.0
+    total_mass_z = 0.0
     for node_tag in master_nodes:
-        mass = ops.nodeMass(node_tag) 
+        mass = ops.nodeMass(node_tag)
         if mass:
-            total_mass[0] += mass[0] # m_x
-            
-    if total_mass[0] < 1e-9:
-        print("Error: Total mass in X-direction is zero.")
-        return False
+            total_mass_x += mass[0]
+            total_mass_z += mass[2]
 
-    modal_mpr_x = [] 
+    if total_mass_x < 1e-9 or total_mass_z < 1e-9:
+        print("Error: Total mass is zero in one or more directions.")
+        return False, 0.0, 0.0
+
+    cumulative_mpr_x = 0.0
+    cumulative_mpr_z = 0.0
+    
     for i in range(1, num_modes + 1):
-        L_x = 0.0
-        M_phi_x = 0.0
+        L_x, M_phi_x = 0.0, 0.0
+        L_z, M_phi_z = 0.0, 0.0
         for node_tag in master_nodes:
             vec = ops.nodeEigenvector(node_tag, i)
             mass = ops.nodeMass(node_tag)
             if vec and mass:
-                phi_x = vec[0] 
-                m_x = mass[0]
+                phi_x, phi_z = vec[0], vec[2]
+                m_x, m_z = mass[0], mass[2]
                 L_x += m_x * phi_x
                 M_phi_x += m_x * phi_x * phi_x
-        if M_phi_x > 1e-9: 
-            mpr_x = (L_x * L_x) / (M_phi_x * total_mass[0])
-            modal_mpr_x.append(mpr_x)
-            if mpr_x > max_mpr_x:
-                max_mpr_x = mpr_x
+                L_z += m_z * phi_z
+                M_phi_z += m_z * phi_z * phi_z
+        
+        if M_phi_x > 1e-9:
+            mpr_x = (L_x * L_x) / (M_phi_x * total_mass_x)
+            cumulative_mpr_x += mpr_x
+        if M_phi_z > 1e-9:
+            mpr_z = (L_z * L_z) / (M_phi_z * total_mass_z)
+            cumulative_mpr_z += mpr_z
+
+    print(f"Cumulative Mass Participation Ratio X: {cumulative_mpr_x*100:.2f}%")
+    print(f"Cumulative Mass Participation Ratio Z: {cumulative_mpr_z*100:.2f}%")
+
+    return True, cumulative_mpr_x, cumulative_mpr_z
+
+def run_pushover_analysis(params, model_nodes, direction='X'):
+    """
+    푸쉬오버 해석을 실행하고 .out 레코더 파일을 생성합니다.
+    [수정] 'direction' 파라미터를 추가하여 X축 또는 Z축 해석을 지원합니다.
+    """
+    print(f"\nStarting Pushover Analysis for direction: {direction}...")
+
+    # --- 1. 방향에 따른 변수 설정 ---
+    if direction == 'X':
+        dof = 1
+        mass_idx = 0
+        eigen_idx = 0
+    elif direction == 'Z':
+        dof = 3
+        mass_idx = 2
+        eigen_idx = 2
+    else:
+        print(f"Error: Invalid direction '{direction}'. Must be 'X' or 'Z'.")
+        return False
+
+    # --- 2. 해당 방향의 지배 모드 탐색 ---
+    print(f"Finding dominant mode in {direction}-direction (DOF {dof})...")
+    master_nodes = model_nodes['master_nodes']
+    num_modes = params['num_modes']
+    
+    best_mode = -1
+    max_mpr = 0.0
+    
+    total_mass_in_dof = sum(ops.nodeMass(node_tag)[mass_idx] for node_tag in master_nodes if ops.nodeMass(node_tag))
+            
+    if total_mass_in_dof < 1e-9:
+        print(f"Error: Total mass in {direction}-direction is zero.")
+        return False
+
+    modal_mprs = []
+    for i in range(1, num_modes + 1):
+        L, M_phi = 0.0, 0.0
+        for node_tag in master_nodes:
+            vec = ops.nodeEigenvector(node_tag, i)
+            mass = ops.nodeMass(node_tag)
+            if vec and mass:
+                phi = vec[eigen_idx] 
+                m = mass[mass_idx]
+                L += m * phi
+                M_phi += m * phi * phi
+        if M_phi > 1e-9: 
+            mpr = (L * L) / (M_phi * total_mass_in_dof)
+            modal_mprs.append(mpr)
+            if mpr > max_mpr:
+                max_mpr = mpr
                 best_mode = i
         else:
-            modal_mpr_x.append(0.0)
+            modal_mprs.append(0.0)
 
     if best_mode == -1:
         print("Error: Could not find a valid dominant mode. Defaulting to mode 1.")
         best_mode = 1
     
-    print(f"Dominant X-Mode Found: Mode {best_mode} (MPR_X = {max_mpr_x*100:.2f}%)")
-    print(f"X-Dir MPRs (Mode 1~{num_modes}): {[f'{m*100:.1f}%' for m in modal_mpr_x]}")
+    print(f"Dominant {direction}-Mode Found: Mode {best_mode} (MPR_{direction} = {max_mpr*100:.2f}%)")
+    print(f"{direction}-Dir MPRs (Mode 1~{num_modes}): {[f'{m*100:.1f}%' for m in modal_mprs]}")
 
-    # --- [수정] 2. 모드 기반 하중 계산 (찾아낸 'best_mode' 사용) ---
-    phi_x_vec = []
-    floor_masses = []
-    for node_tag in master_nodes:
-        eigenvector = ops.nodeEigenvector(node_tag, best_mode) 
-        phi_x_vec.append(eigenvector[0] if eigenvector else 0.0)
-        mass = ops.nodeMass(node_tag)
-        floor_masses.append(mass[0] if mass else 0.0)
+    # --- 3. 모드 기반 하중 계산 ---
+    phi_vec = [ops.nodeEigenvector(node, best_mode)[eigen_idx] if ops.nodeEigenvector(node, best_mode) else 0.0 for node in master_nodes]
+    floor_masses = [ops.nodeMass(node)[mass_idx] if ops.nodeMass(node) else 0.0 for node in master_nodes]
 
-    force_dist = [m * phi for m, phi in zip(floor_masses, phi_x_vec)]
+    force_dist = [m * phi for m, phi in zip(floor_masses, phi_vec)]
     if not force_dist or sum(abs(f) for f in force_dist) < 1e-9:
         print("Warning: Dominant mode shape is zero or invalid. Using mass-proportional load.")
         total_mass_sum = sum(floor_masses)
@@ -175,13 +209,15 @@ def run_pushover_analysis(params, model_nodes):
         
     print(f"Pushover Force Ratios (based on Mode {best_mode}): {force_ratios}")
 
-    # --- 3. 푸쉬오버 하중 패턴 적용 ---
+    # --- 4. 푸쉬오버 하중 패턴 적용 ---
     ops.pattern('Plain', 2, 1)
+    load_vec = [0.0] * 6
     for i, node_tag in enumerate(master_nodes):
         if i < len(force_ratios):
-            ops.load(node_tag, force_ratios[i], 0.0, 0.0, 0.0, 0.0, 0.0)
+            load_vec[dof-1] = force_ratios[i]
+            ops.load(node_tag, *load_vec)
 
-    # --- 4. 레코더 설정 ---
+    # --- 5. 레코더 설정 (방향에 따라 파일명 변경) ---
     output_dir = params['output_dir']
     analysis_name = params['analysis_name']
     
@@ -190,61 +226,34 @@ def run_pushover_analysis(params, model_nodes):
     
     all_column_tags = model_nodes.get('all_column_tags', [])
     all_beam_tags = model_nodes.get('all_beam_tags', [])
-    all_shell_tags = model_nodes.get('all_shell_tags', [])
     
-    path_disp = output_dir / f"{analysis_name}_all_floor_disp.out"
-    path_base = output_dir / f"{analysis_name}_base_shear.out"
-    path_wall_forces = output_dir / f"{analysis_name}_all_wall_forces.out"
-    path_col_rot = output_dir / f"{analysis_name}_all_col_plastic_rotation.out"
-    path_beam_rot = output_dir / f"{analysis_name}_all_beam_plastic_rotation.out"
-    path_col_forces = output_dir / f"{analysis_name}_all_col_forces.out"
-    
-    # --- [신규] M-Phi 관계 레코더 ---
-    path_m_phi = output_dir / f"{analysis_name}_M_phi_target_ele.out"
-    if all_column_tags:
-        target_element_for_Mphi = all_column_tags[0] # 1층 첫번째 기둥
-        ops.recorder('Element', '-file', str(path_m_phi), '-time', 
-                     '-ele', target_element_for_Mphi, 
-                     'section', 1, 'forceAndDeformation')
-        print(f"Recording Moment-Curvature for target element: {target_element_for_Mphi} at IP 1")
-    # --- [신규] 끝 ---
+    # 파일명에 방향 추가
+    path_disp = output_dir / f"{analysis_name}_all_floor_disp_{direction}.out"
+    path_base = output_dir / f"{analysis_name}_base_shear_{direction}.out"
+    path_col_rot = output_dir / f"{analysis_name}_all_col_plastic_rotation_{direction}.out"
+    path_beam_rot = output_dir / f"{analysis_name}_all_beam_plastic_rotation_{direction}.out"
+    path_col_forces = output_dir / f"{analysis_name}_all_col_forces_{direction}.out"
+    path_m_phi = output_dir / f"{analysis_name}_M_phi_target_ele_{direction}.out"
 
-    if all_shell_tags:
-        # [수정] 'forces' 대신 'material stress'와 'material strain'을 기록하여 손상 평가
-        # 콘크리트(재료 11)의 응력/변형률을 각 가우스 포인트에서 기록
-        ops.recorder('Element', '-file', str(path_wall_forces), '-time', '-ele', *all_shell_tags, 
-                     'material', '1', 'stressAndStrain')
-    elif params.get('build_core', True):
-        print("Warning: No shell elements found to record (build_core=True).")
+    if all_column_tags:
+        target_element_for_Mphi = all_column_tags[0]
+        ops.recorder('Element', '-file', str(path_m_phi), '-time', '-ele', target_element_for_Mphi, 'section', 1, 'forceAndDeformation')
     
-    ops.recorder('Node', '-file', str(path_disp), '-time', '-node', *master_nodes, '-dof', 1, 'disp')
+    ops.recorder('Node', '-file', str(path_disp), '-time', '-node', *master_nodes, '-dof', dof, 'disp')
     
     if base_nodes:
-        ops.recorder('Node', '-file', str(path_base), '-time', '-node', *base_nodes, '-dof', 1, 'reaction')
+        ops.recorder('Node', '-file', str(path_base), '-time', '-node', *base_nodes, '-dof', dof, 'reaction')
     else:
         print("Error: No base nodes found to record base shear.")
         return False
         
     if all_column_tags:
-        ops.recorder('Element', '-file', str(path_col_rot), '-time', 
-                     '-ele', *all_column_tags, 
-                     'plasticRotation')
-        ops.recorder('Element', '-file', str(path_col_forces), '-time', 
-                     '-ele', *all_column_tags, 
-                     'force')
-    else:
-        print("Warning: No column elements found to record.")
-
+        ops.recorder('Element', '-file', str(path_col_rot), '-time', '-ele', *all_column_tags, 'plasticRotation')
+        ops.recorder('Element', '-file', str(path_col_forces), '-time', '-ele', *all_column_tags, 'force')
     if all_beam_tags:
-        ops.recorder('Element', '-file', str(path_beam_rot), '-time',
-                     '-ele', *all_beam_tags,
-                     'plasticRotation')
-    else:
-        print("Warning: No beam elements found to record.")
+        ops.recorder('Element', '-file', str(path_beam_rot), '-time', '-ele', *all_beam_tags, 'plasticRotation')
 
-
-    # --- 5. 변위 제어 해석 실행 ---
-    control_dof = 1
+    # --- 6. 변위 제어 해석 실행 ---
     target_disp = (params['story_height'] * params['num_stories']) * params['target_drift'] 
     num_steps = params['num_steps'] 
     
@@ -254,7 +263,7 @@ def run_pushover_analysis(params, model_nodes):
         
     displacement_increment = target_disp / num_steps 
     
-    ops.integrator('DisplacementControl', control_node, control_dof, displacement_increment)
+    ops.integrator('DisplacementControl', control_node, dof, displacement_increment)
     ops.numberer('RCM')
     ops.system('BandGeneral')
     
@@ -295,7 +304,7 @@ def run_pushover_analysis(params, model_nodes):
         
         if (i+1) % print_freq == 0 or (i+1) == num_steps:
             try:
-                current_disp = ops.nodeDisp(control_node, control_dof)
+                current_disp = ops.nodeDisp(control_node, dof)
                 print(f"Step {i+1}/{params['num_steps']} complete. Current Disp: {current_disp:.4f} m")
             except Exception:
                 print(f"Step {i+1}/{params['num_steps']} complete. (Could not get disp)")

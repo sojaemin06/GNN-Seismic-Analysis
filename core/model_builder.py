@@ -94,16 +94,28 @@ def build_model(params):
     E_conc = (4700 * math.sqrt(f_c_mpa)) * 1e6 # Pa
     Fy = params['Fy']; E_steel = params['E_steel']
     G_conc = E_conc / (2 * (1 + 0.2)) # 전단 탄성 계수
+
+    # [수정] 평가요령에 따른 기대강도(Expected Strength) 적용
+    # fck > 21MPa and fck <= 40MPa 이므로 보정계수 1.1 적용
+    # Fy >= 400MPa and Fy < 500MPa 이므로 보정계수 1.1 적용
+    fce = fc * 1.1
+    fye = Fy * 1.1
     
-    ops.uniaxialMaterial('Concrete04', 1, fc, -0.002, -0.004, E_conc, -0.1 * fc, 0.1) # 비구속
-    ops.uniaxialMaterial('Concrete04', 2, fc * 1.3, -0.003, -0.02, E_conc, -0.1 * (fc * 1.3), 0.1) # 구속
-    ops.uniaxialMaterial('Steel02', 3, Fy, E_steel, 0.01, 18, 0.925, 0.15)
+    ops.uniaxialMaterial('Concrete04', 1, fce, -0.002, -0.004, E_conc, -0.1 * fce, 0.1) # 비구속
+    ops.uniaxialMaterial('Concrete04', 2, fce * 1.3, -0.003, -0.02, E_conc, -0.1 * (fce * 1.3), 0.1) # 구속
+    ops.uniaxialMaterial('Steel02', 3, fye, E_steel, 0.01, 18, 0.925, 0.15)
     ops.uniaxialMaterial('Elastic', 4, G_conc) # 비틀림 (Torsion)
 
     # --- 섬유 단면 (Fiber Sections) ---
+    # [수정] 파라미터화된 단면 속성 가져오기
     col_width = params['col_dims'][0]; col_depth = params['col_dims'][1]
     beam_width = params['beam_dims'][0]; beam_depth = params['beam_dims'][1]
-    cover = params['cover']; As = params['rebar_Area']
+    cover = params['cover']; As = params['rebar_Area'] # generate_dataset.py와 키 이름 일치
+    num_bars_col_x = params['num_bars_x']
+    num_bars_col_z = params['num_bars_z']
+    num_bars_beam_top = params['num_bars_top']
+    num_bars_beam_bot = params['num_bars_bot']
+
     core_fib_y = 10; core_fib_z = 10; cover_layers = 1
     total_fib_y = core_fib_y + (2 * cover_layers); total_fib_z = core_fib_z + (2 * cover_layers)
     
@@ -111,19 +123,31 @@ def build_model(params):
     y_core = col_depth/2.0 - cover; z_core = col_width/2.0 - cover
     ops.patch('rect', 1, total_fib_y, total_fib_z, -col_depth/2.0, -col_width/2.0, col_depth/2.0, col_width/2.0)
     ops.patch('rect', 2, core_fib_y, core_fib_z, -y_core, -z_core, y_core, z_core)
-    ops.layer('straight', 3, 3, As, -y_core, -z_core, -y_core, z_core); ops.layer('straight', 3, 3, As, y_core, -z_core, y_core, z_core)
-    ops.layer('straight', 3, 3, As, -y_core, z_core, y_core, z_core); ops.layer('straight', 3, 3, As, -y_core, -z_core, y_core, -z_core)
+    
+    # [수정] 기둥 철근 배근을 파라미터화 (기존 버그 수정 포함)
+    # Note: 이 배근은 모서리 철근이 중복 계산될 수 있는 간소화된 방식입니다.
+    # y축과 평행한 면의 철근 (상부/하부 철근에 해당)
+    ops.layer('straight', 3, num_bars_col_x, As, -y_core, z_core, y_core, z_core)
+    ops.layer('straight', 3, num_bars_col_x, As, -y_core, -z_core, y_core, -z_core)
+    # z축과 평행한 면의 철근 (좌측/우측 철근에 해당, 단부 철근 제외)
+    ops.layer('straight', 3, num_bars_col_z - 2, As, -y_core, -z_core+cover, -y_core, z_core-cover)
+    ops.layer('straight', 3, num_bars_col_z - 2, As, y_core, -z_core+cover, y_core, z_core-cover)
     
     ops.section('Fiber', 102, '-torsion', 4) # 보 단면
     y_core_b = beam_depth/2.0 - cover; z_core_b = beam_width/2.0 - cover
     ops.patch('rect', 1, total_fib_y, total_fib_z, -beam_depth/2.0, -beam_width/2.0, beam_depth/2.0, beam_width/2.0)
     ops.patch('rect', 2, core_fib_y, core_fib_z, -y_core_b, -z_core_b, y_core_b, z_core_b)
-    ops.layer('straight', 3, 4, As, y_core_b, -z_core_b, y_core_b, z_core_b); ops.layer('straight', 3, 4, As, -y_core_b, -z_core_b, -y_core_b, z_core_b)
+    
+    # [수정] 보 철근 배근을 파라미터화
+    # 상부근
+    ops.layer('straight', 3, num_bars_beam_top, As, y_core_b, -z_core_b, y_core_b, z_core_b)
+    # 하부근
+    ops.layer('straight', 3, num_bars_beam_bot, As, -y_core_b, -z_core_b, -y_core_b, z_core_b)
 
     # --- 쉘 단면 (Shell Section - 전단벽) ---
     wall_thickness = params['wall_thickness']
-    ft = 0.1 * abs(fc); Gf = 10000.0; Gc = 20000.0
-    ops.nDMaterial('PlasticDamageConcretePlaneStress', 11, E_conc, 0.2, abs(fc), ft, Gc, Gf)
+    ft = 0.1 * abs(fce); Gf = 10000.0; Gc = 20000.0
+    ops.nDMaterial('PlasticDamageConcretePlaneStress', 11, E_conc, 0.2, abs(fce), ft, Gc, Gf)
     ops.nDMaterial('PlateFromPlaneStress', 111, 11, G_conc)
     ops.nDMaterial('PlateRebar', 12, 3, 0.0); ops.nDMaterial('PlateRebar', 13, 3, 90.0)
     reinf_thick = wall_thickness * params['wall_reinf_ratio']; core_thick = wall_thickness - 2 * reinf_thick

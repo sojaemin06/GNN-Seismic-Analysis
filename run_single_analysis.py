@@ -10,6 +10,7 @@ from pathlib import Path
 from core.model_builder import build_model
 from core.analysis_runner import run_gravity_analysis, run_eigen_analysis, run_pushover_analysis
 from core.post_processor import process_pushover_results, calculate_performance_points
+from core.verification import verify_nsp_applicability
 
 from visualization.plot_matplotlib import plot_model_matplotlib
 from visualization.plot_opsvis import plot_with_opsvis
@@ -18,12 +19,13 @@ from visualization.animate_results import animate_and_plot_pushover, animate_and
 # --- ---
 
 # ### 11. 메인 실행 함수 ###
-def main(params):
+def main(params, direction='X'):
     """
     전체 해석 파이프라인을 실행합니다.
     [데이터셋 생성용 수정] 
     1. 'skip_post_processing' 파라미터 추가
     2. 'perf_points'를 반환
+    [신규] 'direction' 파라미터를 추가하여 해석 방향을 지정합니다.
     """
     # 0. 출력 디렉토리 생성
     try:
@@ -52,20 +54,34 @@ def main(params):
         return None # None 반환
 
     # 4. 고유치 해석
-    if not run_eigen_analysis(params):
+    ok, mpr_x, mpr_z = run_eigen_analysis(params, model_nodes_info)
+    if not ok:
         print("\n고유치 해석 실패. Pushover 해석을 중단합니다.")
         ops.wipe()
-        return None # None 반환
+        return None, None, None, None # None 반환
+    
+    # [신규] 질량 참여율 90% 검증
+    if mpr_x < 0.9 or mpr_z < 0.9:
+        print(f"\n[Warning] 질량 참여율이 90% 미만입니다 (X: {mpr_x*100:.1f}%, Z: {mpr_z*100:.1f}%). 데이터셋에서 제외합니다.")
+        ops.wipe()
+        return None, None, None, None
+
+    # [신규] 4.5. 비선형 정적해석(Pushover) 적용 타당성 검증
+    is_nsp_valid_x, is_nsp_valid_y = verify_nsp_applicability(params, model_nodes_info)
+    if not (is_nsp_valid_x and is_nsp_valid_y):
+        print("\n[Warning] 현재 모델은 1차 모드 지배 조건을 만족하지 않습니다. 데이터셋에서 제외합니다.")
+        ops.wipe()
+        return None, None, None, None # 필요시 주석 해제
 
     # 5. 푸쉬오버 해석 실행
-    if not run_pushover_analysis(params, model_nodes_info):
+    if not run_pushover_analysis(params, model_nodes_info, direction=direction):
         print("\n푸쉬오버 해석 실행 중 오류 발생.")
         ops.wipe()
         # pass # 해석 실패 시 조용히 넘어가는 대신, None을 반환하여 실행 중단
-        return None
+        return None # None 반환
 
     # 6. 푸쉬오버 결과 처리 (4개 값 반환)
-    df_curve, df_disp, final_states_dfs, df_m_phi = process_pushover_results(params, model_nodes_info)
+    df_curve, df_disp, final_states_dfs, df_m_phi = process_pushover_results(params, model_nodes_info, direction=direction)
     
     if df_curve is None or df_disp is None or df_curve.empty or len(df_curve) < 2:
         print("\n결과 파일 처리 실패 또는 데이터 부족. 후처리를 건너뜁니다.")
@@ -91,7 +107,7 @@ def main(params):
     
     ops.wipe() # 마지막에 wipe 추가
     
-    return perf_points # 계산된 성능점 반환
+    return perf_points, model_nodes_info, df_curve, direction # 계산된 성능점, 모델 정보, 푸쉬오버 곡선, 방향 반환
 
 
 # ### 12. 메인 실행부 (Driver) ###
@@ -107,9 +123,9 @@ if __name__ == '__main__':
             'analysis_name': 'Run_Fast_Test_3x3_Core', 
             'output_dir': Path('results/Run_Fast_Test_3x3_Core'), 
             'target_drift': 0.04, 
-            'num_steps': 1000,     
-            'num_modes': 3,       
-            'num_int_pts': 5,     
+            'num_steps': 500,     
+            'num_modes': 20, # 검증을 위해 모드 수 증가      
+            'num_int_pts': 2,     
             'plot_z_line_index': 1, 
             
             # Geometry
@@ -127,6 +143,11 @@ if __name__ == '__main__':
             'num_core_bays_z': 1,      
             'num_core_bays_x': 1,
             
+            # [신규] 비선형 정적해석 검증용 파라미터
+            'seismic_zone_factor': 0.11, # 예: 지진구역 I
+            'hazard_factor': 1.0,        # 예: 재현주기 500년
+            'soil_type': 'S4',           # 예: 보통 단단한 지반
+            
             # [수정] 데이터셋 생성이 아닌 단일 실행이므로 플로팅 활성화
             'skip_post_processing': False,
         }
@@ -135,6 +156,9 @@ if __name__ == '__main__':
         print("--- [!] 상세 해석 모드 (Full Analysis Mode) 활성화 ---")
         analysis_params = {
             # ... (기존과 동일) ...
+            'seismic_zone_factor': 0.11,
+            'hazard_factor': 1.0,
+            'soil_type': 'S4',
             'skip_post_processing': False,
         }
         
@@ -152,6 +176,10 @@ if __name__ == '__main__':
         'beam_dims': (0.3, 0.5),
         'cover': 0.04,
         'rebar_Area': 0.00049,
+        'num_bars_x': 3,
+        'num_bars_z': 3,
+        'num_bars_top': 4,
+        'num_bars_bot': 4,
         'wall_thickness': 0.20,
         'wall_reinf_ratio': 0.003,
         'g': 9.81,
@@ -162,5 +190,10 @@ if __name__ == '__main__':
     # --- 3. 파라미터 결합 및 메인 함수 실행 ---
     parameters = {**analysis_params, **common_params}
     
-    # main 함수를 직접 호출
-    main(parameters)
+    # main 함수를 직접 호출 (X 방향)
+    print("\n--- Running X-direction analysis ---")
+    main(parameters, direction='X')
+    
+    # main 함수를 직접 호출 (Z 방향)
+    print("\n--- Running Z-direction analysis ---")
+    main(parameters, direction='Z')
