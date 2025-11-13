@@ -1,0 +1,6 @@
+
+(GNN) C:\Users\82105\OneDrive\Desktop\ERS\[논문작성]\SCI_GNN_pushover\GNN_Project>C:/Users/82105/OneDrive/Desktop/ERS/[논문작성]/SCI_GNN_pushover/GNN_Project/GNN/Scripts/python.exe c:/Users/82105/OneDrive/Desktop/ERS/[논문작성]/SCI_GNN_pushover/GNN_Project/gnn_code/train.py
+Traceback (most recent call last):
+  File "c:\Users\82105\OneDrive\Desktop\ERS\[논문작성]\SCI_GNN_pushover\GNN_Project\gnn_code\train.py", line 6, in <module>
+    from sklearn.model_selection import train_test_split
+ModuleNotFoundError: No module named 'sklearn'
