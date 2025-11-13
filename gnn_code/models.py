@@ -3,16 +3,14 @@ import torch.nn.functional as F
 from torch_geometric.nn import GATv2Conv, global_mean_pool
 
 class GNN_Pushover(torch.nn.Module):
-    def __init__(self, in_channels, hidden_channels, out_channels, edge_dim, heads=4):
+    def __init__(self, in_channels, hidden_channels, out_channels=200, edge_dim=10, heads=4):
         super(GNN_Pushover, self).__init__()
         self.conv1 = GATv2Conv(in_channels, hidden_channels, heads=heads, edge_dim=edge_dim)
         self.conv2 = GATv2Conv(hidden_channels * heads, hidden_channels, heads=heads, edge_dim=edge_dim)
-        self.conv3 = GATv2Conv(hidden_channels * heads, hidden_channels, heads=1, edge_dim=edge_dim)
-
-        self.pool = global_mean_pool
-
-        self.fc1 = torch.nn.Linear(hidden_channels, hidden_channels * 2)
-        self.fc2 = torch.nn.Linear(hidden_channels * 2, out_channels)
+        self.conv3 = GATv2Conv(hidden_channels * heads, hidden_channels, heads=heads, edge_dim=edge_dim)
+        
+        self.fc1 = Linear(hidden_channels * heads, hidden_channels)
+        self.fc2 = Linear(hidden_channels, out_channels)
 
     def forward(self, data):
         x, edge_index, edge_attr, batch = data.x, data.edge_index, data.edge_attr, data.batch

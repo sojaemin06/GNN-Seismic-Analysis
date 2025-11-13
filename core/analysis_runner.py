@@ -266,42 +266,49 @@ def run_pushover_analysis(params, model_nodes, direction='X'):
     ops.integrator('DisplacementControl', control_node, dof, displacement_increment)
     ops.numberer('RCM')
     ops.system('BandGeneral')
-    
-    main_tolerance = 1.0e-5
-    main_iterations = 1000
-    fallback_tolerance = 1.0e-3
-    fallback_iterations = 2000
-
-    ops.test('NormDispIncr', main_tolerance, main_iterations, 0) 
-    ops.algorithm('NewtonLineSearch')
     ops.analysis('Static')
 
+    # --- 향상된 해석 전략 ---
     print(f"Running Pushover to {target_disp:.4f} m ({params['num_steps']} steps)...")
-    
-    print_freq = max(1, num_steps // 20) 
+    print_freq = max(1, num_steps // 20)
+
+    # Set initial (main) algorithm
+    ops.test('NormDispIncr', 1.0e-5, 1000, 0)
+    ops.algorithm('KrylovNewton')
 
     for i in range(params['num_steps']):
         ok = ops.analyze(1)
         
         if ok != 0:
             print(f"\nAnalysis failed at step {i+1}. Trying fallback algorithms...")
-            ops.test('NormDispIncr', fallback_tolerance, fallback_iterations, 0)
+            
+            # Fallback 1: EnergyIncr test with KrylovNewton
+            print("Fallback 1: Trying EnergyIncr test...")
+            ops.test('EnergyIncr', 1.0e-4, 2000, 0)
             ops.algorithm('KrylovNewton')
             ok = ops.analyze(1)
             
+            # Fallback 2: NewtonLineSearch
             if ok != 0:
-                 print("Fallback 2: Trying ModifiedNewton...")
-                 ops.algorithm('ModifiedNewton')
-                 ok = ops.analyze(1)
-            
-            if ok == 0:
-                print("Fallback successful. Continuing with main algorithm.")
-                ops.test('NormDispIncr', main_tolerance, main_iterations, 0) 
+                print("Fallback 1 failed. Trying NewtonLineSearch...")
+                ops.test('NormDispIncr', 1.0e-4, 1500, 0)
                 ops.algorithm('NewtonLineSearch')
-            else:
+                ok = ops.analyze(1)
+
+            # Fallback 3: ModifiedNewton
+            if ok != 0:
+                print("Fallback 2 failed. Trying ModifiedNewton...")
+                ops.test('NormDispIncr', 1.0e-3, 2500, 0)
+                ops.algorithm('ModifiedNewton')
+                ok = ops.analyze(1)
+
+            if ok != 0:
                 print(f"All fallbacks failed at step {i+1}. Stopping analysis.")
-                break 
-        
+                ops.wipe() # Wipe state on failure
+                return False # Return False immediately
+            else:
+                print("Fallback successful. Continuing with the successful algorithm.")
+
         if (i+1) % print_freq == 0 or (i+1) == num_steps:
             try:
                 current_disp = ops.nodeDisp(control_node, dof)

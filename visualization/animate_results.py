@@ -194,14 +194,16 @@ def animate_and_plot_pushover(df_curve, df_disp, perf_points, params, model_node
                 peak_point_artist, collapse_line_artist, hinge_io_plot_ax3, hinge_ls_plot_ax3, 
                 hinge_cp_plot_ax3, drift_profile_line) + tuple(p['patch'] for p in wall_polygons)
 
-    # --- 5. 저장: 애니메이션 (MP4) ---
+    # --- 5. 저장: 애니메이션 (GIF) ---
     anim = animation.FuncAnimation(fig, animate, init_func=init, frames=num_frames, interval=50, blit=False)
     try:
-        output_filename = output_dir / f"{analysis_name}_pushover_animation.mp4"
-        anim.save(str(output_filename), writer='ffmpeg', fps=20, dpi=150)
+        # GIF 저장을 위해 Pillow 작가 사용
+        writer = animation.PillowWriter(fps=15)
+        output_filename = output_dir / f"{analysis_name}_pushover_animation.gif"
+        anim.save(str(output_filename), writer=writer, dpi=150)
         print(f"\nAnimation saved successfully to: {output_filename}")
     except Exception as e:
-        print(f"\n---! Error saving animation: {e}. Check if 'ffmpeg' is installed. !---")
+        print(f"\n---! Error saving animation: {e}. Pillow writer might be missing. !---")
 
     # --- 6. 저장: 정적 플롯 (PNG) ---
     try:
@@ -282,13 +284,15 @@ def animate_and_plot_M_phi(df_m_phi, params):
         
         return line, point, time_text
 
-    # --- 저장: 애니메이션 (MP4) ---
+    # --- 저장: 애니메이션 (GIF) ---
     anim = animation.FuncAnimation(fig, animate_m_phi, init_func=init_m_phi,
                                    frames=num_frames, interval=50, blit=False)
     
     try:
-        output_filename = output_dir / f"{analysis_name}_M_phi_animation.mp4"
-        anim.save(str(output_filename), writer='ffmpeg', fps=20, dpi=150)
+        # GIF 저장을 위해 Pillow 작가 사용
+        writer = animation.PillowWriter(fps=15)
+        output_filename = output_dir / f"{analysis_name}_M_phi_animation.gif"
+        anim.save(str(output_filename), writer=writer, dpi=150)
         print(f"\n M-Phi Animation saved successfully to: {output_filename}")
     except Exception as e:
         print(f"\n---! Error saving M-Phi animation !---")

@@ -2,8 +2,10 @@ import sys
 import os
 import torch
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
-from torch_geometric.data import Data
+from torch_geometric.loader import DataLoader
+import argparse
 
 # Add the project root to the Python path to resolve module import errors
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -12,114 +14,117 @@ if project_root not in sys.path:
 
 from gnn_code.models import GNN_Pushover
 
-def plot_prediction_vs_actual(model, data_loader, device, building_name, displacement_data, output_path):
+def plot_prediction_vs_actual(building_name, pred_x, actual_x, disp_x, pred_z, actual_z, disp_z, output_path):
     """
-    Plots the predicted vs. actual pushover curve for a single building.
+    Plots the predicted vs. actual pushover curves for a single building in both X and Z directions.
     """
-    model.eval()
-    
-    # Find the specific building data
-    target_data = None
-    for data in data_loader:
-        # The file_path is an attribute I need to add to the data object
-        # For now, I'll just assume the first data object is the one we want for this example
-        # A better implementation would be to match the building_name
-        target_data = data
-        break
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 8))
 
-    if target_data is None:
-        print(f"Data for {building_name} not found.")
-        return
+    # X-Direction Plot
+    ax1.plot(disp_x, actual_x, 'b-', label='Actual (FEM)', linewidth=2)
+    ax1.plot(disp_x, pred_x, 'r--', label='Predicted (GNN)', linewidth=2)
+    ax1.set_title(f'Pushover Curve (X-Direction) for {building_name}', fontsize=16)
+    ax1.set_xlabel('Roof Displacement (m)', fontsize=12)
+    ax1.set_ylabel('Base Shear (N)', fontsize=12)
+    ax1.legend(fontsize=12)
+    ax1.grid(True, which='both', linestyle='--', linewidth=0.5)
 
-    target_data = target_data.to(device)
+    # Z-Direction Plot
+    ax2.plot(disp_z, actual_z, 'b-', label='Actual (FEM)', linewidth=2)
+    ax2.plot(disp_z, pred_z, 'r--', label='Predicted (GNN)', linewidth=2)
+    ax2.set_title(f'Pushover Curve (Z-Direction) for {building_name}', fontsize=16)
+    ax2.set_xlabel('Roof Displacement (m)', fontsize=12)
+    ax2.set_ylabel('Base Shear (N)', fontsize=12)
+    ax2.legend(fontsize=12)
+    ax2.grid(True, which='both', linestyle='--', linewidth=0.5)
     
-    with torch.no_grad():
-        prediction = model(target_data)
-
-    # The model outputs predictions for the whole batch. 
-    # Since we are evaluating one building at a time here, we take the first one.
-    predicted_curve = prediction[0].cpu().numpy()
-    
-    # The target 'y' is also a batch, get the first element
-    actual_curve = target_data.y.view(target_data.num_graphs, -1)[0].cpu().numpy()
-
-    # Plotting
-    plt.figure(figsize=(12, 8))
-    plt.plot(displacement_data, actual_curve, 'b-', label='Actual (FEM)', linewidth=2)
-    plt.plot(displacement_data, predicted_curve, 'r--', label='Predicted (GNN)', linewidth=2)
-    
-    plt.title(f'Pushover Curve: Prediction vs. Actual for {building_name}', fontsize=16)
-    plt.xlabel('Roof Displacement (m)', fontsize=12)
-    plt.ylabel('Base Shear (N)', fontsize=12)
-    plt.legend(fontsize=12)
-    plt.grid(True, which='both', linestyle='--', linewidth=0.5)
+    plt.tight_layout()
     
     # Ensure the results directory exists
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     plt.savefig(output_path)
     plt.close()
     print(f"Plot saved to {output_path}")
-    return output_path
 
-
-def main():
+def main(building_name):
+    """
+    Main function to load model, data, and generate prediction plot for a specific building.
+    """
     # --- 1. Setup ---
     device = torch.device('cpu')
     
     # --- 2. Load Model ---
-    model_path = os.path.join(project_root, 'final_model_10_samples.pt')
+    model_path = os.path.join(project_root, 'gnn_code', 'best_model.pt')
     if not os.path.exists(model_path):
         print(f"Model file not found at {model_path}")
         return
         
-    model = GNN_Pushover(in_channels=3, hidden_channels=64, out_channels=100, edge_dim=10)
+    # Model output is now 200
+    model = GNN_Pushover(in_channels=3, hidden_channels=64, out_channels=200, edge_dim=10)
     model.load_state_dict(torch.load(model_path, map_location=device))
     model.to(device)
+    model.eval()
     print("Model loaded successfully.")
 
-    # --- 3. Load Data for a specific building ---
-    building_name = 'Building_0000_S5_BX3_BZ4_CFalse'
-    data_dir = os.path.join(project_root, 'dataset_output_parallel', building_name)
+    # --- 3. Load Data for the specific building ---
+    summary_path = os.path.join(project_root, 'dataset_output_parallel', 'dataset_summary.csv')
+    if not os.path.exists(summary_path):
+        print(f"Dataset summary not found at: {summary_path}")
+        return
     
-    graph_data_path = os.path.join(data_dir, f'{building_name}_graph_data.pt')
+    summary_df = pd.read_csv(summary_path)
+    building_info = summary_df[summary_df['analysis_name'] == building_name]
+
+    if building_info.empty:
+        print(f"Building '{building_name}' not found in dataset_summary.csv")
+        return
+        
+    # Get max displacement for both directions
+    max_disp_x = building_info.iloc[0]['max_roof_disp_x']
+    max_disp_z = building_info.iloc[0]['max_roof_disp_z']
+    displacement_data_x = np.linspace(0, max_disp_x, 100)
+    displacement_data_z = np.linspace(0, max_disp_z, 100)
+
+    # Load the graph data
+    graph_data_path = os.path.join(project_root, 'dataset_output_parallel', building_name, f'{building_name}_graph_data.pt')
     if not os.path.exists(graph_data_path):
         print(f"Graph data not found: {graph_data_path}")
         return
         
-    # We load a single data point and put it in a list to simulate a batch of size 1
     graph_data = torch.load(graph_data_path, weights_only=False)
-    
-    # The DataLoader expects a Dataset object. We'll create a simple one on the fly.
-    class SingleItemDataset:
-        def __init__(self, item):
-            self.item = item
-        def __len__(self):
-            return 1
-        def __getitem__(self, idx):
-            return self.item
-            
-    single_item_dataset = SingleItemDataset(graph_data)
-    # Use PyG's DataLoader
-    from torch_geometric.loader import DataLoader
-    data_loader = DataLoader(single_item_dataset, batch_size=1)
+    graph_data = graph_data.to(device)
 
-    # --- 4. Load Displacement Data for X-axis ---
-    pushover_curve_path = os.path.join(data_dir, f'{building_name}_pushover_curve.csv')
-    if not os.path.exists(pushover_curve_path):
-        print(f"Pushover curve CSV not found: {pushover_curve_path}")
-        return
-        
-    pushover_df = pd.read_csv(pushover_curve_path)
-    # The model predicts 100 points. We need to ensure the displacement data matches this.
-    # The 'y' in graph_data.pt should have 100 points.
-    # We assume the displacement values in the CSV correspond to these points.
-    # If not, we might need to interpolate or select the first 100.
-    displacement_data = pushover_df['Roof_Displacement_m'].iloc[:100]
+    # --- 4. Make Prediction ---
+    with torch.no_grad():
+        data_loader = DataLoader([graph_data], batch_size=1)
+        for batch in data_loader:
+            prediction = model(batch)
+            break
+
+    # Split predicted and actual curves into X and Z
+    predicted_curve_x = prediction[0][:100].cpu().numpy()
+    predicted_curve_z = prediction[0][100:].cpu().numpy()
+    
+    actual_curve_x = graph_data.y[:100].cpu().numpy()
+    actual_curve_z = graph_data.y[100:].cpu().numpy()
 
     # --- 5. Generate and Save Plot ---
-    output_path = os.path.join(project_root, 'results', f'prediction_{building_name}.png')
-    plot_prediction_vs_actual(model, data_loader, device, building_name, displacement_data, output_path)
-
+    output_path = os.path.join(project_root, 'results', f'prediction_{building_name}_biaxial.png')
+    plot_prediction_vs_actual(
+        building_name, 
+        predicted_curve_x, actual_curve_x, displacement_data_x,
+        predicted_curve_z, actual_curve_z, displacement_data_z,
+        output_path
+    )
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(description='Plot GNN prediction vs. actual FEM result for a given building.')
+    parser.add_argument(
+        '--building_name', 
+        type=str, 
+        default='Building_0052_S5_BX4_BZ4_CFalse',
+        help='The name of the building to plot (must exist in the dataset summary).'
+    )
+    args = parser.parse_args()
+    
+    main(args.building_name)
