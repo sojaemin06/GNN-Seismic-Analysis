@@ -12,88 +12,26 @@ import os
 # run_single_analysis.py의 main 함수를 직접 호출하기 위해 import
 from run_single_analysis import main as run_single_analysis_main
 
-# --- GNN 데이터 추출 및 가공을 위한 헬퍼 함수 (향후 core/graph_exporter.py로 분리 예정) ---
-def extract_graph_data(model_nodes_info, col_props, beam_props):
-    """
-    model_nodes_info에서 PyG (PyTorch Geometric) 그래프 데이터를 추출합니다.
-    [수정] 엣지 특성에 부재 종류, 단면 크기, 재료 강도, 철근 정보 등을 모두 포함시킵니다.
-    """
-    # 1. 노드 특성 (노드 좌표)
-    node_coords = np.array(list(model_nodes_info['all_node_coords'].values()))
-    x = torch.tensor(node_coords, dtype=torch.float)
-
-    # 2. 엣지 인덱스 및 엣지 특성 생성
-    edge_list = []
-    edge_attributes = []
+# --- [수정] 그래프 데이터 추출 함수 임포트 ---
+import sys
+import os
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
     
-    column_tags = set(model_nodes_info['all_column_tags'])
-    beam_tags = set(model_nodes_info['all_beam_tags'])
-
-    # 엣지 특성 순서 정의 (GNN 모델 입력 순서와 일치해야 함)
-    # [is_column, is_beam, width, depth, fc, Fy, cover, As, num_bars_1, num_bars_2]
-    col_attr_list = [
-        1.0, 0.0, 
-        col_props['dims'][0], col_props['dims'][1], 
-        abs(col_props['fc'] / 1e6), # MPa 단위로 정규화
-        col_props['Fy'] / 1e6,      # MPa 단위로 정규화
-        col_props['cover'], 
-        col_props['rebar_Area'], 
-        col_props['num_bars_x'], col_props['num_bars_z']
-    ]
-    beam_attr_list = [
-        0.0, 1.0, 
-        beam_props['dims'][0], beam_props['dims'][1], 
-        abs(beam_props['fc'] / 1e6), # MPa 단위로 정규화
-        beam_props['Fy'] / 1e6,      # MPa 단위로 정규화
-        beam_props['cover'], 
-        beam_props['rebar_Area'], 
-        beam_props['num_bars_top'], beam_props['num_bars_bot']
-    ]
-
-    for ele_tag, (node_i, node_j) in model_nodes_info['all_line_elements'].items():
-        edge_list.append([node_i - 1, node_j - 1])
-        edge_list.append([node_j - 1, node_i - 1])
-
-        if ele_tag in column_tags:
-            attr = col_attr_list
-        elif ele_tag in beam_tags:
-            attr = beam_attr_list
-        else:
-            attr = [0.0] * 10
-
-        edge_attributes.append(attr)
-        edge_attributes.append(attr)
-
-    edge_index = torch.tensor(edge_list, dtype=torch.long).t().contiguous()
-    edge_attr = torch.tensor(edge_attributes, dtype=torch.float)
-
-    from torch_geometric.data import Data
-    data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=torch.randn(100))
-    
-    return data
-
-def process_pushover_curve(df_curve, max_roof_disp, num_points=100):
-    """
-    푸쉬오버 곡선을 표준화된 길이의 벡터로 가공합니다.
-    """
-    if df_curve is None or df_curve.empty or len(df_curve) < 2:
-        return None
-
-    standard_displacements = np.linspace(0, max_roof_disp, num_points)
-    original_displacements = df_curve['Roof_Displacement_m'].values
-    original_shears = df_curve['Base_Shear_N'].values
-    standardized_shears = np.interp(standard_displacements, original_displacements, original_shears)
-    
-    return torch.tensor(standardized_shears, dtype=torch.float)
+from src.data.graph_exporter import extract_graph_data, process_pushover_curve
 
 # --- [수정] 멀티프로세싱을 위한 단일 작업 함수 ---
 def process_single_combination(args):
     """
     단일 파라미터 조합에 대해 해석을 실행하고 결과를 반환합니다.
+    각 건물 모델에 대해 X, Z 두 방향으로 해석을 수행합니다.
     """
     i, combo, output_root_dir, section_params_ranges = args
     num_stories, num_bays_x, num_bays_z, build_core = combo
     
+    results_list = [] # 각 방향별 결과를 저장할 리스트
+
     # --- [신규] 단면 및 재료 파라미터 랜덤 샘플링 ---
     col_props = {
         'dims': random.choice(section_params_ranges['col_dims_range']),
@@ -130,19 +68,6 @@ def process_single_combination(args):
         else:
             core_config = random.choice(valid_core_configs)
     
-    analysis_name = f"Building_{i:04d}_S{num_stories}_BX{num_bays_x}_BZ{num_bays_z}_C{build_core}"
-    output_dir = Path(output_root_dir) / analysis_name
-
-    analysis_params = {
-        'analysis_name': analysis_name, 'output_dir': output_dir, 'target_drift': 0.04, 
-        'num_steps': 1000, 'num_modes': 20, 'num_int_pts': 5, 'plot_z_line_index': 1,
-        'num_bays_x': num_bays_x, 'num_bays_z': num_bays_z, 'num_stories': num_stories,
-        'bay_width_x': 6.0, 'bay_width_z': 6.0, 'story_height': 3.5,
-        'build_core': build_core, **core_config,
-        'seismic_zone_factor': 0.11, 'hazard_factor': 1.0, 'soil_type': 'S4',
-        'skip_post_processing': True,
-    }
-    
     # [수정] 해석에 필요한 모든 파라미터를 common_params에 통합
     common_params = {
         'E_steel': 200e9, 'wall_thickness': 0.20, 'wall_reinf_ratio': 0.003,
@@ -153,44 +78,59 @@ def process_single_combination(args):
         'num_bars_top': beam_props['num_bars_top'], 'num_bars_bot': beam_props['num_bars_bot'],
     }
 
-    parameters = {**analysis_params, **common_params}
-    
-    try:
-        perf_points, model_nodes_info, df_curve = run_single_analysis_main(parameters)
+    for direction in ['X', 'Z']: # X, Z 두 방향에 대해 해석 수행
+        current_analysis_name = f"Building_{i:04d}_S{num_stories}_BX{num_bays_x}_BZ{num_bays_z}_C{build_core}_{direction}"
+        current_output_dir = Path(output_root_dir) / current_analysis_name
 
-        if model_nodes_info is None or df_curve is None:
-            return None
-
-        # [수정] 상세 속성 정보를 extract_graph_data에 전달
-        graph_data = extract_graph_data(model_nodes_info, col_props, beam_props)
-        
-        max_roof_disp_actual = df_curve['Roof_Displacement_m'].max()
-        target_y = process_pushover_curve(df_curve, max_roof_disp=max_roof_disp_actual)
-
-        if target_y is None:
-            return None
-            
-        graph_data.y = target_y
-
-        data_file_path = output_dir / f"{analysis_name}_graph_data.pt"
-        torch.save(graph_data, data_file_path)
-
-        # [수정] 요약 정보에 상세 속성 추가
-        summary_data = {
-            'analysis_name': analysis_name, 'num_stories': num_stories, 'num_bays_x': num_bays_x,
-            'num_bays_z': num_bays_z, 'build_core': build_core, 'data_file': str(data_file_path),
-            'max_roof_disp_actual': max_roof_disp_actual,
-            'peak_shear_kN': perf_points.get('peak_shear', 0) / 1000 if perf_points else 0
+        analysis_params = {
+            'analysis_name': current_analysis_name, 'output_dir': current_output_dir, 'target_drift': 0.04, 
+            'num_steps': 1000, 'num_modes': 20, 'num_int_pts': 5, 'plot_z_line_index': 1,
+            'num_bays_x': num_bays_x, 'num_bays_z': num_bays_z, 'num_stories': num_stories,
+            'bay_width_x': 6.0, 'bay_width_z': 6.0, 'story_height': 3.5,
+            'build_core': build_core, **core_config,
+            'seismic_zone_factor': 0.11, 'hazard_factor': 1.0, 'soil_type': 'S4',
+            'skip_post_processing': True,
         }
-        # col_props와 beam_props의 각 항목을 개별 열로 추가
-        for k, v in col_props.items(): summary_data[f'col_{k}'] = str(v)
-        for k, v in beam_props.items(): summary_data[f'beam_{k}'] = str(v)
-        
-        return summary_data
-        
-    except Exception as e:
-        print(f"Error processing {analysis_name}: {e}")
-        return None
+        parameters = {**analysis_params, **common_params}
+
+        try:
+            perf_points, model_nodes_info, df_curve, actual_direction = run_single_analysis_main(parameters, direction=direction)
+
+            if model_nodes_info is None or df_curve is None:
+                print(f"Skipping {current_analysis_name} due to analysis failure or insufficient data.")
+                continue # 다음 방향으로 넘어감
+
+            graph_data = extract_graph_data(model_nodes_info, col_props, beam_props, direction=actual_direction)
+            
+            max_roof_disp_actual = df_curve['Roof_Displacement_m'].max()
+            target_y = process_pushover_curve(df_curve, max_roof_disp=max_roof_disp_actual)
+
+            if target_y is None:
+                print(f"Skipping {current_analysis_name} due to pushover curve processing failure.")
+                continue # 다음 방향으로 넘어감
+                
+            graph_data.y = target_y
+
+            data_file_path = current_output_dir / f"{current_analysis_name}_graph_data.pt"
+            torch.save(graph_data, data_file_path)
+
+            summary_data = {
+                'analysis_name': current_analysis_name, 'num_stories': num_stories, 'num_bays_x': num_bays_x,
+                'num_bays_z': num_bays_z, 'build_core': build_core, 'data_file': str(data_file_path),
+                'max_roof_disp_actual': max_roof_disp_actual,
+                'peak_shear_kN': perf_points.get('peak_shear', 0) / 1000 if perf_points else 0,
+                'direction': actual_direction # 해석 방향 추가
+            }
+            for k, v in col_props.items(): summary_data[f'col_{k}'] = str(v)
+            for k, v in beam_props.items(): summary_data[f'beam_{k}'] = str(v)
+            
+            results_list.append(summary_data)
+            
+        except Exception as e:
+            print(f"Error processing {current_analysis_name}: {e}")
+            # 오류 발생 시 해당 방향의 결과는 무시하고 다음 방향으로 진행
+
+    return results_list if results_list else None # 성공한 결과가 없으면 None 반환
 
 # --- [수정] 메인 데이터셋 생성 함수 (멀티프로세싱 적용) ---
 def generate_dataset(output_root_dir='dataset', num_samples=10, num_workers=None):
@@ -237,9 +177,9 @@ def generate_dataset(output_root_dir='dataset', num_samples=10, num_workers=None
     # 멀티프로세싱 Pool 사용
     with multiprocessing.Pool(processes=num_workers) as pool:
         with tqdm(total=len(tasks), desc="Generating Dataset") as pbar:
-            for result in pool.imap_unordered(process_single_combination, tasks):
-                if result:
-                    dataset_info.append(result)
+            for results_for_building in pool.imap_unordered(process_single_combination, tasks):
+                if results_for_building: # results_for_building is a list of summary_data
+                    dataset_info.extend(results_for_building) # Use extend instead of append
                 pbar.update()
 
     # --- 3. 결과 요약 및 저장 ---

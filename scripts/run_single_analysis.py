@@ -6,16 +6,21 @@ import sys
 import os 
 from pathlib import Path 
 
-# --- 모듈화된 함수 임포트 ---
-from core.model_builder import build_model
-from core.analysis_runner import run_gravity_analysis, run_eigen_analysis, run_pushover_analysis
-from core.post_processor import process_pushover_results, calculate_performance_points
-from core.verification import verify_nsp_applicability
+# --- 프로젝트 루트 경로를 sys.path에 추가 ---
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 
-from visualization.plot_matplotlib import plot_model_matplotlib
-from visualization.plot_opsvis import plot_with_opsvis
-from visualization.plot_hinges import plot_plastic_damage_distribution
-from visualization.animate_results import animate_and_plot_pushover, animate_and_plot_M_phi
+# --- 모듈화된 함수 임포트 ---
+from src.core.model_builder import build_model
+from src.core.analysis_runner import run_gravity_analysis, run_eigen_analysis, run_pushover_analysis
+from src.core.post_processor import process_pushover_results, calculate_performance_points
+from src.core.verification import verify_nsp_applicability
+
+from src.visualization.plot_matplotlib import plot_model_matplotlib
+from src.visualization.plot_opsvis import plot_with_opsvis
+from src.visualization.plot_hinges import plot_plastic_damage_distribution
+from src.visualization.animate_results import animate_and_plot_pushover, animate_and_plot_M_phi
 # --- ---
 
 # ### 11. 메인 실행 함수 ###
