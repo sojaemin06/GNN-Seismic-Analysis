@@ -14,7 +14,7 @@ if project_root not in sys.path:
 # --- 모듈화된 함수 임포트 ---
 from src.core.model_builder import build_model
 from src.core.analysis_runner import run_gravity_analysis, run_eigen_analysis, run_pushover_analysis
-from src.core.post_processor import process_pushover_results, calculate_performance_points
+from src.core.post_processor import process_pushover_results, calculate_performance_points, check_material_strain_failure
 from src.core.verification import verify_nsp_applicability
 
 from src.visualization.plot_matplotlib import plot_model_matplotlib
@@ -96,6 +96,14 @@ def main(params, direction='X'):
     # 7. 성능점 계산
     perf_points = calculate_performance_points(df_curve)
     
+    # [신규] 7.5. 재료 변형률 기반 파괴 검사
+    failure_report = check_material_strain_failure(model_nodes_info, params)
+    if failure_report:
+        print("\n--- [!] 재료 변형률 한계 초과로 인한 부재 파괴가 감지되었습니다. ---")
+        for record in failure_report:
+            print(f"  - Section {record['section_tag']} ({record['material_type']}): {record['failure_type']} at time {record['at_time']:.4f}s (Strain: {record['exceeded_strain']:.6f}, Limit: {record['limit']:.6f})")
+        print("--------------------------------------------------------------------")
+
     # 8. 소성/손상 분포도 플로팅
     if not skip_plots:
         plot_plastic_damage_distribution(params, model_nodes_info, final_states_dfs)

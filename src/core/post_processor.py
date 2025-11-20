@@ -259,3 +259,101 @@ def calculate_performance_points(df_curve):
         perf_points['yield_shear'] = 0.0
 
     return perf_points
+
+
+def check_material_strain_failure(model_info, params):
+    """
+    섹션별 Recorder 파일에서 재료 변형률을 읽어, '내진성능 평가요령' 지침에 따른 한계치 초과 여부 확인.
+    """
+    failure_records = []
+    
+    # 지침에 따른 변형률 한계 정의
+    # Concrete04 (비구속, 횡구속) - 압축 극한변형률 (양수 값으로 비교)
+    CONCRETE_COMPRESSIVE_STRAIN_LIMIT = 0.003
+    # MultiLinear (철근)
+    REBAR_TENSILE_STRAIN_LIMIT = 0.05
+    REBAR_COMPRESSIVE_STRAIN_LIMIT = 0.02 # 압축 변형률은 음수이므로 절대값으로 비교
+
+    # 재료 태그 정보 (model_builder.py의 ops.uniaxialMaterial 정의 및 maxStrain recorder 출력 순서 참고)
+    # Recorder 출력 컬럼: Time, mat1_max_strain, mat1_min_strain, mat2_max_strain, mat2_min_strain, ...
+    # CSV로 읽을 때 Time이 인덱스가 되므로, 데이터 컬럼은 0부터 시작
+    # mat_tag 1 (Concrete_Unconfined) -> col index 0 (max_strain), 1 (min_strain)
+    # mat_tag 2 (Concrete_Confined)   -> col index 2 (max_strain), 3 (min_strain)
+    # mat_tag 3 (Rebar)               -> col index 4 (max_strain), 5 (min_strain)
+    MAT_INFO_COL_MAP = {
+        1: {'type': 'Concrete_Unconfined', 'max_idx': 0, 'min_idx': 1},
+        2: {'type': 'Concrete_Confined',   'max_idx': 2, 'min_idx': 3},
+        3: {'type': 'Rebar',               'max_idx': 4, 'min_idx': 5}
+    }
+
+    if 'section_recorder_paths' not in model_info:
+        # print("경고: model_info에 section_recorder_paths가 없습니다. 변형률 파괴 검사를 건너뜁니다.")
+        return failure_records
+
+    for sec_tag, recorder_path_str in model_info['section_recorder_paths'].items():
+        recorder_path = Path(recorder_path_str)
+        if not recorder_path.exists():
+            # print(f"경고: Recorder 파일이 존재하지 않습니다: {recorder_path}")
+            continue
+
+        try:
+            # Recorder 파일 읽기 (Time 컬럼을 인덱스로 사용)
+            df_strains = pd.read_csv(recorder_path, sep='\s+', header=None, index_col=0)
+            if df_strains.empty:
+                continue
+
+            # 각 재료별로 변형률 한계 초과 여부 확인
+            for mat_tag, info in MAT_INFO_COL_MAP.items():
+                mat_type = info['type']
+                max_strain_col_idx = info['max_idx']
+                min_strain_col_idx = info['min_idx']
+                
+                # 해당 컬럼이 존재하는지 확인
+                if df_strains.shape[1] <= min_strain_col_idx:
+                    continue
+
+                if mat_type.startswith('Concrete'):
+                    # Concrete는 압축 파괴가 중요하므로 min_strain (음수 값)의 절대값을 확인
+                    concrete_comp_strains = df_strains.iloc[:, min_strain_col_idx].abs()
+                    if (concrete_comp_strains > CONCRETE_COMPRESSIVE_STRAIN_LIMIT).any():
+                        failure_step_time = df_strains.index[concrete_comp_strains > CONCRETE_COMPRESSIVE_STRAIN_LIMIT][0]
+                        failure_records.append({
+                            'section_tag': sec_tag,
+                            'material_type': mat_type,
+                            'failure_type': 'Concrete Compressive Strain Limit',
+                            'exceeded_strain': df_strains.iloc[:, min_strain_col_idx].min(), # 실제 기록된 음수 값
+                            'limit': -CONCRETE_COMPRESSIVE_STRAIN_LIMIT, # 지침을 음수로 표시
+                            'at_time': failure_step_time
+                        })
+                elif mat_type == 'Rebar':
+                    rebar_tensile_strains = df_strains.iloc[:, max_strain_col_idx] # max_strain (인장, 양수 값)
+                    rebar_comp_strains = df_strains.iloc[:, min_strain_col_idx].abs() # abs(min_strain) (압축, 음수 값의 절대값)
+                    
+                    if (rebar_tensile_strains > REBAR_TENSILE_STRAIN_LIMIT).any():
+                        failure_step_time = df_strains.index[rebar_tensile_strains > REBAR_TENSILE_STRAIN_LIMIT][0]
+                        failure_records.append({
+                            'section_tag': sec_tag,
+                            'material_type': mat_type,
+                            'failure_type': 'Rebar Tensile Strain Limit',
+                            'exceeded_strain': rebar_tensile_strains.max(),
+                            'limit': REBAR_TENSILE_STRAIN_LIMIT,
+                            'at_time': failure_step_time
+                        })
+                    
+                    if (rebar_comp_strains > REBAR_COMPRESSIVE_STRAIN_LIMIT).any():
+                        failure_step_time = df_strains.index[rebar_comp_strains > REBAR_COMPRESSIVE_STRAIN_LIMIT][0]
+                        failure_records.append({
+                            'section_tag': sec_tag,
+                            'material_type': mat_type,
+                            'failure_type': 'Rebar Compressive Strain Limit',
+                            'exceeded_strain': df_strains.iloc[:, min_strain_col_idx].min(), # 실제 기록된 음수 값
+                            'limit': -REBAR_COMPRESSIVE_STRAIN_LIMIT, # 지침을 음수로 표시
+                            'at_time': failure_step_time
+                        })
+
+        except Exception as e:
+            print(f"경고: Recorder 파일 {recorder_path} 처리 중 오류 발생: {e}")
+            # print(traceback.format_exc()) # 디버깅용
+            continue
+
+    return failure_records

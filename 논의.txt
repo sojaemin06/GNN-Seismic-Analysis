@@ -1,25 +1,9 @@
- 4. Model Commands 4.18. geomTransf commands 4.18.2. PDelta TransformationView page source
-4.18.2. PDelta Transformation¶
-geomTransf('PDelta', transfTag, '-jntOffset', *dI, *dJ)
-geomTransf('PDelta', transfTag, *vecxz, '-jntOffset', *dI, *dJ)
-This command is used to construct the P-Delta Coordinate Transformation (PDeltaCrdTransf) object, which performs a linear geometric transformation of beam stiffness and resisting force from the basic system to the global coordinate system, considering second-order P-Delta effects.
+1. 콘크리트 인장강도 0으로 변경
+2. 비구속 콘크리트 극한변형률 0.003으로 변경
+3. 잔류응력은 최대 응력의 10%를 넘을수 없다는 조건의 반영은?
+4. 횡구속 콘크리트의 정의에서 '횡구속 철근의 파단, 주근의 좌굴, 대변형에서의 저항력 손실 등을 고려하여야
+한다. 반복하중을 받는 콘크리트의 이력모델은 하중 제하(unloading) 또는 재재하(reloading) 에 의한 에너지 소산이 없고 잔류변형에 의한 압축응력 발현의 지연을 고려하여 정의한다' 에 대한 대책?
+5. 철근의 모델을 2선형 혹은 3선형으로 변경 단, 압축변형률은 0.02, 인장변형률은 0.05를 초과하면 안됌
+6. '단조하중을 받는 철근의 경우, 압축변형률 0.003에서 좌굴이 발생하여 항복응력의 10%로 응력이 저하되는 다중선형 관계를 사용' 에 대한 고려?
 
-transfTag (int)
-
-integer tag identifying transformation
-
-vecxz (list (float))
-
-X, Y, and Z components of vecxz, the vector used to define the local x-z plane of the local-coordinate system. The local y-axis is defined by taking the cross product of the vecxz vector and the x-axis. These components are specified in the global-coordinate system X,Y,Z and define a vector that is in a plane parallel to the x-z plane of the local-coordinate system. These items need to be specified for the three-dimensional problem.
-
-dI (list (float))
-
-joint offset values – offsets specified with respect to the global coordinate system for element-end node i (the number of arguments depends on the dimensions of the current model).
-
-dJ (list (float))
-
-joint offset values – offsets specified with respect to the global coordinate system for element-end node j (the number of arguments depends on the dimensions of the current model).
-
-Note
-
-P LARGE Delta effects do not include P small delta effects.
+5.3.4장의 내용과 완벽히 일치하게끔 프로젝트를 작성하는 것에 대한 네의 의견

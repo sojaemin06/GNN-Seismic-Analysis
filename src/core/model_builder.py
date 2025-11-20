@@ -41,18 +41,67 @@ def build_model(params):
             model_info['base_nodes'].append(node_tag)
             ops.fix(node_tag, 1, 1, 1, 1, 1, 1)
 
-    fc, Fy, E_steel = params['fc'], params['Fy'], params['E_steel']
-    fce, fye = fc * 1.1, Fy * 1.1
-    E_conc = (4700 * math.sqrt(abs(fc / 1e6))) * 1e6
+    # 재료 강도 정의 (기대강도/공칭강도 분리)
+    fc = params['fc'] # 기대강도 (Pa, 음수)
+    f_ck_nominal = params['f_ck_nominal'] # 공칭강도 (Pa, 음수)
+    Fy = params['Fy']
+    E_steel = params['E_steel']
+    
+    # 재료 강도 할당 (강도 자체는 기대강도 사용)
+    fce, fye = fc, Fy
+    
+    # 콘크리트 탄성계수(E_conc) 계산 (KBC 기준, 공칭강도 기반)
+    f_ck_nominal_mpa = abs(f_ck_nominal / 1e6)
+    if f_ck_nominal_mpa <= 40:
+        delta_f = 4.0
+    elif f_ck_nominal_mpa >= 60:
+        delta_f = 6.0
+    else: # 40 < f_ck < 60
+        delta_f = 4.0 + (f_ck_nominal_mpa - 40.0) * (6.0 - 4.0) / (60.0 - 40.0)
+    
+    f_cu_mpa = f_ck_nominal_mpa + delta_f
+    E_conc = (8500 * (f_cu_mpa)**(1.0/3.0)) * 1e6 # Pa 단위로 변환
     G_conc = E_conc / (2 * (1 + 0.2))
     ops.uniaxialMaterial('Concrete04', 1, fce, -0.002, -0.004, E_conc, -0.1 * fce, 0.1)
     ops.uniaxialMaterial('Concrete04', 2, fce * 1.3, -0.003, -0.02, E_conc, -0.1 * (fce * 1.3), 0.1)
-    ops.uniaxialMaterial('Steel02', 3, fye, E_steel, 0.01, 18, 0.925, 0.15)
+    # 철근 재료 모델 (이선형 + 압축부 좌굴 후 강도저하)
+    fye_val = abs(fye)
+    e_yield = fye_val / E_steel
+    strain_hardening_ratio = 0.01 # 기존 Steel02 모델의 b 값
+
+    # '내진성능 평가요령' 지침에 따른 변형률 한계
+    e_ultimate_tension = 0.05
+    e_ultimate_compression = -0.02
+    e_buckling_start = -0.003
+
+    # 인장부 정의 (변형률 경화 고려)
+    stress_t1 = fye_val
+    strain_t1 = e_yield
+    # 항복 이후 극한 변형률까지 선형으로 경화한다고 가정
+    stress_t2 = fye_val * (1 + strain_hardening_ratio) 
+    strain_t2 = e_ultimate_tension
+
+    # 압축부 정의 (좌굴 고려)
+    stress_c1 = -fye_val
+    strain_c1 = -e_yield
+    stress_c2 = -fye_val # 항복 후 좌굴 변형률까지 강도 유지
+    strain_c2 = e_buckling_start
+    stress_c3 = -0.1 * fye_val # 좌굴 발생 후 강도 10%로 저하
+    strain_c3 = e_buckling_start * 1.01 # 수치적 안정을 위해 약간의 변형률 증가
+    stress_c4 = -0.1 * fye_val
+    strain_c4 = e_ultimate_compression
+    
+    # OpenSees 'MultiLinear' 재료 정의
+    # 주의: MultiLinear는 이력거동(Hysteresis)을 모델링하지 않으며 단조하중(Pushover)에 적합합니다.
+    strains = [strain_c4, strain_c3, strain_c2, strain_c1, 0.0, strain_t1, strain_t2]
+    stresses = [stress_c4, stress_c3, stress_c2, stress_c1, 0.0, stress_t1, stress_t2]
+    ops.uniaxialMaterial('MultiLinear', 3, '-strain', *strains, '-stress', *stresses)
     ops.uniaxialMaterial('Elastic', 4, G_conc)
 
     # --- [수정] 그룹별/위치별 Fiber Section 및 단면 적분 동적 생성 ---
     section_tags = {}
     integration_tags = {}
+    section_recorder_paths = {} # 섹션별 변형률 기록 파일 경로 저장
     sec_tag_counter = 101
     integ_tag_counter = 1001
     num_int_pts = params['num_int_pts']
@@ -70,6 +119,9 @@ def build_model(params):
             ops.layer('straight', 3, params['num_bars_x'] - 2, params['rebar_Area'], -y_core, -z_core+params['cover'], -y_core, z_core-params['cover'])
             ops.layer('straight', 3, params['num_bars_x'] - 2, params['rebar_Area'], y_core, -z_core+params['cover'], y_core, z_core-params['cover'])
             
+            recorder_filename = params['output_dir'] / f"sec_{sec_tag_counter}_maxStrain.out"
+            ops.recorder('Section', '-file', str(recorder_filename), '-sec', sec_tag_counter, 'maxStrain')
+            section_recorder_paths[sec_tag_counter] = str(recorder_filename)
             ops.beamIntegration('Lobatto', integ_tag_counter, sec_tag_counter, num_int_pts)
             integration_tags[(group_idx, f'col_{col_type}')] = integ_tag_counter
             sec_tag_counter += 1
@@ -93,6 +145,9 @@ def build_model(params):
                 # 1단 배근에서 50mm 안쪽으로 배치
                 ops.layer('straight', 3, params['num_bars_bot_2nd'], params['rebar_Area'], -z_core_b, -y_core_b + 0.05, z_core_b, -y_core_b + 0.05)
 
+            recorder_filename = params['output_dir'] / f"sec_{sec_tag_counter}_maxStrain.out"
+            ops.recorder('Section', '-file', str(recorder_filename), '-sec', sec_tag_counter, 'maxStrain')
+            section_recorder_paths[sec_tag_counter] = str(recorder_filename)
             ops.beamIntegration('Lobatto', integ_tag_counter, sec_tag_counter, num_int_pts)
             integration_tags[(group_idx, f'beam_{beam_type}')] = integ_tag_counter
             sec_tag_counter += 1
@@ -158,5 +213,6 @@ def build_model(params):
                     model_info['all_beam_tags_type2'].append(ele_tag)
                     ele_tag += 1
 
+    model_info['section_recorder_paths'] = section_recorder_paths # 섹션별 Recorder 파일 경로 추가
     print(f"Model built successfully with {num_bays_x}x{num_bays_z} Bays (Grouped Members).")
     return model_info
