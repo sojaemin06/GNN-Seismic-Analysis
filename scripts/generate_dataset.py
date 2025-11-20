@@ -10,6 +10,7 @@ import math
 import os
 import traceback
 import json
+import shutil
 
 # run_single_analysis.py의 main 함수를 직접 호출하기 위해 import
 from run_single_analysis import main as run_single_analysis_main
@@ -22,11 +23,18 @@ if project_root not in sys.path:
     
 from src.data.graph_exporter import extract_graph_data, process_pushover_curve
 
+def get_unique_building_indices(dataset_info):
+    """Helper function to count unique buildings from the dataset_info list."""
+    if not dataset_info:
+        return 0
+    return len(set(int(item['analysis_name'].split('_')[1]) for item in dataset_info))
+
+
 # --- [수정] 멀티프로세싱을 위한 단일 작업 함수 ---
 def process_single_combination(args):
     """
     [수정됨] 단일 파라미터 조합에 대해, 그룹화 및 계층화된 샘플링을 적용하여
-    X, Z 양방향으로 해석을 실행하고 결과를 반환합니다.
+    X, Z 양방향으로 해석을 실행하고, 실패 시 생성된 모든 파일을 삭제하여 원자성을 보장합니다.
     """
     i, combo, output_root_dir, config = args
     num_stories, num_bays_x, num_bays_z = combo # build_core 제거
@@ -36,34 +44,29 @@ def process_single_combination(args):
     member_params = config['member_properties']
     material_params = config['material_properties']
     
-    results_list = [] # 이 함수가 최종적으로 반환할 결과 리스트
     building_results_for_summary = [] # 현재 건물(combo)의 X, Z 방향 결과를 임시 저장
+    building_dirs = [] # [추가] 현재 건물의 모든 출력 폴더 경로를 추적
 
     # --- 1. 건물 전체에 적용될 균일 파라미터 샘플링 ---
     bay_width_x = random.choice(geo_params['bay_width_x_m_range'])
     bay_width_z = random.choice(geo_params['bay_width_z_m_range'])
     
-    # 공칭 강도 샘플링
     fc_nominal = random.choice(material_params['nominal_strengths']['fc_MPa_range'])
     Fy_nominal = random.choice(material_params['nominal_strengths']['Fy_MPa_range'])
 
-    # 기대 강도 계산
     fc_expected = fc_nominal * material_params['expected_strength_factors']['fc_factor']
     Fy_expected = Fy_nominal * material_params['expected_strength_factors']['Fy_factor']
 
     uniform_material_props = {
-        'fc': -fc_expected * 1e6, # OpenSees에서 압축은 음수
+        'fc': -fc_expected * 1e6,
         'Fy': Fy_expected * 1e6,
-        'cover': round(random.uniform(0.04, 0.06), 3), # cover는 범위 내에서 랜덤 샘플링
+        'cover': round(random.uniform(0.04, 0.06), 3),
         'rebar_Area': random.choice(member_params['rebar_As_m2_list'])['area'],
         'num_bars_x': random.choice(member_params['num_bars_main_range']),
         'num_bars_z': random.choice(member_params['num_bars_main_range']),
         'num_bars_top': random.choice(member_params['num_bars_main_range']),
         'num_bars_bot': random.choice(member_params['num_bars_main_range']),
-        'E_steel': 200e9,
-        'g': 9.81,
-        'dead_load_pa': 5000.0,
-        'live_load_pa': 0.0,
+        'E_steel': 200e9, 'g': 9.81, 'dead_load_pa': 5000.0, 'live_load_pa': 0.0,
     }
 
     # --- 2. 2개층 단위 그룹별 부재 단면 샘플링 ---
@@ -98,6 +101,7 @@ def process_single_combination(args):
     for direction in ['X', 'Z']:
         current_analysis_name = f"Building_{i:04d}_S{num_stories}_BX{num_bays_x}_BZ{num_bays_z}_{direction}"
         current_output_dir = Path(output_root_dir) / current_analysis_name
+        building_dirs.append(current_output_dir) # [추가] 생성될 폴더 경로 저장
 
         analysis_params = {
             'analysis_name': current_analysis_name, 'output_dir': current_output_dir, 'target_drift': 0.04, 
@@ -118,21 +122,18 @@ def process_single_combination(args):
             if model_nodes_info is None or df_curve is None or df_curve.empty:
                 print(f"Skipping {current_analysis_name} due to analysis failure or insufficient data.")
                 analysis_failed_for_building = True
-                break # 현재 건물(combo)의 다른 방향도 폐기
+                break 
 
-            # [추가] 해석 조기 종료 검증
             target_disp = parameters['target_drift'] * parameters['story_height'] * parameters['num_stories']
             max_roof_disp_actual = df_curve['Roof_Displacement_m'].max()
-            if max_roof_disp_actual < target_disp * 0.95: # 목표 변위의 95% 미만이면 조기 종료로 간주
+            if max_roof_disp_actual < target_disp * 0.95:
                 print(f"Skipping {current_analysis_name} due to premature analysis termination (reached {max_roof_disp_actual:.3f}m / target {target_disp:.3f}m).")
                 analysis_failed_for_building = True
-                break # 현재 건물(combo)의 다른 방향도 폐기
+                break 
                 
             print(f"[{current_analysis_name}] 3. Extracting graph data...")
             graph_data = extract_graph_data(model_nodes_info, parameters, direction=actual_direction)
             print(f"[{current_analysis_name}] 4. Graph data extracted.")
-            
-            # max_roof_disp_actual = df_curve['Roof_Displacement_m'].max() # 위에서 이미 계산됨
             
             print(f"[{current_analysis_name}] 5. Processing pushover curve...")
             target_y = process_pushover_curve(df_curve, max_roof_disp=max_roof_disp_actual)
@@ -141,7 +142,7 @@ def process_single_combination(args):
             if target_y is None:
                 print(f"Skipping {current_analysis_name} due to pushover curve processing failure.")
                 analysis_failed_for_building = True
-                break # 현재 건물(combo)의 다른 방향도 폐기
+                break 
                 
             graph_data.y = target_y
 
@@ -163,80 +164,147 @@ def process_single_combination(args):
             summary_data.update({f'group_{g}_beam_ext': str(d['exterior']) for g, d in beam_props_by_group.items()})
             summary_data.update({f'group_{g}_beam_int': str(d['interior']) for g, d in beam_props_by_group.items()})
             
-            building_results_for_summary.append(summary_data) # 임시 리스트에 추가
+            building_results_for_summary.append(summary_data)
             
         except Exception as e:
             print(f"Error processing {current_analysis_name}: {e}")
             print(f"Exception Type: {type(e)}")
             print(traceback.format_exc())
             analysis_failed_for_building = True
-            break # 현재 건물(combo)의 다른 방향도 폐기
+            break
 
-    # 양방향 모두 성공했을 경우에만 최종 results_list에 추가
-    if not analysis_failed_for_building:
-        results_list.extend(building_results_for_summary)
+    # --- 5. [수정] 실패 시 생성된 모든 폴더 삭제 ---
+    if analysis_failed_for_building:
+        print(f"  -> Analysis failed for Building_{i:04d}. Deleting intermediate directories.")
+        for d in building_dirs:
+            if d.exists():
+                shutil.rmtree(d)
+        return None # 실패 시 아무것도 반환하지 않음
 
-    return results_list if results_list else None
+    return building_results_for_summary # 양방향 모두 성공 시에만 결과 반환
 
 # --- [수정] 메인 데이터셋 생성 함수 (멀티프로세싱 적용) ---
-def generate_dataset(output_root_dir='dataset', num_samples=10, num_workers=None):
+def generate_dataset(output_root_dir='dataset', target_samples=10, num_workers=None):
     """
-    GNN 학습을 위한 데이터셋을 병렬로 생성합니다.
+    [수정됨] GNN 학습을 위한 데이터셋을 병렬로 생성합니다. 실패를 고려하여,
+    목표한 개수의 성공 데이터가 생성될 때까지 해석을 반복합니다.
     """
     output_root_dir = Path(output_root_dir)
     output_root_dir.mkdir(parents=True, exist_ok=True)
 
-    # --- 1. 파라미터 범위 정의 (JSON 파일에서 로드) ---
+    if num_workers is None:
+        num_workers = min(multiprocessing.cpu_count(), 8)
+
+    # --- 1. 파라미터 범위 정의 및 모든 조합 생성 ---
     config_path = Path(__file__).parent / 'dataset_config.json'
     with open(config_path, 'r', encoding='utf-8') as f:
         config = json.load(f)
     
     geo_params = config['building_geometry']
-    
-    param_combinations = list(itertools.product(
+    all_param_combinations = list(itertools.product(
         geo_params['num_stories_range'], 
         geo_params['num_bays_x_range'], 
         geo_params['num_bays_z_range']
     ))
     
-    if len(param_combinations) > num_samples:
-        param_combinations = random.sample(param_combinations, num_samples)
-
-    # --- 2. 멀티프로세싱 실행 ---
-    tasks = [(i, combo, output_root_dir, config) for i, combo in enumerate(param_combinations)]
-    
-    if num_workers is None:
-        num_workers = min(multiprocessing.cpu_count(), 8)
-        
-    print(f"--- Starting dataset generation for {len(tasks)} samples using {num_workers} workers ---")
-    
+    # --- 2. [수정] 목표 개수에 도달할 때까지 멀티프로세싱 반복 실행 ---
     dataset_info = []
-    with multiprocessing.Pool(processes=num_workers) as pool:
-        with tqdm(total=len(tasks), desc="Generating Dataset") as pbar:
+    tried_combinations = set()
+    pbar = tqdm(total=target_samples, desc="Succeeded Buildings")
+    
+    task_id_counter = 0
+    
+    while get_unique_building_indices(dataset_info) < target_samples:
+        current_successful_count = get_unique_building_indices(dataset_info)
+        
+        # 다음 배치 크기 결정
+        needed = target_samples - current_successful_count
+        batch_size = min(needed * 2, num_workers * 2) # 추정 성공률 50% 가정, 배치 크기 조절
+
+        # 시도하지 않은 새로운 조합 샘플링
+        available_combinations = [c for c in all_param_combinations if tuple(c) not in tried_combinations]
+        if not available_combinations:
+            print("\nWarning: All possible parameter combinations have been tried, but target not reached.")
+            break
+            
+        sample_size = min(batch_size, len(available_combinations))
+        new_combos_to_try = random.sample(available_combinations, sample_size)
+        
+        tasks = []
+        for combo in new_combos_to_try:
+            tried_combinations.add(tuple(combo))
+            tasks.append((task_id_counter, combo, output_root_dir, config))
+            task_id_counter += 1
+            
+        print(f"\n--- Starting a new batch of {len(tasks)} samples to reach target {target_samples} (currently {current_successful_count}) ---")
+
+        with multiprocessing.Pool(processes=num_workers) as pool:
             for results_for_building in pool.imap_unordered(process_single_combination, tasks):
                 if results_for_building:
                     dataset_info.extend(results_for_building)
-                pbar.update()
+                    pbar.update(1) # 건물 하나 성공 시 pbar 1 증가
 
-    # --- 3. 결과 요약 및 저장 ---
+    pbar.close()
+
+    # --- 3. 결과 후처리: 순차적 번호 부여 및 요약 저장 ---
     if not dataset_info:
         print("\nWarning: No data was successfully generated.")
         return
 
-    df_dataset_info = pd.DataFrame(dataset_info)
+    # 성공한 빌딩의 원본 인덱스 추출 및 정렬
+    original_indices = sorted(list(set([
+        int(item['analysis_name'].split('_')[1]) for item in dataset_info
+    ])))
+
+    # 원본 인덱스 -> 새 순차 인덱스 매핑 생성
+    old_to_new_index_map = {old_idx: new_idx for new_idx, old_idx in enumerate(original_indices)}
+    
+    print(f"\n--- Renumbering {len(original_indices)} successful buildings sequentially... ---")
+
+    final_dataset_info = []
+    for item in dataset_info:
+        original_name = item['analysis_name']
+        parts = original_name.split('_')
+        old_idx = int(parts[1])
+        geo_part = "_".join(parts[2:-1])
+        direction = parts[-1]
+        new_idx = old_to_new_index_map[old_idx]
+        new_dir_name = f"Building_{new_idx:04d}_{geo_part}_{direction}"
+        
+        old_dir = Path(item['data_file']).parent
+        new_dir = old_dir.parent / new_dir_name
+        
+        old_pt_filename = Path(item['data_file']).name
+        new_pt_filename = f"{new_dir_name}_graph_data.pt"
+
+        if old_dir.exists() and not old_dir == new_dir:
+            os.rename(old_dir, new_dir)
+            pt_file_to_rename = new_dir / old_pt_filename
+            if pt_file_to_rename.exists():
+                os.rename(pt_file_to_rename, new_dir / new_pt_filename)
+        
+        updated_item = item.copy()
+        updated_item['analysis_name'] = new_dir_name
+        updated_item['data_file'] = str(new_dir / new_pt_filename)
+        final_dataset_info.append(updated_item)
+
+    final_dataset_info.sort(key=lambda item: item['analysis_name'])
+    df_dataset_info = pd.DataFrame(final_dataset_info)
     summary_path = output_root_dir / 'dataset_summary.csv'
-    df_dataset_info.to_csv(summary_path, index=False)
+    df_dataset_info.to_csv(summary_path, index=False, encoding='utf-8-sig')
     
     print(f"\n--- Dataset generation complete ---")
-    print(f"{len(df_dataset_info)} / {len(tasks) * 2} analysis runs successfully generated.")
-    print(f"Summary saved to {summary_path}")
+    print(f"Successfully generated {len(original_indices)} buildings ({len(df_dataset_info)} models).")
+    print(f"Total combinations tried: {len(tried_combinations)}.")
+    print(f"Final summary saved to {summary_path}")
 
 if __name__ == '__main__':
     project_root_path = Path(__file__).parent.parent
     output_dir_abs = project_root_path / 'data' / 'raw_dataset'
 
+    # [수정] 목표 성공 샘플 개수를 100개로 설정하여 실행
     generate_dataset(
         output_root_dir=output_dir_abs, 
-        num_samples=100,
-        num_workers=None
+        target_samples=100,
+        num_workers=2 # CPU 코어 사용을 2개로 제한
     )

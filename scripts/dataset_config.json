@@ -12,13 +12,13 @@
   },
 
   "member_properties": {
-    "_comment": "Ranges for sampling member section sizes and reinforcement details. Section dimensions are in 50mm increments.",
+    "_comment": "Ranges for sampling member section sizes and reinforcement details. Section dimensions are in 50mm increments. [Modified to improve success rate]",
     "col_section_tiers_m": {
       "exterior": [
-        [0.40, 0.40], [0.45, 0.45], [0.50, 0.50], [0.55, 0.55], [0.60, 0.60]
+        [0.50, 0.50], [0.55, 0.55], [0.60, 0.60]
       ],
       "interior": [
-        [0.50, 0.50], [0.55, 0.55], [0.60, 0.60], [0.65, 0.65], [0.70, 0.70]
+        [0.55, 0.55], [0.60, 0.60], [0.65, 0.65], [0.70, 0.70]
       ]
     },
     "beam_section_tiers_m": {
@@ -26,7 +26,7 @@
         [0.30, 0.50], [0.35, 0.55], [0.40, 0.60], [0.45, 0.65]
       ],
       "interior": [
-        [0.35, 0.55], [0.40, 0.60], [0.45, 0.65], [0.50, 0.70]
+        [0.35, 0.55], [0.40, 0.60], [0.45, 0.65]
       ]
     },
     "rebar_As_m2_list": [
