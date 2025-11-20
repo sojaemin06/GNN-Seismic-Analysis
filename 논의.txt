@@ -1,5 +1,25 @@
-1. 현재 내가 목표로 하는 프로젝트의 방향은 GNN학습을 통해 다양한 구조 요소로 이루어진 구조시스템의 푸쉬오버해석 곡선을 빠르게 출력하는 것이야
-2. 이때 학습데이터로 이용되는 데이터는 1차 모드에 의해 움직이는 저층 RC프레임이야
-3. GNN의 예측이 특정 오차율 이내이면 내진성능평가의 과정을 빠르게 진행할 수 있는 장점이 있어
-4. 이때 성능점 도출을 기반으로 한 후속 작업까지 코드로 구현할 필요가 있을까?
-5. 다른 프로젝트 의견있으면 제안해줘
+ 4. Model Commands 4.18. geomTransf commands 4.18.2. PDelta TransformationView page source
+4.18.2. PDelta Transformation¶
+geomTransf('PDelta', transfTag, '-jntOffset', *dI, *dJ)
+geomTransf('PDelta', transfTag, *vecxz, '-jntOffset', *dI, *dJ)
+This command is used to construct the P-Delta Coordinate Transformation (PDeltaCrdTransf) object, which performs a linear geometric transformation of beam stiffness and resisting force from the basic system to the global coordinate system, considering second-order P-Delta effects.
+
+transfTag (int)
+
+integer tag identifying transformation
+
+vecxz (list (float))
+
+X, Y, and Z components of vecxz, the vector used to define the local x-z plane of the local-coordinate system. The local y-axis is defined by taking the cross product of the vecxz vector and the x-axis. These components are specified in the global-coordinate system X,Y,Z and define a vector that is in a plane parallel to the x-z plane of the local-coordinate system. These items need to be specified for the three-dimensional problem.
+
+dI (list (float))
+
+joint offset values – offsets specified with respect to the global coordinate system for element-end node i (the number of arguments depends on the dimensions of the current model).
+
+dJ (list (float))
+
+joint offset values – offsets specified with respect to the global coordinate system for element-end node j (the number of arguments depends on the dimensions of the current model).
+
+Note
+
+P LARGE Delta effects do not include P small delta effects.

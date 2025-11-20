@@ -1,0 +1,104 @@
+{
+  "_comment_main": "Configuration for generating the RC moment frame dataset, aligned with PROJECT_SUMMARY.md.",
+
+  "building_geometry": {
+    "_comment": "Parameters defining the overall building dimensions and layout.",
+    "num_stories_range": [3, 5, 7],
+    "num_bays_x_range": [2, 3, 4],
+    "num_bays_z_range": [2, 3, 4],
+    "bay_width_x_m_range": [5.0, 6.0, 7.0, 8.0],
+    "bay_width_z_m_range": [5.0, 6.0, 7.0, 8.0],
+    "build_core_options": [false]
+  },
+
+  "member_properties": {
+    "_comment": "Ranges for sampling member section sizes and reinforcement details. Section dimensions are in 50mm increments.",
+    "col_section_tiers_m": {
+      "exterior": [
+        [0.40, 0.40], [0.45, 0.45], [0.50, 0.50], [0.55, 0.55], [0.60, 0.60]
+      ],
+      "interior": [
+        [0.50, 0.50], [0.55, 0.55], [0.60, 0.60], [0.65, 0.65], [0.70, 0.70]
+      ]
+    },
+    "beam_section_tiers_m": {
+      "exterior": [
+        [0.30, 0.50], [0.35, 0.55], [0.40, 0.60], [0.45, 0.65]
+      ],
+      "interior": [
+        [0.35, 0.55], [0.40, 0.60], [0.45, 0.65], [0.50, 0.70]
+      ]
+    },
+    "rebar_As_m2_list": [
+      {"name": "D19", "area": 0.000287},
+      {"name": "D22", "area": 0.000387},
+      {"name": "D25", "area": 0.000507}
+    ],
+    "num_bars_main_range": [4, 6, 8],
+    "use_2nd_layer_beams_options": [false]
+  },
+
+  "material_properties": {
+    "_comment": "Nominal strengths and factors to calculate expected strength as per '내진성능 평가요령'.",
+    "nominal_strengths": {
+      "fc_MPa_range": [24, 27, 30],
+      "Fy_MPa_range": [400, 500]
+    },
+    "expected_strength_factors": {
+      "_comment_fc": "Factor for concrete compressive strength (e.g., 1.3 for confined concrete).",
+      "fc_factor": 1.3,
+      "_comment_Fy": "Factor for rebar yield strength (e.g., 1.15 or 1.25).",
+      "Fy_factor": 1.25
+    }
+  },
+
+  "nonlinear_materials": {
+    "_comment": "OpenSeesPy 비선형 재료 모델(Concrete02, Steel02) 파라미터",
+    "concrete02_confined": {
+      "_comment": "횡구속된 심부 콘크리트(Kent-Scott-Park 모델)",
+      "epsc0": 0.002,
+      "_comment_epsc0": "최대 압축 강도(fpc)에서의 변형률",
+      "fpcu_ratio": 0.8,
+      "_comment_fpcu_ratio": "최대 압축 강도 대비 파괴 강도(fpcu)의 비율",
+      "epsU_ratio": 5.0,
+      "_comment_epsU_ratio": "최대 압축 강도 변형률(epsc0) 대비 극한 변형률(epsU)의 비율",
+      "lambda": 0.1,
+      "_comment_lambda": "초기 탄성계수 대비 재하(unloading) 시 강성 비율",
+      "tens_str_ratio": 0.1,
+      "_comment_tens_str_ratio": "최대 압축 강도 대비 인장 강도(ft)의 비율",
+      "Ets_ratio": 0.01
+    },
+    "concrete02_unconfined": {
+      "_comment": "비구속 피복 콘크리트(Kent-Scott-Park 모델)",
+      "epsc0": 0.002,
+      "_comment_epsc0_unconfined": "최대 압축 강도(fpc)에서의 변형률",
+      "fpcu_ratio": 0.0,
+      "_comment_fpcu_ratio_unconfined": "최대 압축 강도 대비 파괴 강도(fpcu)의 비율 (피복은 0)",
+      "epsU_ratio": 2.0,
+      "_comment_epsU_ratio_unconfined": "최대 압축 강도 변형률(epsc0) 대비 극한 변형률(epsU)의 비율",
+      "lambda": 0.1,
+      "_comment_lambda_unconfined": "초기 탄성계수 대비 재하(unloading) 시 강성 비율",
+      "tens_str_ratio": 0.1,
+      "_comment_tens_str_ratio_unconfined": "최대 압축 강도 대비 인장 강도(ft)의 비율",
+      "Ets_ratio": 0.01
+    },
+    "steel02": {
+      "_comment": "철근(Giuffre-Menegotto-Pinto 모델)",
+      "E0_GPa": 200,
+      "_comment_E0_GPa": "철근의 초기 탄성 계수 (GPa 단위)",
+      "b": 0.01,
+      "_comment_b": "변형 경화율 (초기 탄성계수 대비 항복 후 강성 비율)",
+      "R0": 18.0,
+      "_comment_R0": "바우싱거 효과(Bauschinger effect) 및 항복 전이 구간의 곡선 형태를 제어하는 파라미터",
+      "cR1": 0.925,
+      "_comment_cR1": "바우싱거 효과를 제어하는 파라미터",
+      "cR2": 0.15
+    }
+  },
+
+  "analysis_parameters": {
+    "_comment": "Parameters controlling the pushover analysis.",
+    "max_drift": 0.04,
+    "num_steps": 100
+  }
+}

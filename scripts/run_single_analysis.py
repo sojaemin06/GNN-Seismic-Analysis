@@ -115,90 +115,81 @@ def main(params, direction='X'):
     return perf_points, model_nodes_info, df_curve, direction # 계산된 성능점, 모델 정보, 푸쉬오버 곡선, 방향 반환
 
 
-# ### 12. 메인 실행부 (Driver) ###
-if __name__ == '__main__':
-    
-    # --- 1. 빠른 테스트 / 상세 해석 설정 ---
-    FAST_TEST_CONFIG = True 
-    BUILD_CORE_SWITCH = False
-    
-    if FAST_TEST_CONFIG:
-        print("--- [!] 빠른 테스트 모드 (Fast Test Mode) 활성화 ---")
-        analysis_params = {
-            'analysis_name': 'Run_Fast_Test_3x3_Core', 
-            'output_dir': Path('results/Run_Fast_Test_3x3_Core'), 
-            'target_drift': 0.04, 
-            'num_steps': 500,     
-            'num_modes': 20, # 검증을 위해 모드 수 증가      
-            'num_int_pts': 2,     
-            'plot_z_line_index': 1, 
-            
-            # Geometry
-            'num_bays_x': 3,      
-            'num_bays_z': 3,      
-            'num_stories': 6,     
-            'bay_width_x': 6.0, 
-            'bay_width_z': 6.0, 
-            'story_height': 3.5,
-            
-            'build_core': BUILD_CORE_SWITCH,
-            
-            'core_z_start_bay_idx': 1, 
-            'core_x_start_bay_idx': 1, 
-            'num_core_bays_z': 1,      
-            'num_core_bays_x': 1,
-            
-            # [신규] 비선형 정적해석 검증용 파라미터
-            'seismic_zone_factor': 0.11, # 예: 지진구역 I
-            'hazard_factor': 1.0,        # 예: 재현주기 500년
-            'soil_type': 'S4',           # 예: 보통 단단한 지반
-            
-            # [수정] 데이터셋 생성이 아닌 단일 실행이므로 플로팅 활성화
-            'skip_post_processing': False,
-        }
-    else:
-        # ... (상세 해석용 설정) ...
-        print("--- [!] 상세 해석 모드 (Full Analysis Mode) 활성화 ---")
-        analysis_params = {
-            # ... (기존과 동일) ...
-            'seismic_zone_factor': 0.11,
-            'hazard_factor': 1.0,
-            'soil_type': 'S4',
-            'skip_post_processing': False,
-        }
-        
-    if not BUILD_CORE_SWITCH:
-        analysis_params['analysis_name'] = analysis_params['analysis_name'].replace('_Core', '_NoCore')
-        analysis_params['output_dir'] = Path(str(analysis_params['output_dir']).replace('_Core', '_NoCore'))
+def get_single_run_parameters():
+    """
+    단일 RC 모멘트 골조 해석을 위한 파라미터를 설정하고 반환합니다.
+    전단벽/코어 관련 파라미터는 RC 모멘트 골조 시스템의 범위에 따라 제외됩니다.
+    """
+    print("--- [!] 단일 RC 모멘트 골조 해석 모드 활성화 ---")
+    analysis_params = {
+        'analysis_name': 'Run_Single_RC_Moment_Frame',
+        'output_dir': Path('results/Run_Single_RC_Moment_Frame'),
+        'target_drift': 0.04,
+        'num_steps': 500,
+        'num_modes': 20,
+        'num_int_pts': 2,
+        'plot_z_line_index': 1,
 
+        # Geometry
+        'num_bays_x': 3,
+        'num_bays_z': 3,
+        'num_stories': 6,
+        'bay_width_x': 6.0,
+        'bay_width_z': 6.0,
+        'story_height': 3.5,
+        
+        # 비선형 정적해석 검증용 파라미터
+        'seismic_zone_factor': 0.11,
+        'hazard_factor': 1.0,
+        'soil_type': 'S4',
+        'skip_post_processing': False,
+    }
 
     # --- 2. 재료/단면/하중 공통 파라미터 ---
     common_params = {
-        'fc': -30e6,      # Pa
-        'Fy': 400e6,      # Pa
-        'E_steel': 200e9, # Pa
-        'col_dims': (0.4, 0.4),
-        'beam_dims': (0.3, 0.5),
+        'fc': -30e6,
+        'Fy': 400e6,
+        'E_steel': 200e9,
         'cover': 0.04,
         'rebar_Area': 0.00049,
         'num_bars_x': 3,
         'num_bars_z': 3,
         'num_bars_top': 4,
         'num_bars_bot': 4,
-        'wall_thickness': 0.20,
-        'wall_reinf_ratio': 0.003,
         'g': 9.81,
-        'dead_load_pa': 5000.0, 
+        'dead_load_pa': 5000.0,
         'live_load_pa': 2000.0
     }
 
-    # --- 3. 파라미터 결합 및 메인 함수 실행 ---
-    parameters = {**analysis_params, **common_params}
+    # --- 2.5. 그룹화된 단면 정보 생성 (단일 실행용) ---
+    num_story_groups = (analysis_params['num_stories'] + 1) // 2
+    col_props_by_group = {i: {'interior': (0.4, 0.4), 'exterior': (0.4, 0.4)} for i in range(num_story_groups)}
+    beam_props_by_group = {i: {'interior': (0.3, 0.5), 'exterior': (0.3, 0.5)} for i in range(num_story_groups)}
     
-    # main 함수를 직접 호출 (X 방향)
-    print("\n--- Running X-direction analysis ---")
-    main(parameters, direction='X')
+    common_params['col_props_by_group'] = col_props_by_group
+    common_params['beam_props_by_group'] = beam_props_by_group
+
+    # --- 3. 파라미터 결합 ---
+    return {**analysis_params, **common_params}
+
+
+# ### 12. 메인 실행부 (Driver) ###
+if __name__ == '__main__':
     
-    # main 함수를 직접 호출 (Z 방향)
-    print("\n--- Running Z-direction analysis ---")
-    main(parameters, direction='Z')
+    # 1. 단일 실행용 파라미터 가져오기
+    parameters = get_single_run_parameters()
+    
+    # 2. X, Z 방향에 대해 순차적으로 해석 실행
+    for direction in ['X', 'Z']:
+        print(f"\n--- Running {direction}-direction analysis ---")
+        # 각 방향 해석을 위해 파라미터 복사 (ops.wipe()가 이전 상태를 지우므로)
+        params_for_run = parameters.copy()
+        
+        # 출력 디렉토리 이름에 방향 추가
+        original_name = params_for_run['analysis_name']
+        original_dir = params_for_run['output_dir']
+        
+        params_for_run['analysis_name'] = f"{original_name}_{direction}"
+        params_for_run['output_dir'] = original_dir.parent / f"{original_dir.name}_{direction}"
+
+        main(params_for_run, direction=direction)

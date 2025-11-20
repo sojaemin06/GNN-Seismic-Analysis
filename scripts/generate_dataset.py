@@ -8,13 +8,14 @@ import multiprocessing
 from tqdm import tqdm
 import math
 import os
+import traceback
+import json
 
 # run_single_analysis.py의 main 함수를 직접 호출하기 위해 import
 from run_single_analysis import main as run_single_analysis_main
 
 # --- [수정] 그래프 데이터 추출 함수 임포트 ---
 import sys
-import os
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
@@ -24,113 +25,158 @@ from src.data.graph_exporter import extract_graph_data, process_pushover_curve
 # --- [수정] 멀티프로세싱을 위한 단일 작업 함수 ---
 def process_single_combination(args):
     """
-    단일 파라미터 조합에 대해 해석을 실행하고 결과를 반환합니다.
-    각 건물 모델에 대해 X, Z 두 방향으로 해석을 수행합니다.
+    [수정됨] 단일 파라미터 조합에 대해, 그룹화 및 계층화된 샘플링을 적용하여
+    X, Z 양방향으로 해석을 실행하고 결과를 반환합니다.
     """
-    i, combo, output_root_dir, section_params_ranges = args
-    num_stories, num_bays_x, num_bays_z, build_core = combo
-    
-    results_list = [] # 각 방향별 결과를 저장할 리스트
+    i, combo, output_root_dir, config = args
+    num_stories, num_bays_x, num_bays_z = combo # build_core 제거
+    build_core = False # RC 모멘트 골조만 대상으로 하므로 항상 False
 
-    # --- [신규] 단면 및 재료 파라미터 랜덤 샘플링 ---
-    col_props = {
-        'dims': random.choice(section_params_ranges['col_dims_range']),
-        'fc': -random.choice(section_params_ranges['fc_range']) * 1e6,
-        'Fy': random.choice(section_params_ranges['Fy_range']) * 1e6,
-        'cover': round(random.uniform(*section_params_ranges['cover_range']), 3),
-        'rebar_Area': random.choice(section_params_ranges['rebar_Area_range']),
-        'num_bars_x': random.choice(section_params_ranges['col_num_bars_range']),
-        'num_bars_z': random.choice(section_params_ranges['col_num_bars_range']),
-    }
-    beam_props = {
-        'dims': random.choice(section_params_ranges['beam_dims_range']),
-        'fc': col_props['fc'], # 보와 기둥의 콘크리트 강도는 동일하다고 가정
-        'Fy': col_props['Fy'], # 철근 강도도 동일하다고 가정
-        'cover': round(random.uniform(*section_params_ranges['cover_range']), 3),
-        'rebar_Area': random.choice(section_params_ranges['rebar_Area_range']),
-        'num_bars_top': random.choice(section_params_ranges['beam_num_bars_range']),
-        'num_bars_bot': random.choice(section_params_ranges['beam_num_bars_range']),
-    }
+    geo_params = config['building_geometry']
+    member_params = config['member_properties']
+    material_params = config['material_properties']
     
-    core_config = {}
-    if build_core:
-        core_config_options = [
-            {'core_z_start_bay_idx': 0, 'core_x_start_bay_idx': 0, 'num_core_bays_z': 1, 'num_core_bays_x': 1},
-            {'core_z_start_bay_idx': 1, 'core_x_start_bay_idx': 1, 'num_core_bays_z': 1, 'num_core_bays_x': 1},
-        ]
-        valid_core_configs = [
-            cfg for cfg in core_config_options
-            if (cfg['core_x_start_bay_idx'] + cfg['num_core_bays_x'] <= num_bays_x and
-                cfg['core_z_start_bay_idx'] + cfg['num_core_bays_z'] <= num_bays_z)
-        ]
-        if not valid_core_configs:
-            build_core = False
-        else:
-            core_config = random.choice(valid_core_configs)
+    results_list = [] # 이 함수가 최종적으로 반환할 결과 리스트
+    building_results_for_summary = [] # 현재 건물(combo)의 X, Z 방향 결과를 임시 저장
+
+    # --- 1. 건물 전체에 적용될 균일 파라미터 샘플링 ---
+    bay_width_x = random.choice(geo_params['bay_width_x_m_range'])
+    bay_width_z = random.choice(geo_params['bay_width_z_m_range'])
     
-    # [수정] 해석에 필요한 모든 파라미터를 common_params에 통합
-    common_params = {
-        'E_steel': 200e9, 'wall_thickness': 0.20, 'wall_reinf_ratio': 0.003,
-        'g': 9.81, 'dead_load_pa': 5000.0, 'live_load_pa': 0.0,
-        'col_dims': col_props['dims'], 'beam_dims': beam_props['dims'],
-        'fc': col_props['fc'], 'Fy': col_props['Fy'], 'cover': col_props['cover'], 'rebar_Area': col_props['rebar_Area'],
-        'num_bars_x': col_props['num_bars_x'], 'num_bars_z': col_props['num_bars_z'],
-        'num_bars_top': beam_props['num_bars_top'], 'num_bars_bot': beam_props['num_bars_bot'],
+    # 공칭 강도 샘플링
+    fc_nominal = random.choice(material_params['nominal_strengths']['fc_MPa_range'])
+    Fy_nominal = random.choice(material_params['nominal_strengths']['Fy_MPa_range'])
+
+    # 기대 강도 계산
+    fc_expected = fc_nominal * material_params['expected_strength_factors']['fc_factor']
+    Fy_expected = Fy_nominal * material_params['expected_strength_factors']['Fy_factor']
+
+    uniform_material_props = {
+        'fc': -fc_expected * 1e6, # OpenSees에서 압축은 음수
+        'Fy': Fy_expected * 1e6,
+        'cover': round(random.uniform(0.04, 0.06), 3), # cover는 범위 내에서 랜덤 샘플링
+        'rebar_Area': random.choice(member_params['rebar_As_m2_list'])['area'],
+        'num_bars_x': random.choice(member_params['num_bars_main_range']),
+        'num_bars_z': random.choice(member_params['num_bars_main_range']),
+        'num_bars_top': random.choice(member_params['num_bars_main_range']),
+        'num_bars_bot': random.choice(member_params['num_bars_main_range']),
+        'E_steel': 200e9,
+        'g': 9.81,
+        'dead_load_pa': 5000.0,
+        'live_load_pa': 0.0,
     }
 
-    for direction in ['X', 'Z']: # X, Z 두 방향에 대해 해석 수행
-        current_analysis_name = f"Building_{i:04d}_S{num_stories}_BX{num_bays_x}_BZ{num_bays_z}_C{build_core}_{direction}"
+    # --- 2. 2개층 단위 그룹별 부재 단면 샘플링 ---
+    num_story_groups = math.ceil(num_stories / 2)
+    col_props_by_group = {}
+    beam_props_by_group = {}
+    
+    last_ext_col_dim = (0, 0)
+    last_int_col_dim = (0, 0)
+
+    for group_idx in reversed(range(num_story_groups)):
+        ext_col_choices = [tuple(d) for d in member_params['col_section_tiers_m']['exterior'] if d[0] >= last_ext_col_dim[0]]
+        int_col_choices = [tuple(d) for d in member_params['col_section_tiers_m']['interior'] if d[0] >= last_int_col_dim[0]]
+        
+        ext_col_dim = random.choice(ext_col_choices)
+        int_col_choices_filtered = [d for d in int_col_choices if d[0] >= ext_col_dim[0]]
+        int_col_dim = random.choice(int_col_choices_filtered)
+
+        col_props_by_group[group_idx] = {'exterior': ext_col_dim, 'interior': int_col_dim}
+        last_ext_col_dim, last_int_col_dim = ext_col_dim, int_col_dim
+
+        beam_props_by_group[group_idx] = {
+            'exterior': tuple(random.choice(member_params['beam_section_tiers_m']['exterior'])),
+            'interior': tuple(random.choice(member_params['beam_section_tiers_m']['interior']))
+        }
+
+    # --- 3. 해석에 필요한 파라미터 구조화 ---
+    member_props_for_analysis = {**uniform_material_props, 'col_props_by_group': col_props_by_group, 'beam_props_by_group': beam_props_by_group}
+
+    # --- 4. 양방향 해석 실행 ---
+    analysis_failed_for_building = False
+    for direction in ['X', 'Z']:
+        current_analysis_name = f"Building_{i:04d}_S{num_stories}_BX{num_bays_x}_BZ{num_bays_z}_{direction}"
         current_output_dir = Path(output_root_dir) / current_analysis_name
 
         analysis_params = {
             'analysis_name': current_analysis_name, 'output_dir': current_output_dir, 'target_drift': 0.04, 
             'num_steps': 1000, 'num_modes': 20, 'num_int_pts': 5, 'plot_z_line_index': 1,
             'num_bays_x': num_bays_x, 'num_bays_z': num_bays_z, 'num_stories': num_stories,
-            'bay_width_x': 6.0, 'bay_width_z': 6.0, 'story_height': 3.5,
-            'build_core': build_core, **core_config,
+            'bay_width_x': bay_width_x, 'bay_width_z': bay_width_z, 'story_height': 3.5,
             'seismic_zone_factor': 0.11, 'hazard_factor': 1.0, 'soil_type': 'S4',
             'skip_post_processing': True,
         }
-        parameters = {**analysis_params, **common_params}
+        
+        parameters = {**analysis_params, **member_props_for_analysis, **config['nonlinear_materials']}
 
         try:
+            print(f"[{current_analysis_name}] 1. Running single analysis...")
             perf_points, model_nodes_info, df_curve, actual_direction = run_single_analysis_main(parameters, direction=direction)
+            print(f"[{current_analysis_name}] 2. Analysis finished.")
 
-            if model_nodes_info is None or df_curve is None:
+            if model_nodes_info is None or df_curve is None or df_curve.empty:
                 print(f"Skipping {current_analysis_name} due to analysis failure or insufficient data.")
-                continue # 다음 방향으로 넘어감
+                analysis_failed_for_building = True
+                break # 현재 건물(combo)의 다른 방향도 폐기
 
-            graph_data = extract_graph_data(model_nodes_info, col_props, beam_props, direction=actual_direction)
-            
+            # [추가] 해석 조기 종료 검증
+            target_disp = parameters['target_drift'] * parameters['story_height'] * parameters['num_stories']
             max_roof_disp_actual = df_curve['Roof_Displacement_m'].max()
+            if max_roof_disp_actual < target_disp * 0.95: # 목표 변위의 95% 미만이면 조기 종료로 간주
+                print(f"Skipping {current_analysis_name} due to premature analysis termination (reached {max_roof_disp_actual:.3f}m / target {target_disp:.3f}m).")
+                analysis_failed_for_building = True
+                break # 현재 건물(combo)의 다른 방향도 폐기
+                
+            print(f"[{current_analysis_name}] 3. Extracting graph data...")
+            graph_data = extract_graph_data(model_nodes_info, parameters, direction=actual_direction)
+            print(f"[{current_analysis_name}] 4. Graph data extracted.")
+            
+            # max_roof_disp_actual = df_curve['Roof_Displacement_m'].max() # 위에서 이미 계산됨
+            
+            print(f"[{current_analysis_name}] 5. Processing pushover curve...")
             target_y = process_pushover_curve(df_curve, max_roof_disp=max_roof_disp_actual)
+            print(f"[{current_analysis_name}] 6. Pushover curve processed.")
 
             if target_y is None:
                 print(f"Skipping {current_analysis_name} due to pushover curve processing failure.")
-                continue # 다음 방향으로 넘어감
+                analysis_failed_for_building = True
+                break # 현재 건물(combo)의 다른 방향도 폐기
                 
             graph_data.y = target_y
 
             data_file_path = current_output_dir / f"{current_analysis_name}_graph_data.pt"
+            
+            print(f"[{current_analysis_name}] 7. Saving graph data to {data_file_path}...")
             torch.save(graph_data, data_file_path)
+            print(f"[{current_analysis_name}] 8. Graph data saved.")
 
             summary_data = {
                 'analysis_name': current_analysis_name, 'num_stories': num_stories, 'num_bays_x': num_bays_x,
-                'num_bays_z': num_bays_z, 'build_core': build_core, 'data_file': str(data_file_path),
+                'num_bays_z': num_bays_z, 'data_file': str(data_file_path),
                 'max_roof_disp_actual': max_roof_disp_actual,
                 'peak_shear_kN': perf_points.get('peak_shear', 0) / 1000 if perf_points else 0,
-                'direction': actual_direction # 해석 방향 추가
+                'direction': actual_direction
             }
-            for k, v in col_props.items(): summary_data[f'col_{k}'] = str(v)
-            for k, v in beam_props.items(): summary_data[f'beam_{k}'] = str(v)
+            summary_data.update({f'group_{g}_col_ext': str(d['exterior']) for g, d in col_props_by_group.items()})
+            summary_data.update({f'group_{g}_col_int': str(d['interior']) for g, d in col_props_by_group.items()})
+            summary_data.update({f'group_{g}_beam_ext': str(d['exterior']) for g, d in beam_props_by_group.items()})
+            summary_data.update({f'group_{g}_beam_int': str(d['interior']) for g, d in beam_props_by_group.items()})
             
-            results_list.append(summary_data)
+            building_results_for_summary.append(summary_data) # 임시 리스트에 추가
             
         except Exception as e:
             print(f"Error processing {current_analysis_name}: {e}")
-            # 오류 발생 시 해당 방향의 결과는 무시하고 다음 방향으로 진행
+            print(f"Exception Type: {type(e)}")
+            print(traceback.format_exc())
+            analysis_failed_for_building = True
+            break # 현재 건물(combo)의 다른 방향도 폐기
 
-    return results_list if results_list else None # 성공한 결과가 없으면 None 반환
+    # 양방향 모두 성공했을 경우에만 최종 results_list에 추가
+    if not analysis_failed_for_building:
+        results_list.extend(building_results_for_summary)
+
+    return results_list if results_list else None
 
 # --- [수정] 메인 데이터셋 생성 함수 (멀티프로세싱 적용) ---
 def generate_dataset(output_root_dir='dataset', num_samples=10, num_workers=None):
@@ -140,33 +186,24 @@ def generate_dataset(output_root_dir='dataset', num_samples=10, num_workers=None
     output_root_dir = Path(output_root_dir)
     output_root_dir.mkdir(parents=True, exist_ok=True)
 
-    # --- 1. 파라미터 범위 정의 ---
-    # [수정] 저층 건물에 적합한 파라미터 범위로 수정
-    num_stories_range = [3, 4, 5]
-    num_bays_x_range = [2, 3, 4]
-    num_bays_z_range = [2, 3, 4]
-    build_core_options = [False]
+    # --- 1. 파라미터 범위 정의 (JSON 파일에서 로드) ---
+    config_path = Path(__file__).parent / 'dataset_config.json'
+    with open(config_path, 'r', encoding='utf-8') as f:
+        config = json.load(f)
     
-    section_params_ranges = {
-        'col_dims_range': [(round(w, 2), round(w, 2)) for w in np.arange(0.4, 0.61, 0.1)], # 400x400 ~ 600x600
-        'beam_dims_range': [(0.3, 0.5), (0.3, 0.6), (0.4, 0.5), (0.4, 0.6)],
-        'fc_range': [21, 24, 27],  # MPa (Discrete values)
-        'Fy_range': [400, 500], # MPa (Discrete values)
-        'cover_range': (0.04, 0.06), # m
-        'rebar_Area_range': [0.000284, 0.000387, 0.000491], # D19, D22, D25
-        'col_num_bars_range': [3, 4, 5],
-        'beam_num_bars_range': [3, 4, 5],
-    }
+    geo_params = config['building_geometry']
     
     param_combinations = list(itertools.product(
-        num_stories_range, num_bays_x_range, num_bays_z_range, build_core_options
+        geo_params['num_stories_range'], 
+        geo_params['num_bays_x_range'], 
+        geo_params['num_bays_z_range']
     ))
     
     if len(param_combinations) > num_samples:
         param_combinations = random.sample(param_combinations, num_samples)
 
     # --- 2. 멀티프로세싱 실행 ---
-    tasks = [(i, combo, output_root_dir, section_params_ranges) for i, combo in enumerate(param_combinations)]
+    tasks = [(i, combo, output_root_dir, config) for i, combo in enumerate(param_combinations)]
     
     if num_workers is None:
         num_workers = min(multiprocessing.cpu_count(), 8)
@@ -174,12 +211,11 @@ def generate_dataset(output_root_dir='dataset', num_samples=10, num_workers=None
     print(f"--- Starting dataset generation for {len(tasks)} samples using {num_workers} workers ---")
     
     dataset_info = []
-    # 멀티프로세싱 Pool 사용
     with multiprocessing.Pool(processes=num_workers) as pool:
         with tqdm(total=len(tasks), desc="Generating Dataset") as pbar:
             for results_for_building in pool.imap_unordered(process_single_combination, tasks):
-                if results_for_building: # results_for_building is a list of summary_data
-                    dataset_info.extend(results_for_building) # Use extend instead of append
+                if results_for_building:
+                    dataset_info.extend(results_for_building)
                 pbar.update()
 
     # --- 3. 결과 요약 및 저장 ---
@@ -192,17 +228,15 @@ def generate_dataset(output_root_dir='dataset', num_samples=10, num_workers=None
     df_dataset_info.to_csv(summary_path, index=False)
     
     print(f"\n--- Dataset generation complete ---")
-    print(f"{len(dataset_info)} / {len(tasks)} samples successfully generated.")
+    print(f"{len(df_dataset_info)} / {len(tasks) * 2} analysis runs successfully generated.")
     print(f"Summary saved to {summary_path}")
 
 if __name__ == '__main__':
-    # 스크립트의 현재 작업 디렉토리 문제 해결을 위해 절대 경로 사용
-    project_root = os.path.dirname(os.path.abspath(__file__))
-    output_dir_abs = os.path.join(project_root, 'dataset_output_parallel')
+    project_root_path = Path(__file__).parent.parent
+    output_dir_abs = project_root_path / 'data' / 'raw_dataset'
 
-    # 데이터셋 생성 실행 (샘플 수 증가)
     generate_dataset(
         output_root_dir=output_dir_abs, 
-        num_samples=100, # 훈련을 위해 샘플 수를 100개로 늘림
-        num_workers=None # 시스템의 CPU 코어 수에 맞춰 자동으로 워커 수 설정
+        num_samples=100,
+        num_workers=None
     )
