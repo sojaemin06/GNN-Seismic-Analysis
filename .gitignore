@@ -1,0 +1,25 @@
+# Virtual Environment
+GNN/
+
+# Python cache
+# __pycache__/
+# *.pyc
+
+# Generated data and results
+dataset_output_parallel/
+results/
+raw_dataset/
+# data/
+# *.pt
+# *.out
+# *.log
+
+# IDE/Editor settings
+# .vscode/
+
+# # Temporary files
+# warning.txt
+# 논의.txt
+
+# Documentation/Reference files
+# 참고자료/
