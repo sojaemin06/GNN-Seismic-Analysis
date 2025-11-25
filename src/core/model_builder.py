@@ -15,7 +15,8 @@ def build_model(params):
         'all_node_coords': {}, 'all_line_elements': {}, 'all_shell_elements': {},
         'all_column_tags': [], 'all_beam_tags': [], 'all_shell_tags': [],
         'all_beam_tags_type2': [], 'all_beam_tags_type3': [],
-        'base_nodes': [], 'master_nodes': [], 'control_node': None
+        'base_nodes': [], 'master_nodes': [], 'control_node': None,
+        'element_section_map': {} # [신규] 요소 태그와 단면 정보를 매핑
     }
 
     num_stories = params['num_stories']
@@ -62,46 +63,53 @@ def build_model(params):
     f_cu_mpa = f_ck_nominal_mpa + delta_f
     E_conc = (8500 * (f_cu_mpa)**(1.0/3.0)) * 1e6 # Pa 단위로 변환
     G_conc = E_conc / (2 * (1 + 0.2))
-    ops.uniaxialMaterial('Concrete04', 1, fce, -0.002, -0.004, E_conc, -0.1 * fce, 0.1)
+    ops.uniaxialMaterial('Concrete04', 1, fce, -0.002, -0.003, E_conc, -0.1 * fce, 0.1)
     ops.uniaxialMaterial('Concrete04', 2, fce * 1.3, -0.003, -0.02, E_conc, -0.1 * (fce * 1.3), 0.1)
-    # 철근 재료 모델 (이선형 + 압축부 좌굴 후 강도저하)
-    fye_val = abs(fye)
-    e_yield = fye_val / E_steel
-    strain_hardening_ratio = 0.01 # 기존 Steel02 모델의 b 값
+    
+    # 철근 재료 모델 (MultiLinear: 좌굴 후 거동 상세 모델링)
+    fye_expected = abs(params['Fy'])
+    fye_nominal = abs(params['Fy_nominal']) # [신규] 공칭강도 분리
+    e_yield_expected = fye_expected / E_steel
+    e_yield_nominal = fye_nominal / E_steel
 
-    # '내진성능 평가요령' 지침에 따른 변형률 한계
+    e_buckling_start = -0.003
+    e_post_buckling_end = -0.005
     e_ultimate_tension = 0.05
     e_ultimate_compression = -0.02
-    e_buckling_start = -0.003
 
-    # 인장부 정의 (변형률 경화 고려)
-    stress_t1 = fye_val
-    strain_t1 = e_yield
-    # 항복 이후 극한 변형률까지 선형으로 경화한다고 가정
-    stress_t2 = fye_val * (1 + strain_hardening_ratio) 
-    strain_t2 = e_ultimate_tension
+    # 응력-변형률 관계를 점들의 리스트로 정의
+    strain_pts = [
+        e_ultimate_compression,
+        e_post_buckling_end,
+        e_buckling_start,
+        -e_yield_nominal, # 공칭강도 기준 항복
+        0.0,
+        e_yield_expected, # 기대강도 기준 항복
+        e_ultimate_tension
+    ]
+    stress_pts = [
+        -0.1 * fye_nominal, # 잔류강도 (공칭 기준)
+        -0.1 * fye_nominal, # 좌굴 후 강도 (공칭 기준)
+        -fye_nominal,       # 좌굴 시작 (공칭 기준)
+        -fye_nominal,       # 압축 항복 (공칭 기준)
+        0.0,
+        fye_expected,       # 인장 항복 (기대강도 기준)
+        fye_expected * 1.01 # 변형률 경화 (기대강도 기준)
+    ]
 
-    # 압축부 정의 (좌굴 고려)
-    stress_c1 = -fye_val
-    strain_c1 = -e_yield
-    stress_c2 = -fye_val # 항복 후 좌굴 변형률까지 강도 유지
-    strain_c2 = e_buckling_start
-    stress_c3 = -0.1 * fye_val # 좌굴 발생 후 강도 10%로 저하
-    strain_c3 = e_buckling_start * 1.01 # 수치적 안정을 위해 약간의 변형률 증가
-    stress_c4 = -0.1 * fye_val
-    strain_c4 = e_ultimate_compression
+    # 변형률을 기준으로 점들을 자동 정렬
+    paired_points = sorted(zip(strain_pts, stress_pts))
+    rebar_strain_points, rebar_stress_points = zip(*paired_points)
     
-    # OpenSees 'MultiLinear' 재료 정의
-    # 주의: MultiLinear는 이력거동(Hysteresis)을 모델링하지 않으며 단조하중(Pushover)에 적합합니다.
-    strains = [strain_c4, strain_c3, strain_c2, strain_c1, 0.0, strain_t1, strain_t2]
-    stresses = [stress_c4, stress_c3, stress_c2, stress_c1, 0.0, stress_t1, stress_t2]
-    ops.uniaxialMaterial('MultiLinear', 3, '-strain', *strains, '-stress', *stresses)
+    # OpenSees MultiLinear 형식에 맞게 [s1, e1, s2, e2, ...] 형태의 단일 리스트로 변환
+    multilinear_pts = [item for pair in paired_points for item in pair]
+
+    ops.uniaxialMaterial('MultiLinear', 3, *multilinear_pts)
     ops.uniaxialMaterial('Elastic', 4, G_conc)
 
-    # --- [수정] 그룹별/위치별 Fiber Section 및 단면 적분 동적 생성 ---
+    # --- 그룹별/위치별 Fiber Section 및 단면 적분 동적 생성 ---
     section_tags = {}
     integration_tags = {}
-    section_recorder_paths = {} # 섹션별 변형률 기록 파일 경로 저장
     sec_tag_counter = 101
     integ_tag_counter = 1001
     num_int_pts = params['num_int_pts']
@@ -119,9 +127,6 @@ def build_model(params):
             ops.layer('straight', 3, params['num_bars_x'] - 2, params['rebar_Area'], -y_core, -z_core+params['cover'], -y_core, z_core-params['cover'])
             ops.layer('straight', 3, params['num_bars_x'] - 2, params['rebar_Area'], y_core, -z_core+params['cover'], y_core, z_core-params['cover'])
             
-            recorder_filename = params['output_dir'] / f"sec_{sec_tag_counter}_maxStrain.out"
-            ops.recorder('Section', '-file', str(recorder_filename), '-sec', sec_tag_counter, 'maxStrain')
-            section_recorder_paths[sec_tag_counter] = str(recorder_filename)
             ops.beamIntegration('Lobatto', integ_tag_counter, sec_tag_counter, num_int_pts)
             integration_tags[(group_idx, f'col_{col_type}')] = integ_tag_counter
             sec_tag_counter += 1
@@ -133,21 +138,9 @@ def build_model(params):
             y_core_b = dims[1]/2.0 - params['cover']; z_core_b = dims[0]/2.0 - params['cover']
             ops.patch('rect', 1, 12, 12, -dims[1]/2.0, -dims[0]/2.0, dims[1]/2.0, dims[0]/2.0)
             ops.patch('rect', 2, 10, 10, -y_core_b, -z_core_b, y_core_b, z_core_b)
-            # [수정] 상부 철근과 하부 철근을 올바르게 정의 (1단 배근)
             ops.layer('straight', 3, params['num_bars_top'], params['rebar_Area'], -z_core_b, y_core_b, z_core_b, y_core_b)
             ops.layer('straight', 3, params['num_bars_bot'], params['rebar_Area'], -z_core_b, -y_core_b, z_core_b, -y_core_b)
-
-            # [신규] 2단 배근 (선택 사항)
-            if 'num_bars_top_2nd' in params and params['num_bars_top_2nd'] > 0:
-                # 1단 배근에서 50mm 안쪽으로 배치
-                ops.layer('straight', 3, params['num_bars_top_2nd'], params['rebar_Area'], -z_core_b, y_core_b - 0.05, z_core_b, y_core_b - 0.05)
-            if 'num_bars_bot_2nd' in params and params['num_bars_bot_2nd'] > 0:
-                # 1단 배근에서 50mm 안쪽으로 배치
-                ops.layer('straight', 3, params['num_bars_bot_2nd'], params['rebar_Area'], -z_core_b, -y_core_b + 0.05, z_core_b, -y_core_b + 0.05)
-
-            recorder_filename = params['output_dir'] / f"sec_{sec_tag_counter}_maxStrain.out"
-            ops.recorder('Section', '-file', str(recorder_filename), '-sec', sec_tag_counter, 'maxStrain')
-            section_recorder_paths[sec_tag_counter] = str(recorder_filename)
+            
             ops.beamIntegration('Lobatto', integ_tag_counter, sec_tag_counter, num_int_pts)
             integration_tags[(group_idx, f'beam_{beam_type}')] = integ_tag_counter
             sec_tag_counter += 1
@@ -168,51 +161,51 @@ def build_model(params):
         ops.fix(master_node_tag, 0, 1, 0, 1, 0, 1)
     model_info['control_node'] = model_info['master_nodes'][-1]
 
-    ops.geomTransf('PDelta', 1, 0, 0, -1)  # 기둥 (강축이 글로벌 X축을 향하도록)
-    ops.geomTransf('PDelta', 2, 0, 0, 1)   # X축과 나란한 보 (강축이 글로벌 Y축을 향하도록)
-    ops.geomTransf('PDelta', 3, 1, 0, 0)   # Z축과 나란한 보 (강축이 글로벌 Y축을 향하도록)
+    ops.geomTransf('PDelta', 1, 0, 0, -1)
+    ops.geomTransf('PDelta', 2, 0, 0, 1)
+    ops.geomTransf('PDelta', 3, 1, 0, 0)
 
-    # --- 요소 생성 (Elements) ---
     ele_tag = 1
-    
     for i in range(num_stories):
         story_group_idx = i // 2
         for j in range(num_nodes_z):
             for k in range(num_nodes_x):
-                # 1. 기둥 생성
                 is_edge_col = (j == 0 or j == num_nodes_z - 1) or (k == 0 or k == num_nodes_x - 1)
                 col_type = 'exterior' if is_edge_col else 'interior'
+                dims = params['col_props_by_group'][story_group_idx][col_type]
                 col_integ_tag = integration_tags[(story_group_idx, f'col_{col_type}')]
                 node_i, node_j = node_tags[(i, j, k)], node_tags[(i+1, j, k)]
                 ops.element('forceBeamColumn', ele_tag, node_i, node_j, 1, col_integ_tag)
                 model_info['all_line_elements'][ele_tag] = (node_i, node_j)
                 model_info['all_column_tags'].append(ele_tag)
+                model_info['element_section_map'][ele_tag] = {'type': 'column', 'dims': dims}
                 ele_tag += 1
                 
-                # 2. 보 생성 (X축과 나란함)
                 if k < num_bays_x:
                     is_ext_beam = (j == 0 or j == num_nodes_z - 1)
                     beam_type = 'exterior' if is_ext_beam else 'interior'
                     beam_integ_tag = integration_tags[(story_group_idx, f'beam_{beam_type}')]
+                    dims = params['beam_props_by_group'][story_group_idx][beam_type]
                     node_i, node_j = node_tags[(i+1, j, k)], node_tags[(i+1, j, k+1)]
                     ops.element('forceBeamColumn', ele_tag, node_i, node_j, 2, beam_integ_tag)
                     model_info['all_line_elements'][ele_tag] = (node_i, node_j)
                     model_info['all_beam_tags'].append(ele_tag)
                     model_info['all_beam_tags_type3'].append(ele_tag)
+                    model_info['element_section_map'][ele_tag] = {'type': 'beam', 'dims': dims}
                     ele_tag += 1
                     
-                # 3. 보 생성 (Z축과 나란함)
                 if j < num_bays_z:
                     is_ext_beam = (k == 0 or k == num_nodes_x - 1)
                     beam_type = 'exterior' if is_ext_beam else 'interior'
                     beam_integ_tag = integration_tags[(story_group_idx, f'beam_{beam_type}')]
+                    dims = params['beam_props_by_group'][story_group_idx][beam_type]
                     node_i, node_j = node_tags[(i+1, j, k)], node_tags[(i+1, j+1, k)]
                     ops.element('forceBeamColumn', ele_tag, node_i, node_j, 3, beam_integ_tag)
                     model_info['all_line_elements'][ele_tag] = (node_i, node_j)
                     model_info['all_beam_tags'].append(ele_tag)
                     model_info['all_beam_tags_type2'].append(ele_tag)
+                    model_info['element_section_map'][ele_tag] = {'type': 'beam', 'dims': dims}
                     ele_tag += 1
 
-    model_info['section_recorder_paths'] = section_recorder_paths # 섹션별 Recorder 파일 경로 추가
     print(f"Model built successfully with {num_bays_x}x{num_bays_z} Bays (Grouped Members).")
     return model_info

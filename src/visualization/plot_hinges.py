@@ -13,208 +13,129 @@ except ImportError:
     MPL_3D_AVAILABLE = False
 
 # ### 8. 모듈형 함수: 소성/손상 분포도 플로팅 ###
-def plot_plastic_damage_distribution(params, model_nodes_info, final_states_dfs):
+def plot_plastic_damage_distribution(params, model_nodes_info, final_states_dfs, direction='X'):
     """
-    [신규] 해석 최종 단계에서의 소성힌지(기둥/보) 및 손상(쉘) 분포도를
-    논문 <그림 4-5>와 유사하게 2D 입면도로 플로팅합니다.
+    [수정] 해석 최종 단계에서의 소성힌지 분포도를 2D 입면도로 플로팅합니다.
+           direction 파라미터에 따라 X-Y 또는 Y-Z 입면도를 선택적으로 그립니다.
     """
-    print("\nPlotting Plastic Hinge / Damage Distribution...")
+    print(f"\nPlotting Plastic Hinge / Damage Distribution for {direction}-direction...")
     
-    if not MPL_3D_AVAILABLE:
-        print("Matplotlib이 없어 플로팅을 건너뜁니다.")
-        return
-        
-    if not final_states_dfs:
-        print("Warning: 'final_states_dfs' 데이터가 비어있습니다. 플로팅을 건너뜁니다.")
+    if not MPL_3D_AVAILABLE or not final_states_dfs:
+        print("Warning: Matplotlib or final_states_dfs data is not available. Skipping plotting.")
         return
 
-    # --- [신규] 2번 요청: Z축 라인 선택 ---
-    z_line_idx = params.get('plot_z_line_index', 0)
-    target_z = z_line_idx * params['bay_width_z']
-    print(f"Plotting static hinges for Z-Line {z_line_idx} (Z = {target_z:.1f}m)...")
-    z_tolerance = 1e-6
-    # --- [신규] 끝 ---
-
-    # --- 데이터 로드 ---
+    output_dir = params['output_dir']
+    analysis_name = params['analysis_name']
+    
     try:
         node_coords = model_nodes_info['all_node_coords']
-        all_line_elements = model_nodes_info['all_line_elements']   # Dict {tag: (i,j)}
-        all_shell_elements = model_nodes_info['all_shell_elements'] # Dict {tag: (n1,n2,n3,n4)}
-        
+        all_line_elements = model_nodes_info['all_line_elements']
         all_column_tags = model_nodes_info.get('all_column_tags', [])
-        # [수정] 힌지 플로팅을 위해 build_model에서 반환된 축별 보 태그 사용
-        all_beam_tags_type2 = model_nodes_info.get('all_beam_tags_type2', [])
-        all_beam_tags_type3 = model_nodes_info.get('all_beam_tags_type3', [])
+        all_beam_tags = model_nodes_info.get('all_beam_tags', []) # 모든 보 태그
         
         col_rot_final = final_states_dfs.get('col_rot_df').iloc[-1:] if final_states_dfs.get('col_rot_df') is not None else None
         beam_rot_final = final_states_dfs.get('beam_rot_df').iloc[-1:] if final_states_dfs.get('beam_rot_df') is not None else None
-        wall_force_final = final_states_dfs.get('wall_forces_df').iloc[-1:] if final_states_dfs.get('wall_forces_df') is not None else None
         
         if col_rot_final is None and beam_rot_final is None:
-             print("Warning: No final rotation data found in 'final_states_dfs'.")
+             print("Warning: No final rotation data found. Skipping hinge plotting.")
              return
 
         num_int_pts = params.get('num_int_pts', 5)
-        ip_start = 1 # 'plasticRotation'은 항상 첫번째 적분점(I단)에서 결과를 줌
-        ip_end = num_int_pts # 'plasticRotation'은 항상 마지막 적분점(J단)에서 결과를 줌
+        ip_start, ip_end = 1, num_int_pts
         
-    except KeyError as e:
-        print(f"Error: 힌지 플로팅에 필요한 모델 정보가 없습니다: {e}")
-        return
     except Exception as e:
         print(f"Error: 힌지 플로팅 데이터 로드 중 오류: {e}")
         return
 
-    # --- 2D 입면도 (X-Y) 플롯 설정 ---
     fig_2d, ax_2d = plt.subplots(figsize=(10, 12))
+    base_color, base_lw = 'black', 1
     
-    # --- 1. 배경 구조물 플로팅 (회색) ---
-    base_color = 'black'
-    base_lw = 1
-    
-    # [수정] 2번 요청: Z축 필터링
-    for (node_i_tag, node_j_tag) in all_line_elements.values():
-        n_i = node_coords.get(node_i_tag)
-        n_j = node_coords.get(node_j_tag)
-        if n_i and n_j:
-            if abs(n_i[2] - target_z) < z_tolerance and abs(n_j[2] - target_z) < z_tolerance:
-                ax_2d.plot([n_i[0], n_j[0]], [n_i[1], n_j[1]], '-', color=base_color, linewidth=base_lw, zorder=1)
-
-    # --- [개선] 1-2. 전단벽 손상 플로팅 (응력 기반 색상 매핑) ---
-    if wall_force_final is not None and not wall_force_final.empty:
-        # 응력 범위를 계산하여 컬러맵 정규화
-        all_stresses = []
-        for ele_tag in all_shell_elements.keys():
-            for gp in range(1, 5):
-                try:
-                    sxx = wall_force_final[f'Ele{ele_tag}_GP{gp}_s11'].values[0]
-                    syy = wall_force_final[f'Ele{ele_tag}_GP{gp}_s22'].values[0]
-                    sxy = wall_force_final[f'Ele{ele_tag}_GP{gp}_s12'].values[0]
-                    # 주응력 계산 (압축을 양수로)
-                    center = (sxx + syy) / 2
-                    radius = np.sqrt(((sxx - syy) / 2)**2 + sxy**2)
-                    s_principal_comp = -(center - radius) # 압축 응력
-                    all_stresses.append(s_principal_comp)
-                except KeyError:
-                    continue
-        
-        max_stress = max(all_stresses) if all_stresses else 1.0
-        norm = mcolors.Normalize(vmin=0, vmax=max_stress)
-        cmap = plt.cm.get_cmap('jet')
-
-        for ele_tag, (n1_tag, n2_tag, n3_tag, n4_tag) in all_shell_elements.items():
-            n1, n2, n3, n4 = (node_coords.get(t) for t in [n1_tag, n2_tag, n3_tag, n4_tag])
-            if not all((n1, n2, n3, n4)): continue
-
-            # 쉘이 선택된 Z-평면에 있는지 확인
-            if any(abs(n[2] - target_z) < z_tolerance for n in [n1, n2, n3, n4]):
-                try:
-                    # 쉘 요소의 평균 주 압축 응력 계산
-                    sxx_avg = np.mean([wall_force_final[f'Ele{ele_tag}_GP{gp}_s11'].values[0] for gp in range(1, 5)])
-                    syy_avg = np.mean([wall_force_final[f'Ele{ele_tag}_GP{gp}_s22'].values[0] for gp in range(1, 5)])
-                    sxy_avg = np.mean([wall_force_final[f'Ele{ele_tag}_GP{gp}_s12'].values[0] for gp in range(1, 5)])
-                    center, radius = (sxx_avg + syy_avg) / 2, np.sqrt(((sxx_avg - syy_avg) / 2)**2 + sxy_avg**2)
-                    stress_val = -(center - radius)
-                    color = cmap(norm(stress_val))
-                    verts_2d = [[n1[0], n1[1]], [n2[0], n2[1]], [n3[0], n3[1]], [n4[0], n4[1]]]
-                    poly_2d = Polygon(verts_2d, facecolor=color, edgecolor='black', alpha=0.7, linewidth=0.5, zorder=2)
-                    ax_2d.add_patch(poly_2d)
-                except (KeyError, IndexError):
-                    # 데이터가 없는 경우 회색으로 표시
-                    verts_2d = [[n1[0], n1[1]], [n2[0], n2[1]], [n3[0], n3[1]], [n4[0], n4[1]]]
-                    poly_2d = Polygon(verts_2d, facecolor='gray', edgecolor='black', alpha=0.3, linewidth=0.5, zorder=0)
-                    ax_2d.add_patch(poly_2d)
-    else:
-        # wall_force_final 데이터가 없을 경우 기존 로직 (회색 표시)
-        for (n1_tag, n2_tag, n3_tag, n4_tag) in all_shell_elements.values():
-            n1, n2, n3, n4 = (node_coords.get(t) for t in [n1_tag, n2_tag, n3_tag, n4_tag])
-            if not all((n1, n2, n3, n4)): continue
-            if any(abs(n[2] - target_z) < z_tolerance for n in [n1, n2, n3, n4]):
-                verts_2d = [[n1[0], n1[1]], [n2[0], n2[1]], [n3[0], n3[1]], [n4[0], n4[1]]]
-                poly_2d = Polygon(verts_2d, facecolor='gray', edgecolor='black', alpha=0.3, linewidth=0.5, zorder=0)
-                ax_2d.add_patch(poly_2d)
-
-    # --- 2. 소성 힌지 심볼 플로팅 ---
-    ROT_IO = 0.005  # Immediate Occupancy
-    ROT_LS = 0.02   # Life Safety
-    ROT_CP = 0.04   # Collapse Prevention
-    
+    ROT_IO, ROT_LS, ROT_CP = 0.005, 0.02, 0.04
     mkr_cp = {'marker': 's', 'color': 'red', 'markersize': 12, 'mew': 1.5, 'zorder': 10, 'label': 'Collapse Prevention (CP)', 'mec': 'black'}
     mkr_ls = {'marker': 'D', 'color': 'orange', 'markersize': 10, 'mew': 1.0, 'zorder': 9, 'label': 'Life Safety (LS)', 'mec': 'black'}
     mkr_io = {'marker': 'o', 'color': 'blue', 'markersize': 8, 'mew': 0.5, 'zorder': 8, 'label': 'Immediate Occupancy (IO)', 'mec': 'black'}
-
-    # 2-1. 기둥 힌지 플로팅
-    if col_rot_final is not None:
-        for ele_tag, (node_i_tag, node_j_tag) in all_line_elements.items():
-            if ele_tag not in all_column_tags:
-                continue
-            
-            n_i_coords = node_coords.get(node_i_tag)
-            n_j_coords = node_coords.get(node_j_tag)
-            if not n_i_coords or not n_j_coords: continue
-
-            if abs(n_i_coords[2] - target_z) > z_tolerance:
-                continue
-            
-            locations = [n_i_coords, n_j_coords]
-            ips = [ip_start, ip_end]
-            
-            for loc_coords, ip in zip(locations, ips):
-                try:
-                    rot_ry = col_rot_final[f'Ele{ele_tag}_IP{ip}_ry'].values[0]
-                    rot_rz = col_rot_final[f'Ele{ele_tag}_IP{ip}_rz'].values[0]
-                    theta_p = abs(rot_ry) + abs(rot_rz) # [수정] 기둥은 양방향 휨을 모두 고려 (X-Pushover는 주로 ry)
-                    
-                    if theta_p >= ROT_CP:
-                        ax_2d.plot(loc_coords[0], loc_coords[1], **mkr_cp)
-                    elif theta_p >= ROT_LS:
-                        ax_2d.plot(loc_coords[0], loc_coords[1], **mkr_ls) 
-                    elif theta_p >= ROT_IO:
-                        ax_2d.plot(loc_coords[0], loc_coords[1], **mkr_io)
-                except KeyError:
-                    continue 
     
-    # 2-2. 보 힌지 플로팅
-    if beam_rot_final is not None:
+    if direction == 'X':
+        z_line_idx = params.get('plot_z_line_index', 0)
+        target_coord = z_line_idx * params['bay_width_z']
+        tolerance = 1e-6
         
-        # 2-2a. 보 (Type 3, X-방향, rz 휨)
-        for ele_tag in all_beam_tags_type3: # Type 3만
-            if ele_tag not in all_line_elements: continue
-            node_i_tag, node_j_tag = all_line_elements[ele_tag]
-                
-            n_i_coords = node_coords.get(node_i_tag)
-            n_j_coords = node_coords.get(node_j_tag)
-            if not n_i_coords or not n_j_coords: continue
+        # 배경 프레임
+        for (node_i_tag, node_j_tag) in all_line_elements.values():
+            n_i, n_j = node_coords.get(node_i_tag), node_coords.get(node_j_tag)
+            if n_i and n_j and abs(n_i[2] - target_coord) < tolerance and abs(n_j[2] - target_coord) < tolerance:
+                ax_2d.plot([n_i[0], n_j[0]], [n_i[1], n_j[1]], '-', color=base_color, linewidth=base_lw, zorder=1)
 
-            if abs(n_i_coords[2] - target_z) > z_tolerance:
+        # 힌지
+        all_tags_to_plot = all_column_tags + all_beam_tags
+        rot_df_map = {'col': col_rot_final, 'beam': beam_rot_final}
+        
+        for ele_tag in all_tags_to_plot:
+            node_i_tag, node_j_tag = all_line_elements[ele_tag]
+            n_i_coords, n_j_coords = node_coords.get(node_i_tag), node_coords.get(node_j_tag)
+            if not n_i_coords or not n_j_coords or abs(n_i_coords[2] - target_coord) > tolerance:
                 continue
 
-            locations = [n_i_coords, n_j_coords]
-            ips = [ip_start, ip_end]
+            df_to_use = rot_df_map['col'] if ele_tag in all_column_tags else rot_df_map['beam']
+            if df_to_use is None: continue
 
-            for loc_coords, ip in zip(locations, ips):
+            for loc_coords, ip in zip([n_i_coords, n_j_coords], [ip_start, ip_end]):
                 try:
-                    theta_p = abs(beam_rot_final[f'Ele{ele_tag}_IP{ip}_rz'].values[0]) # [수정] Type 3는 rz (Transf 3)
+                    # 기둥은 양방향, 보는 주축 휨만 고려
+                    if ele_tag in all_column_tags:
+                        theta_p = abs(df_to_use[f'Ele{ele_tag}_IP{ip}_ry'].values[0]) + abs(df_to_use[f'Ele{ele_tag}_IP{ip}_rz'].values[0])
+                    else: # 보
+                        theta_p = abs(df_to_use[f'Ele{ele_tag}_IP{ip}_rz'].values[0])
                     
-                    if theta_p >= ROT_CP:
-                        ax_2d.plot(loc_coords[0], loc_coords[1], **mkr_cp)
-                    elif theta_p >= ROT_LS:
-                        ax_2d.plot(loc_coords[0], loc_coords[1], **mkr_ls)
-                    elif theta_p >= ROT_IO:
-                        ax_2d.plot(loc_coords[0], loc_coords[1], **mkr_io)
-                except KeyError:
-                    continue
-    
-    # --- 3. 플롯 저장 ---
-    output_dir = params['output_dir']
-    analysis_name = params['analysis_name']
-    path_2d = output_dir / f"{analysis_name}_model_2D_PlasticHinge_Plot_Z{z_line_idx}.png" 
+                    if theta_p >= ROT_CP: ax_2d.plot(loc_coords[0], loc_coords[1], **mkr_cp)
+                    elif theta_p >= ROT_LS: ax_2d.plot(loc_coords[0], loc_coords[1], **mkr_ls)
+                    elif theta_p >= ROT_IO: ax_2d.plot(loc_coords[0], loc_coords[1], **mkr_io)
+                except KeyError: continue
+                
+        ax_2d.set_title(f'Plastic Hinge Distribution (Frame at Z = {target_coord:.1f}m)')
+        ax_2d.set_xlabel('X (m)')
 
-    ax_2d.set_xlabel('X (m)')
+    elif direction == 'Z':
+        x_line_idx = params.get('plot_x_line_index', 0)
+        target_coord = x_line_idx * params['bay_width_x']
+        tolerance = 1e-6
+        
+        # 배경 프레임
+        for (node_i_tag, node_j_tag) in all_line_elements.values():
+            n_i, n_j = node_coords.get(node_i_tag), node_coords.get(node_j_tag)
+            if n_i and n_j and abs(n_i[0] - target_coord) < tolerance and abs(n_j[0] - target_coord) < tolerance:
+                ax_2d.plot([n_i[2], n_j[2]], [n_i[1], n_j[1]], '-', color=base_color, linewidth=base_lw, zorder=1)
+        
+        # 힌지
+        all_tags_to_plot = all_column_tags + all_beam_tags
+        rot_df_map = {'col': col_rot_final, 'beam': beam_rot_final}
+
+        for ele_tag in all_tags_to_plot:
+            node_i_tag, node_j_tag = all_line_elements[ele_tag]
+            n_i_coords, n_j_coords = node_coords.get(node_i_tag), node_coords.get(node_j_tag)
+            if not n_i_coords or not n_j_coords or abs(n_i_coords[0] - target_coord) > tolerance:
+                continue
+
+            df_to_use = rot_df_map['col'] if ele_tag in all_column_tags else rot_df_map['beam']
+            if df_to_use is None: continue
+
+            for loc_coords, ip in zip([n_i_coords, n_j_coords], [ip_start, ip_end]):
+                try:
+                    if ele_tag in all_column_tags:
+                        theta_p = abs(df_to_use[f'Ele{ele_tag}_IP{ip}_ry'].values[0]) + abs(df_to_use[f'Ele{ele_tag}_IP{ip}_rz'].values[0])
+                    else: # 보
+                        theta_p = abs(df_to_use[f'Ele{ele_tag}_IP{ip}_ry'].values[0])
+                    
+                    if theta_p >= ROT_CP: ax_2d.plot(loc_coords[2], loc_coords[1], **mkr_cp)
+                    elif theta_p >= ROT_LS: ax_2d.plot(loc_coords[2], loc_coords[1], **mkr_ls)
+                    elif theta_p >= ROT_IO: ax_2d.plot(loc_coords[2], loc_coords[1], **mkr_io)
+                except KeyError: continue
+                
+        ax_2d.set_title(f'Plastic Hinge Distribution (Frame at X = {target_coord:.1f}m)')
+        ax_2d.set_xlabel('Z (m)')
+
+    # 공통 플롯 설정
     ax_2d.set_ylabel('Y (Height) (m)')
-    
-    ax_2d.set_title(f'Plastic Damage Distribution (Frame at Z = {target_z:.1f}m)\n(Final Step: {params["target_drift"]*100:.1f}% Drift)')
-    
     ax_2d.axis('equal')
     ax_2d.grid(True)
     
@@ -223,14 +144,8 @@ def plot_plastic_damage_distribution(params, model_nodes_info, final_states_dfs)
     if by_label:
         ax_2d.legend(by_label.values(), by_label.keys(), loc='lower right')
 
-    # 컬러바 추가
-    if wall_force_final is not None and not wall_force_final.empty and all_stresses:
-        sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
-        sm.set_array([])
-        cbar = fig_2d.colorbar(sm, ax=ax_2d, orientation='vertical', fraction=0.046, pad=0.04)
-        cbar.set_label('Principal Compressive Stress (Pa)')
-
     try:
+        path_2d = output_dir / f"{analysis_name}_model_2D_PlasticHinge_Plot.png"
         fig_2d.savefig(path_2d, dpi=300, bbox_inches='tight')
         print(f"Matplotlib 2D Plastic Hinge plot saved to: {path_2d}")
     except Exception as e:

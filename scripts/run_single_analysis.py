@@ -14,13 +14,14 @@ if project_root not in sys.path:
 # --- 모듈화된 함수 임포트 ---
 from src.core.model_builder import build_model
 from src.core.analysis_runner import run_gravity_analysis, run_eigen_analysis, run_pushover_analysis
-from src.core.post_processor import process_pushover_results, calculate_performance_points, check_material_strain_failure
+from src.core.post_processor import process_pushover_results, calculate_performance_points, find_first_material_failure
 from src.core.verification import verify_nsp_applicability
 
 from src.visualization.plot_matplotlib import plot_model_matplotlib
 from src.visualization.plot_opsvis import plot_with_opsvis
 from src.visualization.plot_hinges import plot_plastic_damage_distribution
 from src.visualization.animate_results import animate_and_plot_pushover, animate_and_plot_M_phi
+from src.visualization.plot_materials import plot_material_stress_strain
 # --- ---
 
 # ### 11. 메인 실행 함수 ###
@@ -46,11 +47,12 @@ def main(params, direction='X'):
 
     # 2. Matplotlib 3D/2D 플롯 (전단벽 포함)
     if not skip_plots:
-        plot_model_matplotlib(params, model_nodes_info)
+        plot_model_matplotlib(params, model_nodes_info, direction)
     
     # 2.5. opsvis 시각화 (Wireframe + Fiber Sections)
     if not skip_plots:
         plot_with_opsvis(params)
+        plot_material_stress_strain(params) # [신규] 재료 모델 그래프 출력
     
     # 3. 중력 해석
     if not run_gravity_analysis(params):
@@ -96,23 +98,23 @@ def main(params, direction='X'):
     # 7. 성능점 계산
     perf_points = calculate_performance_points(df_curve)
     
-    # [신규] 7.5. 재료 변형률 기반 파괴 검사
-    failure_report = check_material_strain_failure(model_nodes_info, params)
+    # [신규] 8. 재료 파괴 검사
+    failure_report = find_first_material_failure(model_nodes_info, params, df_curve, direction)
     if failure_report:
         print("\n--- [!] 재료 변형률 한계 초과로 인한 부재 파괴가 감지되었습니다. ---")
-        for record in failure_report:
-            print(f"  - Section {record['section_tag']} ({record['material_type']}): {record['failure_type']} at time {record['at_time']:.4f}s (Strain: {record['exceeded_strain']:.6f}, Limit: {record['limit']:.6f})")
+        print(f"  - Element: {failure_report['element_tag']} ({failure_report['element_type']})")
+        print(f"  - Failure: {failure_report['failure_type']}")
+        print(f"  - Time: {failure_report['time']:.4f}s, Roof Disp: {failure_report['roof_disp']:.4f}m")
+        print(f"  - Strain: {failure_report['strain']:.6f}, Limit: {failure_report['limit']:.6f}")
         print("--------------------------------------------------------------------")
-
-    # 8. 소성/손상 분포도 플로팅
-    if not skip_plots:
-        plot_plastic_damage_distribution(params, model_nodes_info, final_states_dfs)
-
-    # 9. 애니메이션 및 플롯 생성
-    if not skip_plots:
-        animate_and_plot_pushover(df_curve, df_disp, perf_points, params, model_nodes_info, final_states_dfs)
     
-    # 10. M-Phi 애니메이션 플롯 생성
+    # 9. 소성/손상 분포도 플로팅
+    if not skip_plots:
+        plot_plastic_damage_distribution(params, model_nodes_info, final_states_dfs, direction)
+
+    # 10. 애니메이션 및 플롯 생성
+    if not skip_plots:
+        animate_and_plot_pushover(df_curve, df_disp, perf_points, params, model_nodes_info, final_states_dfs, failure_report, direction)
     if not skip_plots and df_m_phi is not None:
         animate_and_plot_M_phi(df_m_phi, params)
     
@@ -123,62 +125,92 @@ def main(params, direction='X'):
     return perf_points, model_nodes_info, df_curve, direction # 계산된 성능점, 모델 정보, 푸쉬오버 곡선, 방향 반환
 
 
+import random
+import json
+
+# generate_dataset.py의 헬퍼 함수 임포트
+try:
+    from generate_dataset import get_fc_expected_strength_factor, get_fy_expected_strength_factor
+except ImportError:
+    print("Warning: Could not import helper functions from generate_dataset.py. Using fallback values.")
+    def get_fc_expected_strength_factor(fc): return 1.1
+    def get_fy_expected_strength_factor(fy): return 1.1
+
 def get_single_run_parameters():
     """
-    단일 RC 모멘트 골조 해석을 위한 파라미터를 설정하고 반환합니다.
-    전단벽/코어 관련 파라미터는 RC 모멘트 골조 시스템의 범위에 따라 제외됩니다.
+    [수정됨] dataset_config.json에서 임의의 설계안 하나를 생성하여 반환합니다.
     """
-    print("--- [!] 단일 RC 모멘트 골조 해석 모드 활성화 ---")
-    analysis_params = {
-        'analysis_name': 'Run_Single_RC_Moment_Frame',
-        'output_dir': Path('results/Run_Single_RC_Moment_Frame'),
-        'target_drift': 0.04,
-        'num_steps': 500,
-        'num_modes': 20,
-        'num_int_pts': 2,
-        'plot_z_line_index': 1,
-
-        # Geometry
-        'num_bays_x': 3,
-        'num_bays_z': 3,
-        'num_stories': 6,
-        'bay_width_x': 6.0,
-        'bay_width_z': 6.0,
-        'story_height': 3.5,
-        
-        # 비선형 정적해석 검증용 파라미터
-        'seismic_zone_factor': 0.11,
-        'hazard_factor': 1.0,
-        'soil_type': 'S4',
-        'skip_post_processing': False,
-    }
-
-    # --- 2. 재료/단면/하중 공통 파라미터 ---
-    common_params = {
-        'fc': -30e6,
-        'Fy': 400e6,
-        'E_steel': 200e9,
-        'cover': 0.04,
-        'rebar_Area': 0.00049,
-        'num_bars_x': 3,
-        'num_bars_z': 3,
-        'num_bars_top': 4,
-        'num_bars_bot': 4,
-        'g': 9.81,
-        'dead_load_pa': 5000.0,
-        'live_load_pa': 2000.0
-    }
-
-    # --- 2.5. 그룹화된 단면 정보 생성 (단일 실행용) ---
-    num_story_groups = (analysis_params['num_stories'] + 1) // 2
-    col_props_by_group = {i: {'interior': (0.4, 0.4), 'exterior': (0.4, 0.4)} for i in range(num_story_groups)}
-    beam_props_by_group = {i: {'interior': (0.3, 0.5), 'exterior': (0.3, 0.5)} for i in range(num_story_groups)}
+    print("--- [!] 단일 RC 모멘트 골조 해석 모드 활성화 (설계안 샘플링) ---")
     
-    common_params['col_props_by_group'] = col_props_by_group
-    common_params['beam_props_by_group'] = beam_props_by_group
+    config_path = Path(__file__).parent / 'dataset_config.json'
+    with open(config_path, 'r', encoding='utf-8') as f:
+        config = json.load(f)
 
-    # --- 3. 파라미터 결합 ---
-    return {**analysis_params, **common_params}
+    geo_params = config['building_geometry']
+    member_params = config['member_properties']
+    material_params = config['material_properties']
+
+    num_stories = random.choice(geo_params['num_stories_range'])
+    num_bays_x = random.choice(geo_params['num_bays_x_range'])
+    num_bays_z = random.choice(geo_params['num_bays_z_range'])
+
+    fc_nominal_mpa = random.choice(material_params['nominal_strengths']['fc_MPa_range'])
+    fy_nominal_mpa = random.choice(material_params['nominal_strengths']['Fy_MPa_range'])
+    
+    fc_factor = get_fc_expected_strength_factor(fc_nominal_mpa)
+    fy_factor = get_fy_expected_strength_factor(fy_nominal_mpa)
+
+    col_props_by_group = {}
+    beam_props_by_group = {}
+    last_ext_col_dim, last_int_col_dim = (0, 0), (0, 0)
+    num_story_groups = math.ceil(num_stories / 2)
+
+    for group_idx in reversed(range(num_story_groups)):
+        ext_col_choices = [tuple(d) for d in member_params['col_section_tiers_m']['exterior'] if d[0] >= last_ext_col_dim[0]]
+        int_col_choices_all = [tuple(d) for d in member_params['col_section_tiers_m']['interior'] if d[0] >= last_int_col_dim[0]]
+        
+        current_ext_col_dim = random.choice(ext_col_choices if ext_col_choices else member_params['col_section_tiers_m']['exterior'])
+        int_col_choices_filtered = [d for d in int_col_choices_all if d[0] >= current_ext_col_dim[0]]
+        current_int_col_dim = random.choice(int_col_choices_filtered if int_col_choices_filtered else int_col_choices_all)
+
+        col_props_by_group[group_idx] = {'exterior': current_ext_col_dim, 'interior': current_int_col_dim}
+        last_ext_col_dim, last_int_col_dim = current_ext_col_dim, current_int_col_dim
+
+        beam_props_by_group[group_idx] = {
+            'exterior': tuple(random.choice(member_params['beam_section_tiers_m']['exterior'])),
+            'interior': tuple(random.choice(member_params['beam_section_tiers_m']['interior']))
+        }
+    
+    params = {
+        'analysis_name': 'Run_Single_RC_Moment_Frame_Sampled',
+        'output_dir': Path('results/Run_Single_RC_Moment_Frame_Sampled'),
+        'target_drift': 0.04, 'num_steps': 1000, 'num_modes': 20,
+        'num_int_pts': 5,
+        'plot_z_line_index': 0,
+        'plot_x_line_index': 0,
+        'num_bays_x': num_bays_x, 'num_bays_z': num_bays_z, 'num_stories': num_stories,
+        'bay_width_x': random.choice(geo_params['bay_width_x_m_range']),
+        'bay_width_z': random.choice(geo_params['bay_width_z_m_range']),
+        'story_height': 3.5,
+        'seismic_zone_factor': 0.11, 'hazard_factor': 1.0, 'soil_type': 'S4',
+        'skip_post_processing': False,
+        'g': 9.81,
+        'dead_load_pa': 5000,
+        'live_load_pa': 2500,
+        'cover': 0.04,
+        'rebar_Area': 0.000507,
+        'num_bars_z': 5, 'num_bars_x': 5,
+        'num_bars_top': 3, 'num_bars_bot': 3,
+        'E_steel': 200e9,
+        'f_ck_nominal': -fc_nominal_mpa * 1e6,
+        'fc': -fc_nominal_mpa * 1e6 * fc_factor,
+        'Fy_nominal': fy_nominal_mpa * 1e6,
+        'Fy': fy_nominal_mpa * 1e6 * fy_factor,
+        'col_props_by_group': col_props_by_group,
+        'beam_props_by_group': beam_props_by_group,
+    }
+    
+    return {**params, **config['nonlinear_materials']}
 
 
 # ### 12. 메인 실행부 (Driver) ###
