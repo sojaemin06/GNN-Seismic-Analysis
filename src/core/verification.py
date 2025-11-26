@@ -47,47 +47,6 @@ def _create_demand_spectrum(params):
             
     return get_sa
 
-def _get_modal_properties(num_modes, master_nodes):
-    """모드별 특성(주기, 질량참여율, 참여계수 등)을 계산합니다."""
-    try:
-        eigenvalues = ops.eigen(num_modes)
-    except Exception:
-        print("Default eigenvalue analysis failed. Trying with 'fullGenLapack' solver...")
-        eigenvalues = ops.eigen('-fullGenLapack', num_modes)
-
-    if not eigenvalues: return [], {}
-        
-    periods = [2 * math.pi / math.sqrt(val) if val > 0 else 0 for val in eigenvalues]
-    masses = np.array([ops.nodeMass(tag) for tag in master_nodes])
-    floor_masses_x, floor_masses_z = masses[:, 0], masses[:, 2]
-    total_mass_x, total_mass_z = np.sum(floor_masses_x), np.sum(floor_masses_z)
-    
-    modal_props = []
-    for i, period in enumerate(periods):
-        mode_num = i + 1
-        mode_shape = np.array([ops.nodeEigenvector(tag, mode_num) for tag in master_nodes])
-        phi_x, phi_z = mode_shape[:, 0], mode_shape[:, 2]
-        
-        L_x = np.dot(floor_masses_x, phi_x)
-        L_z = np.dot(floor_masses_z, phi_z)
-        M_phi_x = np.dot(floor_masses_x, phi_x**2)
-        M_phi_z = np.dot(floor_masses_z, phi_z**2)
-        
-        mpr_x = (L_x**2 / (M_phi_x * total_mass_x)) if M_phi_x * total_mass_x > 1e-9 else 0.0
-        mpr_z = (L_z**2 / (M_phi_z * total_mass_z)) if M_phi_z * total_mass_z > 1e-9 else 0.0
-        
-        M_star_x = L_x
-        M_star_z = L_z
-        gamma_x = M_star_x / M_phi_x if M_phi_x > 1e-9 else 0.0
-        gamma_z = M_star_z / M_phi_z if M_phi_z > 1e-9 else 0.0
-        
-        modal_props.append({
-            'mode': mode_num, 'period': period, 'mpr_x': mpr_x, 'mpr_z': mpr_z,
-            'gamma_x': gamma_x, 'gamma_z': gamma_z, 'phi_x': phi_x, 'phi_z': phi_z
-        })
-        
-    return modal_props, {'x': floor_masses_x, 'z': floor_masses_z}
-
 def _run_rsa(modes_to_run, modal_props, floor_masses, get_sa_func, direction):
     """주어진 모드들에 대해 RSA를 수행하고 층전단력을 반환합니다."""
     num_stories = len(floor_masses[direction.lower()])
@@ -110,15 +69,16 @@ def _run_rsa(modes_to_run, modal_props, floor_masses, get_sa_func, direction):
 
 # --- Main Verification Function ---
 
-def verify_nsp_applicability(params, model_nodes_info):
-    """[수정] 비선형 정적해석(NSP) 적용의 타당성을 '방향별 지배모드'를 기준으로 검증합니다."""
+def verify_nsp_applicability(params, model_nodes_info, modal_props):
+    """[수정] 미리 계산된 modal_props를 사용하여 비선형 정적해석(NSP) 적용의 타당성을 검증합니다."""
     print("\n--- 비선형 정적해석(Pushover) 적용 타당성 검증 시작 ---")
     
     try:
-        master_nodes, num_stories, num_modes = model_nodes_info['master_nodes'], params['num_stories'], params['num_modes']
+        master_nodes, num_stories = model_nodes_info['master_nodes'], params['num_stories']
         get_sa = _create_demand_spectrum(params)
-        modal_props, floor_masses = _get_modal_properties(num_modes, master_nodes)
-        if not modal_props: return False, False
+
+        masses = np.array([ops.nodeMass(tag) for tag in master_nodes])
+        floor_masses = {'x': masses[:, 0], 'z': masses[:, 2]}
 
         cmpr_x, cmpr_z = 0.0, 0.0
         modes_for_90p_x, modes_for_90p_z = [], []
@@ -129,11 +89,6 @@ def verify_nsp_applicability(params, model_nodes_info):
         print(f"X-dir: {len(modes_for_90p_x)} modes for {cmpr_x*100:.1f}% mass participation.")
         print(f"Z-dir: {len(modes_for_90p_z)} modes for {cmpr_z*100:.1f}% mass participation.")
 
-        print("\n--- Modal Properties ---")
-        for prop in modal_props:
-            print(f"Mode {prop['mode']}: Period={prop['period']:.3f}s, MPR_X={prop['mpr_x']:.2%}, MPR_Z={prop['mpr_z']:.2%}")
-        print("-------------------------")
-        
         shears_multi_x = _run_rsa(modes_for_90p_x, modal_props, floor_masses, get_sa, 'X')
         shears_multi_z = _run_rsa(modes_for_90p_z, modal_props, floor_masses, get_sa, 'Z')
         

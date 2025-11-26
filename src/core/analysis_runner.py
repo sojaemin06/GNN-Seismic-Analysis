@@ -91,7 +91,7 @@ def run_pushover_analysis(params, model_nodes_info, modal_props, direction='X'):
 
     # --- 1. 해당 방향의 지배 모드 탐색 ---
     dominant_mode = max(modal_props, key=lambda p: p[f'mpr_{direction.lower()}'])
-    print(f"Dominant {direction}-Mode Found: Mode {dominant_mode['mode']} (MPR_{direction} = {dominant_mode[f'mpr_{direction.lower()}']*100:.2f}%)')
+    print(f"Dominant {direction}-Mode Found: Mode {dominant_mode['mode']} (MPR_{direction} = {dominant_mode[f'mpr_{direction.lower()}']*100:.2f}%)")
 
     # --- 2. 모드 기반 하중 계산 ---
     phi_vec = dominant_mode[f'phi_{direction.lower()}']
