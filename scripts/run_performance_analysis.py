@@ -72,9 +72,10 @@ def run_performance_analysis(direction='X'):
         print("푸쉬오버 곡선 생성 실패."); return
     
     print("\n1. Pushover analysis completed.")
-    print(f"   - Dominant Period (T1): {modal_props['T1']:.3f} s")
-    print(f"   - Effective Modal Mass (M_eff): {modal_props['m_eff_t1'] / 1e3:.1f} tons")
-    print(f"   - Participation Factor (PF1): {modal_props['pf1']:.3f}")
+    print(f"   - Dominant Mode: {dominant_mode['mode']}")
+    print(f"   - Dominant Period (T1): {dominant_mode['period']:.3f} s")
+    print(f"   - Effective Modal Mass (M_eff): {dominant_mode[f'M_star_{direction.lower()}'] / 1e3:.1f} tons")
+    print(f"   - Participation Factor (PF1): {dominant_mode[f'gamma_{direction.lower()}']:.3f}")
 
     # 2. 설계 응답 스펙트럼 정의 (예: 서울, S4 지반)
     # KBC 2016 기준, 지역계수(S) 0.11, 위험도계수(I) 1.0 -> 유효지반가속도 0.11g
@@ -90,7 +91,12 @@ def run_performance_analysis(direction='X'):
     print(f"   - Sv (for spectrum shape): {design_spectrum_params['Sv']}g")
 
     # 3. 역량스펙트럼법(CSM)으로 성능점 계산
-    csm_results = calculate_performance_point_csm(df_curve, modal_props, design_spectrum_params)
+    # CSM 함수가 요구하는 형식에 맞게 모드 특성 딕셔너리를 재구성
+    csm_modal_props = {
+        'pf1': dominant_mode[f'gamma_{direction.lower()}'],
+        'm_eff_t1': dominant_mode[f'M_star_{direction.lower()}']
+    }
+    csm_results = calculate_performance_point_csm(df_curve, csm_modal_props, design_spectrum_params)
     
     if not csm_results:
         print("성능점 계산 실패."); return

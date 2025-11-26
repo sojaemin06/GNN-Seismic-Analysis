@@ -127,6 +127,27 @@ def main(params, direction='X'):
     
     df_curve, df_disp, final_states_dfs, df_m_phi = process_pushover_results(params, model_nodes_info, dominant_mode, direction=direction)
     
+    # Save modal properties to a json file for later use
+    modal_data_to_save = {
+        'modal_properties': modal_props,
+        'dominant_mode': dominant_mode
+    }
+    modal_json_path = params['output_dir'] / 'modal_properties.json'
+    with open(modal_json_path, 'w') as f:
+        # Convert numpy arrays to lists for JSON serialization
+        # This is a bit complex, need a helper function
+        def convert_numpy_to_list(obj):
+            if isinstance(obj, np.ndarray):
+                return obj.tolist()
+            if isinstance(obj, dict):
+                return {k: convert_numpy_to_list(v) for k, v in obj.items()}
+            if isinstance(obj, list):
+                return [convert_numpy_to_list(i) for i in obj]
+            return obj
+        
+        json.dump(convert_numpy_to_list(modal_data_to_save), f, indent=4)
+    print(f"Modal properties saved to: {modal_json_path}")
+    
     if df_curve is None or df_disp is None or df_curve.empty or len(df_curve) < 2:
         print("\n결과 파일 처리 실패 또는 데이터 부족. 후처리를 건너뜁니다."); ops.wipe(); return None
 

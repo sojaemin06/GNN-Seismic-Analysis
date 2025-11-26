@@ -2,195 +2,142 @@
 import numpy as np
 import pandas as pd
 
-def create_design_spectrum_kbc2016(soil_type, Sa, Sv):
+def get_site_coefficients_kds2022(S, site_class):
     """
-    KBC 2016 설계 응답 스펙트럼을 생성합니다.
-
-    Args:
-        soil_type (str): 지반 종류 (e.g., 'S1', 'S2', 'S3', 'S4', 'S5')
-        Sa (float): 단주기 설계 스펙트럼 가속도 (g)
-        Sv (float): 1초 주기 설계 스펙트럼 가속도 (g)
-
-    Returns:
-        tuple: (주기 배열, 가속도 스펙트럼 배열)
+    KDS 41 17 00:2022 [표 4.2-1], [표 4.2-2]에 따라 지반증폭계수를 계산합니다.
     """
-    T = np.linspace(0.01, 5.0, 500)
-    Sa_spec = np.zeros_like(T)
-
-    soil_coeffs = {
-        'S1': {'Ca': 0.8, 'Cv': 0.8}, 'S2': {'Ca': 1.0, 'Cv': 1.0},
-        'S3': {'Ca': 1.0, 'Cv': 1.3}, 'S4': {'Ca': 1.1, 'Cv': 1.8},
-        'S5': {'Ca': 1.1, 'Cv': 2.4}
+    fa_data = {
+        'S1': [(0.1, 1.12), (0.2, 1.12), (0.3, 1.12)], 'S2': [(0.1, 1.4), (0.2, 1.4), (0.3, 1.3)],
+        'S3': [(0.1, 1.7), (0.2, 1.5), (0.3, 1.3)], 'S4': [(0.1, 1.6), (0.2, 1.4), (0.3, 1.2)],
+        'S5': [(0.1, 1.8), (0.2, 1.3), (0.3, 1.3)],
     }
-    
-    if soil_type not in soil_coeffs:
-        raise ValueError(f"Unknown soil type: {soil_type}. Expected one of {list(soil_coeffs.keys())}")
+    fv_data = {
+        'S1': [(0.1, 0.84), (0.2, 0.84), (0.3, 0.84)], 'S2': [(0.1, 1.5), (0.2, 1.4), (0.3, 1.3)],
+        'S3': [(0.1, 1.7), (0.2, 1.6), (0.3, 1.5)], 'S4': [(0.1, 2.2), (0.2, 2.0), (0.3, 1.8)],
+        'S5': [(0.1, 3.0), (0.2, 2.7), (0.3, 2.4)],
+    }
+    fa_points = fa_data.get(site_class); fv_points = fv_data.get(site_class)
+    if not fa_points or not fv_points: raise ValueError(f"Invalid site class: {site_class}")
+    s_coords, fa_coords = zip(*fa_points); _, fv_coords = zip(*fv_points)
+    Fa = np.interp(S, s_coords, fa_coords); Fv = np.interp(S, s_coords, fv_coords)
+    return Fa, Fv
 
-    Ca = soil_coeffs[soil_type]['Ca']
-    Cv = soil_coeffs[soil_type]['Cv']
-
-    Sds = Sa * Ca
-    Sd1 = Sv * Cv
-
-    T0 = 0.2 * Sd1 / Sds
-    Ts = Sd1 / Sds
-
-    Sa_spec[T <= T0] = (0.4 + (1 - 0.4) * T[T <= T0] / T0) * Sds
-    Sa_spec[(T > T0) & (T <= Ts)] = Sds
-    Sa_spec[T > Ts] = Sd1 / T[T > Ts]
-
-    return T, Sa_spec
-
-def pushover_to_adrs(df_pushover, pf1, m_eff):
+def generate_kds2022_demand_spectrum(S, site_class, T_long=5.0):
     """
-    푸쉬오버 곡선(지붕 변위-밑면 전단력)을 ADRS 형식(스펙트럼 변위-스펙트럼 가속도)으로 변환합니다.
-
-    Args:
-        df_pushover (pd.DataFrame): 'roof_drift'와 'base_shear' 컬럼을 포함하는 푸쉬오버 곡선 데이터프레임.
-        pf1 (float): 1차 모드의 참여계수 (Participation Factor).
-        m_eff (float): 1차 모드의 유효질량 (Effective Modal Mass).
-
-    Returns:
-        pd.DataFrame: 'Sd' (스펙트럼 변위)와 'Sa' (스펙트럼 가속도) 컬럼을 포함하는 ADRS 데이터프레임.
+    KDS 41 17 00:2022 기준에 따라 5% 감쇠 설계응답스펙트럼을 ADRS 형식으로 생성합니다.
     """
-    g = 9.81 # m/s^2
+    Fa, Fv = get_site_coefficients_kds2022(S, site_class)
+    SDS = S * Fa * (2/3); SD1 = S * Fv * (2/3)
+    Ts = SD1 / SDS; T0 = 0.2 * Ts
     
-    # 지붕 변위(roof_drift)를 스펙트럼 변위(Sd)로 변환
-    # Sd = Dr / (PF1 * phi_roof,1), 여기서 phi_roof,1는 1로 가정
-    Sd = df_pushover['roof_drift'] / pf1
+    T = np.linspace(0.01, T_long, 500)
+    Sa = np.zeros_like(T)
     
-    # 밑면 전단력(base_shear)을 스펙트럼 가속도(Sa)로 변환
-    # Sa = V / (alpha_1 * W_eff) = V / m_eff
-    Sa = df_pushover['base_shear'] / m_eff / g # g로 나누어 unitless g로 표현
+    Sa[T <= T0] = (0.4 + 0.6 * T[T <= T0] / T0) * SDS
+    Sa[(T > T0) & (T <= Ts)] = SDS
+    Sa[T > Ts] = SD1 / T[T > Ts]
+    
+    Sd = (T**2 / (4 * np.pi**2)) * Sa * 9.81
+    return Sd, Sa
 
-    return pd.DataFrame({'Sd': Sd, 'Sa': Sa})
-
-
-def calculate_performance_point_csm(df_pushover, modal_properties, design_spectrum_params, max_iter=20, tolerance=0.01):
+def pushover_to_adrs(df_pushover, pf1, m_eff, phi_roof):
     """
-    역량스펙트럼법(Capacity Spectrum Method, CSM)을 사용하여 성능점을 계산합니다. (ATC-40 Procedure A)
-
-    Args:
-        df_pushover (pd.DataFrame): 푸쉬오버 곡선 데이터.
-        modal_properties (dict): 1차 모드 주기, 참여계수, 유효질량 등을 포함하는 딕셔너리.
-        design_spectrum_params (dict): 설계 스펙트럼 생성에 필요한 파라미터.
-        max_iter (int): 최대 반복 횟수.
-        tolerance (float): 수렴 허용 오차.
-
-    Returns:
-        dict: 성능점 정보 (변위, 가속도, 주기, 감쇠비 등)와 계산 과정 데이터.
+    푸쉬오버 곡선을 ADRS 형식으로 변환하고, 곡선을 단조 증가하도록 보정합니다.
+    [수정] Sd 계산 시 지붕층 모드 형상 값(phi_roof)을 반영합니다.
     """
-    # 1. ADRS 형식으로 역량 스펙트럼 변환
-    pf1 = modal_properties['pf1']
-    m_eff = modal_properties['m_eff_t1']
-    capacity_adrs = pushover_to_adrs(df_pushover, pf1, m_eff)
+    g = 9.81
+    if abs(pf1 * phi_roof) < 1e-9 or abs(m_eff) < 1e-9:
+        return pd.DataFrame({'Sd': [], 'Sa': []})
 
-    # 2. 설계 응답 스펙트럼(수요 스펙트럼) 생성 (5% 감쇠)
-    T_demand, Sa_demand_5pct = create_design_spectrum_kbc2016(**design_spectrum_params)
-    Sd_demand_5pct = (T_demand**2 / (4 * np.pi**2)) * Sa_demand_5pct * 9.81
+    Sd = np.abs(df_pushover['Roof_Displacement_m'] / (pf1 * phi_roof))
+    Sa = np.abs(df_pushover['Base_Shear_N'] / (m_eff * g))
     
-    # 감쇠비에 따른 저감계수(B_S, B_1) (FEMA 440)
-    damping_reduction_factors = pd.DataFrame({
-        'D_eff': [0.05, 0.10, 0.15, 0.20, 0.30, 0.40, 0.50],
-        'B_S': [1.0, 1.33, 1.56, 1.73, 2.0, 2.2, 2.36],
-        'B_1': [1.0, 1.2, 1.3, 1.4, 1.53, 1.63, 1.7]
-    }).set_index('D_eff')
+    df_adrs = pd.DataFrame({'Sd': Sd, 'Sa': Sa}).sort_values(by='Sd').drop_duplicates(subset=['Sd']).reset_index(drop=True)
+    
+    if not df_adrs.empty:
+        df_adrs['Sa_cummax'] = df_adrs['Sa'].cummax()
+        df_adrs = df_adrs[df_adrs['Sa'] >= df_adrs['Sa_cummax'] * 0.95]
+    
+    if len(df_adrs) > 1 and df_adrs.iloc[0]['Sd'] < 1e-6:
+        df_adrs = df_adrs.iloc[1:]
 
-    # 3. 반복법을 통한 성능점 탐색
-    # 초기 시도점: 역량 스펙트럼의 마지막 점
+    return df_adrs[['Sd', 'Sa']].reset_index(drop=True)
+
+def _find_intersection(cap_sd, cap_sa, dem_sd, dem_sa):
+    """ 두 곡선의 교차점을 선형 보간으로 찾습니다. """
+    interp_dem_sa = np.interp(cap_sd, dem_sd, dem_sa, left=0, right=0)
+    diff = cap_sa - interp_dem_sa
+    sign_change_idx = np.where(np.diff(np.sign(diff)))[0]
+    if len(sign_change_idx) == 0: return None
+    idx = sign_change_idx[0]
+    x1, y1 = cap_sd[idx], cap_sa[idx]; x2, y2 = cap_sd[idx + 1], cap_sa[idx + 1]
+    x3, y3 = cap_sd[idx], interp_dem_sa[idx]; x4, y4 = cap_sd[idx + 1], interp_dem_sa[idx + 1]
+    denominator = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
+    if abs(denominator) < 1e-12: return None
+    t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denominator
+    u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / denominator
+    if 0 <= t <= 1 and 0 <= u <= 1:
+        return pd.Series({'Sd': x1 + t * (x2 - x1), 'Sa': y1 + t * (y2 - y1)})
+    return None
+
+def calculate_performance_point_csm(df_pushover, modal_properties, design_params, max_iter=30, tolerance=0.01):
+    """
+    [KDS 2022 최종] 역량스펙트럼법(CSM)으로 성능점을 계산합니다.
+    """
+    pf1, m_eff, phi_roof = modal_properties['pf1'], modal_properties['m_eff_t1'], modal_properties['phi_roof']
+    capacity_adrs = pushover_to_adrs(df_pushover, pf1, m_eff, phi_roof)
+    if capacity_adrs.empty or len(capacity_adrs) < 2:
+        print("Warning: Capacity curve is empty or too short for CSM analysis."); return None
+
+    Sd_demand_5pct, Sa_demand_5pct = generate_kds2022_demand_spectrum(S=design_params['S'], site_class=design_params['site_class'])
+    
+    try:
+        Sa_max = capacity_adrs['Sa'].max()
+        yield_point = capacity_adrs[capacity_adrs['Sa'] >= Sa_max * 0.6].iloc[0]
+        Sd_y, Sa_y = yield_point['Sd'], yield_point['Sa']
+        if Sd_y < 1e-9: raise IndexError
+    except (IndexError, KeyError, ValueError):
+        Sd_y, Sa_y = capacity_adrs.iloc[-1]['Sd'], capacity_adrs.iloc[-1]['Sa']
+        print("Warning: Could not robustly determine yield point. Using last point.")
+
     pi_trial = capacity_adrs.iloc[-1]
-    
     iteration_history = []
-
+    
     for i in range(max_iter):
-        # 4. 현재 시도점(pi)과 원점을 잇는 할선 강성(secant stiffness)으로 등가 주기(T_eff) 계산
-        k_eff = pi_trial['Sa'] / pi_trial['Sd'] if pi_trial['Sd'] > 0 else 0
-        T_eff = 2 * np.pi / np.sqrt(k_eff * 9.81) if k_eff > 0 else float('inf')
-
-        # 5. 등가 점성 감쇠비(beta_eff) 계산
-        # 이선형 모델의 면적으로 근사
-        bilinear_fit = np.polyfit(capacity_adrs['Sd'], capacity_adrs['Sa'], 1)
-        Ay = bilinear_fit[1] # y-intercept
+        mu = pi_trial['Sd'] / Sd_y if pi_trial['Sd'] > Sd_y and Sd_y > 1e-9 else 1.0
+        beta_eff = 0.05 + 0.565 / np.pi * (mu - 1) / mu
+        beta_eff = max(0.05, min(beta_eff, 0.35))
         
-        area_bilinear = 0.5 * pi_trial['Sd'] * pi_trial['Sa']
-        area_elastoplastic = Ay * pi_trial['Sd'] - 0.5 * Ay**2 / bilinear_fit[0] if bilinear_fit[0] !=0 else 0
-        
-        # 유효감쇠비 (FEMA 356, Eq 2-17) - κ 계수 적용
-        # κ 값은 구조 시스템 종류(A, B, C)에 따라 달라짐. 여기서는 0.67 (보통 모멘트골조) 가정
-        kappa = 0.67 
-        beta_eff = kappa * (2 / np.pi) * ((area_bilinear - area_elastoplastic) / (pi_trial['Sa'] * pi_trial['Sd'])) if (pi_trial['Sa'] * pi_trial['Sd']) > 0 else 0
-        beta_eff = max(0.05, beta_eff) # 최소 5%
+        B_S = 2.12 / (3.21 - 0.68 * np.log(beta_eff * 100)) if beta_eff > 0.05 else 1.0
+        B_1 = 1.62 / (2.31 - 0.41 * np.log(beta_eff * 100)) if beta_eff > 0.05 else 1.0
+        B_S, B_1 = max(1.0, B_S), max(1.0, B_1)
 
-        # 6. 감쇠 저감계수(SR_A, SR_V) 계산 (선형 보간)
-        B_S = np.interp(beta_eff, damping_reduction_factors.index, damping_reduction_factors['B_S'])
-        B_1 = np.interp(beta_eff, damping_reduction_factors.index, damping_reduction_factors['B_1'])
-
-        # 7. 감쇠가 적용된 수요 스펙트럼(demand spectrum) 계산
         Sa_demand_damped = Sa_demand_5pct / B_S
         Sd_demand_damped = Sd_demand_5pct / B_1
 
-        # 8. 수요-역량 스펙트럼의 교차점 찾기 -> 새로운 시도점(pi+1)
-        # 수요 스펙트럼을 (Sd, Sa) 공간에서 표현
-        demand_interp = np.interp(capacity_adrs['Sd'], Sd_demand_damped, Sa_demand_damped)
-        
-        # 교차점 찾기 (두 곡선 차의 부호가 바뀌는 지점)
-        diff = capacity_adrs['Sa'] - demand_interp
-        intersect_idx = np.where(np.diff(np.sign(diff)))[0]
-
-        if len(intersect_idx) == 0:
-            print("Warning: No intersection found. Using last point of capacity curve.")
-            new_pi_trial = capacity_adrs.iloc[-1]
-        else:
-            idx = intersect_idx[0]
-            # 선형 보간으로 교차점 정밀 계산
-            x1, y1 = capacity_adrs['Sd'][idx], capacity_adrs['Sa'][idx]
-            x2, y2 = capacity_adrs['Sd'][idx+1], capacity_adrs['Sa'][idx+1]
-            x3, y3 = Sd_demand_damped[idx], Sa_demand_damped[idx] # This is not correct. Need to interpolate demand.
-            
-            # Simple approach: use the capacity point right after intersection
-            new_pi_Sd = capacity_adrs['Sd'].iloc[idx+1]
-            new_pi_Sa = capacity_adrs['Sa'].iloc[idx+1]
-            new_pi_trial = pd.Series({'Sd': new_pi_Sd, 'Sa': new_pi_Sa})
+        new_pi_trial = _find_intersection(capacity_adrs['Sd'], capacity_adrs['Sa'], Sd_demand_damped, Sa_demand_damped)
+        if new_pi_trial is None:
+            print(f"Warning: No intersection found in iter {i+1}. Using last point."); new_pi_trial = capacity_adrs.iloc[-1]
 
         iteration_history.append({
-            'iter': i + 1,
-            'T_eff': T_eff,
-            'beta_eff': beta_eff,
-            'B_S': B_S,
-            'B_1': B_1,
-            'trial_Sd': pi_trial['Sd'],
-            'trial_Sa': pi_trial['Sa'],
-            'new_Sd': new_pi_trial['Sd'],
-            'new_Sa': new_pi_trial['Sa'],
-            'demand_curve_damped': (Sd_demand_damped, Sa_demand_damped)
+            'iter': i + 1, 'mu': mu, 'beta_eff': beta_eff, 
+            'trial_Sd': pi_trial['Sd'], 'new_Sd': new_pi_trial['Sd'],
+            'demand_curve_damped': (Sd_demand_damped.tolist(), Sa_demand_damped.tolist())
         })
-
-        # 9. 수렴 확인: |S_d,i+1 - S_d,i| / S_d,i+1 < tolerance
-        if abs(new_pi_trial['Sd'] - pi_trial['Sd']) / new_pi_trial['Sd'] < tolerance:
-            performance_point = new_pi_trial
-            print(f"CSM converged after {i+1} iterations.")
-            break
+        
+        if pi_trial['Sd'] > 1e-9 and abs(new_pi_trial['Sd'] - pi_trial['Sd']) / pi_trial['Sd'] < tolerance:
+            performance_point = new_pi_trial; print(f"CSM converged after {i + 1} iterations."); break
         
         pi_trial = new_pi_trial
     else:
-        performance_point = pi_trial
-        print("CSM did not converge within max iterations. Using last trial point.")
+        performance_point = pi_trial; print("CSM did not converge. Using last trial point.")
 
-    # 최종 성능점 데이터를 dict로 정리
-    result = {
-        'performance_point': {
-            'Sd': performance_point['Sd'],
-            'Sa': performance_point['Sa'],
-            'T_eff': T_eff,
-            'beta_eff': beta_eff
-        },
-        'capacity_adrs': capacity_adrs.to_dict('list'),
-        'demand_spectrum_5pct': {
-            'T': T_demand.tolist(),
-            'Sa': Sa_demand_5pct.tolist(),
-            'Sd': Sd_demand_5pct.tolist()
-        },
-        'iteration_history': iteration_history
-    }
-    
-    return result
+    final_mu = performance_point['Sd'] / Sd_y if Sd_y > 1e-9 else 1.0
+    final_beta_eff = max(0.05, min(0.05 + 0.565 / np.pi * (final_mu - 1) / final_mu, 0.35))
+    k_final = performance_point['Sa'] / performance_point['Sd'] if performance_point['Sd'] > 1e-9 else 0
+    T_final = 2 * np.pi / np.sqrt(k_final * 9.81) if k_final > 1e-9 else float('inf')
+
+    return {'performance_point': {'Sd': performance_point['Sd'], 'Sa': performance_point['Sa'], 'T_eff': T_final, 'beta_eff': final_beta_eff},
+            'capacity_adrs': capacity_adrs.to_dict('list'),
+            'demand_spectrum_5pct': {'Sd': Sd_demand_5pct.tolist(), 'Sa': Sa_demand_5pct.tolist()},
+            'iteration_history': iteration_history}
