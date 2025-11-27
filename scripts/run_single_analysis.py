@@ -8,7 +8,7 @@ from pathlib import Path
 import random
 import json
 
-# --- 프로젝트 루트 경로를 sys.path에 추가 ---
+# --- 프로젝트 루트 경로를 sys.path에 추가 ---ㅇ
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
