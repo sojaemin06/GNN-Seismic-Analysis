@@ -2,9 +2,10 @@
 import numpy as np
 import pandas as pd
 
-def get_site_coefficients_kds2022(S, site_class):
+def get_site_coefficients_kds2022(S_effective, site_class):
     """
     KDS 41 17 00:2022 [표 4.2-1], [표 4.2-2]에 따라 지반증폭계수를 계산합니다.
+    선형 보간법을 사용합니다.
     """
     fa_data = {
         'S1': [(0.1, 1.12), (0.2, 1.12), (0.3, 1.12)], 'S2': [(0.1, 1.4), (0.2, 1.4), (0.3, 1.3)],
@@ -19,16 +20,21 @@ def get_site_coefficients_kds2022(S, site_class):
     fa_points = fa_data.get(site_class); fv_points = fv_data.get(site_class)
     if not fa_points or not fv_points: raise ValueError(f"Invalid site class: {site_class}")
     s_coords, fa_coords = zip(*fa_points); _, fv_coords = zip(*fv_points)
-    Fa = np.interp(S, s_coords, fa_coords); Fv = np.interp(S, s_coords, fv_coords)
+    Fa = np.interp(S_effective, s_coords, fa_coords); Fv = np.interp(S_effective, s_coords, fv_coords)
     return Fa, Fv
 
-def generate_kds2022_demand_spectrum(S, site_class, T_long=5.0):
+def generate_kds2022_demand_spectrum(S_MCE, site_class, S_factor=1.0, T_long=5.0):
     """
     KDS 41 17 00:2022 기준에 따라 5% 감쇠 설계응답스펙트럼을 ADRS 형식으로 생성합니다.
+    S_MCE: 2400년 재현주기 유효지반가속도 (맵에서 추출)
+    S_factor: 다른 재현주기를 위한 스케일링 팩터 (예: 1400년 인명보호는 0.8)
     """
-    Fa, Fv = get_site_coefficients_kds2022(S, site_class)
-    SDS = S * Fa * (2/3); SD1 = S * Fv * (2/3)
-    Ts = SD1 / SDS; T0 = 0.2 * Ts
+    S_effective = S_MCE * S_factor
+    Fa, Fv = get_site_coefficients_kds2022(S_effective, site_class)
+    SDS = S_effective * Fa * (2/3)
+    SD1 = S_effective * Fv * (2/3)
+    Ts = SD1 / SDS
+    T0 = 0.2 * Ts
     
     T = np.linspace(0.01, T_long, 500)
     Sa = np.zeros_like(T)
@@ -38,7 +44,7 @@ def generate_kds2022_demand_spectrum(S, site_class, T_long=5.0):
     Sa[T > Ts] = SD1 / T[T > Ts]
     
     Sd = (T**2 / (4 * np.pi**2)) * Sa * 9.81
-    return Sd, Sa
+    return Sd, Sa, SDS, SD1 # Return SDS, SD1 as well
 
 def pushover_to_adrs(df_pushover, pf1, m_eff, phi_roof):
     """
@@ -80,64 +86,101 @@ def _find_intersection(cap_sd, cap_sa, dem_sd, dem_sa):
         return pd.Series({'Sd': x1 + t * (x2 - x1), 'Sa': y1 + t * (y2 - y1)})
     return None
 
-def calculate_performance_point_csm(df_pushover, modal_properties, design_params, max_iter=30, tolerance=0.01):
+def calculate_performance_point_csm(df_pushover, modal_properties, design_params_list: list, max_iter=30, tolerance=0.01):
     """
-    [KDS 2022 최종] 역량스펙트럼법(CSM)으로 성능점을 계산합니다.
+    [KDS 2022 최종] 역량스펙트럼법(CSM)으로 여러 성능목표에 대한 성능점을 계산합니다.
+    design_params_list: [{'S_MCE': 0.135, 'site_class': 'S2', 'S_factor': 1.0, 'objective_name': 'Collapse Prevention', 'target_drift': 0.03}, ...] 
     """
     pf1, m_eff, phi_roof = modal_properties['pf1'], modal_properties['m_eff_t1'], modal_properties['phi_roof']
     capacity_adrs = pushover_to_adrs(df_pushover, pf1, m_eff, phi_roof)
     if capacity_adrs.empty or len(capacity_adrs) < 2:
         print("Warning: Capacity curve is empty or too short for CSM analysis."); return None
 
-    Sd_demand_5pct, Sa_demand_5pct = generate_kds2022_demand_spectrum(S=design_params['S'], site_class=design_params['site_class'])
-    
-    try:
-        Sa_max = capacity_adrs['Sa'].max()
-        yield_point = capacity_adrs[capacity_adrs['Sa'] >= Sa_max * 0.6].iloc[0]
-        Sd_y, Sa_y = yield_point['Sd'], yield_point['Sa']
-        if Sd_y < 1e-9: raise IndexError
-    except (IndexError, KeyError, ValueError):
-        Sd_y, Sa_y = capacity_adrs.iloc[-1]['Sd'], capacity_adrs.iloc[-1]['Sa']
-        print("Warning: Could not robustly determine yield point. Using last point.")
+    all_csm_results = []
 
-    pi_trial = capacity_adrs.iloc[-1]
-    iteration_history = []
-    
-    for i in range(max_iter):
-        mu = pi_trial['Sd'] / Sd_y if pi_trial['Sd'] > Sd_y and Sd_y > 1e-9 else 1.0
-        beta_eff = 0.05 + 0.565 / np.pi * (mu - 1) / mu
-        beta_eff = max(0.05, min(beta_eff, 0.35))
+    for design_params in design_params_list:
+        objective_name = design_params.get('objective_name', 'Unknown Objective')
+        print(f"\n--- Calculating Performance Point for: {objective_name} ---")
+
+        Sd_demand_5pct, Sa_demand_5pct, SDS, SD1 = generate_kds2022_demand_spectrum(
+            S_MCE=design_params['S_MCE'],
+            site_class=design_params['site_class'],
+            S_factor=design_params.get('S_factor', 1.0)
+        )
         
-        B_S = 2.12 / (3.21 - 0.68 * np.log(beta_eff * 100)) if beta_eff > 0.05 else 1.0
-        B_1 = 1.62 / (2.31 - 0.41 * np.log(beta_eff * 100)) if beta_eff > 0.05 else 1.0
-        B_S, B_1 = max(1.0, B_S), max(1.0, B_1)
+        try:
+            Sa_max = capacity_adrs['Sa'].max()
+            yield_point = capacity_adrs[capacity_adrs['Sa'] >= Sa_max * 0.6].iloc[0]
+            Sd_y, Sa_y = yield_point['Sd'], yield_point['Sa']
+            if Sd_y < 1e-9: raise IndexError
+        except (IndexError, KeyError, ValueError):
+            Sd_y, Sa_y = capacity_adrs.iloc[-1]['Sd'], capacity_adrs.iloc[-1]['Sa']
+            print("Warning: Could not robustly determine yield point. Using last point.")
 
-        Sa_demand_damped = Sa_demand_5pct / B_S
-        Sd_demand_damped = Sd_demand_5pct / B_1
+        # 4. 초기 시험점(pi_trial) 설정 (탄성 교차점 방식)
+        try:
+            initial_part = capacity_adrs[capacity_adrs['Sa'] < capacity_adrs['Sa'].max() * 0.2]
+            if len(initial_part) < 2: initial_part = capacity_adrs.head(2)
+            K_e = initial_part['Sa'].iloc[-1] / initial_part['Sd'].iloc[-1]
+            
+            # 탄성선과 5% 요구스펙트럼의 교차점 찾기
+            elastic_line_sa_at_demand_sd = K_e * Sd_demand_5pct
+            pi_trial_initial = _find_intersection(Sd_demand_5pct, elastic_line_sa_at_demand_sd, Sd_demand_5pct, Sa_demand_5pct)
 
-        new_pi_trial = _find_intersection(capacity_adrs['Sd'], capacity_adrs['Sa'], Sd_demand_damped, Sa_demand_damped)
-        if new_pi_trial is None:
-            print(f"Warning: No intersection found in iter {i+1}. Using last point."); new_pi_trial = capacity_adrs.iloc[-1]
+            if pi_trial_initial is None:
+                print("Warning: Elastic intersection not found. Starting with the last point.")
+                pi_trial = capacity_adrs.iloc[-1]
+            else:
+                print("Successfully found elastic intersection. Starting iteration from this point.")
+                pi_trial = pi_trial_initial
 
-        iteration_history.append({
-            'iter': i + 1, 'mu': mu, 'beta_eff': beta_eff, 
-            'trial_Sd': pi_trial['Sd'], 'new_Sd': new_pi_trial['Sd'],
-            'demand_curve_damped': (Sd_demand_damped.tolist(), Sa_demand_damped.tolist())
-        })
+        except (IndexError, ZeroDivisionError):
+            print("Warning: Could not determine elastic stiffness. Starting with the last point.")
+            pi_trial = capacity_adrs.iloc[-1]
+
+        iteration_history = []
         
-        if pi_trial['Sd'] > 1e-9 and abs(new_pi_trial['Sd'] - pi_trial['Sd']) / pi_trial['Sd'] < tolerance:
-            performance_point = new_pi_trial; print(f"CSM converged after {i + 1} iterations."); break
-        
-        pi_trial = new_pi_trial
-    else:
-        performance_point = pi_trial; print("CSM did not converge. Using last trial point.")
+        for i in range(max_iter):
+            mu = pi_trial['Sd'] / Sd_y if pi_trial['Sd'] > Sd_y and Sd_y > 1e-9 else 1.0
+            beta_eff = 0.05 + 0.565 / np.pi * (mu - 1) / mu
+            beta_eff = max(0.05, min(beta_eff, 0.35))
+            
+            B_S = 2.12 / (3.21 - 0.68 * np.log(beta_eff * 100)) if beta_eff > 0.05 else 1.0
+            B_1 = 1.62 / (2.31 - 0.41 * np.log(beta_eff * 100)) if beta_eff > 0.05 else 1.0
+            B_S, B_1 = max(1.0, B_S), max(1.0, B_1)
 
-    final_mu = performance_point['Sd'] / Sd_y if Sd_y > 1e-9 else 1.0
-    final_beta_eff = max(0.05, min(0.05 + 0.565 / np.pi * (final_mu - 1) / final_mu, 0.35))
-    k_final = performance_point['Sa'] / performance_point['Sd'] if performance_point['Sd'] > 1e-9 else 0
-    T_final = 2 * np.pi / np.sqrt(k_final * 9.81) if k_final > 1e-9 else float('inf')
+            Sa_demand_damped = Sa_demand_5pct / B_S
+            Sd_demand_damped = Sd_demand_5pct / B_1
 
-    return {'performance_point': {'Sd': performance_point['Sd'], 'Sa': performance_point['Sa'], 'T_eff': T_final, 'beta_eff': final_beta_eff},
+            new_pi_trial = _find_intersection(capacity_adrs['Sd'], capacity_adrs['Sa'], Sd_demand_5pct, Sa_demand_5pct)
+            if new_pi_trial is None:
+                print(f"Warning: No intersection found in iter {i+1}. Using last point."); new_pi_trial = capacity_adrs.iloc[-1]
+
+            iteration_history.append({
+                'iter': i + 1, 'mu': mu, 'beta_eff': beta_eff, 
+                'trial_Sd': pi_trial['Sd'], 'new_Sd': new_pi_trial['Sd'],
+                'demand_curve_damped': (Sd_demand_5pct.tolist(), Sa_demand_5pct.tolist()) # Use 5% demand for animation
+            })
+            
+            if pi_trial['Sd'] > 1e-9 and abs(new_pi_trial['Sd'] - pi_trial['Sd']) / pi_trial['Sd'] < tolerance:
+                performance_point = new_pi_trial; print(f"CSM converged after {i + 1} iterations."); break
+            
+            pi_trial = new_pi_trial
+        else:
+            performance_point = pi_trial; print("CSM did not converge. Using last trial point.")
+
+        final_mu = performance_point['Sd'] / Sd_y if Sd_y > 1e-9 else 1.0
+        final_beta_eff = max(0.05, min(0.05 + 0.565 / np.pi * (final_mu - 1) / final_mu, 0.35))
+        k_final = performance_point['Sa'] / performance_point['Sd'] if performance_point['Sd'] > 1e-9 else 0
+        T_final = 2 * np.pi / np.sqrt(k_final * 9.81) if k_final > 1e-9 else float('inf')
+
+        all_csm_results.append({
+            'objective_name': objective_name,
+            'performance_point': {'Sd': performance_point['Sd'], 'Sa': performance_point['Sa'], 'T_eff': T_final, 'beta_eff': final_beta_eff},
             'capacity_adrs': capacity_adrs.to_dict('list'),
             'demand_spectrum_5pct': {'Sd': Sd_demand_5pct.tolist(), 'Sa': Sa_demand_5pct.tolist()},
-            'iteration_history': iteration_history}
+            'iteration_history': iteration_history,
+            'SDS': SDS,
+            'SD1': SD1
+        })
+    return all_csm_results
