@@ -115,6 +115,19 @@ def run_pushover_analysis(params, model_nodes_info, modal_props, direction='X'):
     ops.recorder('Node', '-file', str(output_dir / f"{analysis_name}_all_floor_disp_{direction}.out"), '-time', '-node', *model_nodes_info['master_nodes'], '-dof', dof, 'disp')
     if base_nodes: ops.recorder('Node', '-file', str(output_dir / f"{analysis_name}_base_shear_{direction}.out"), '-time', '-node', *base_nodes, '-dof', dof, 'reaction')
     
+    # [New] Recorders for Plastic Rotation (Section Deformations)
+    # Record deformations for ALL sections to ensure data capture. 
+    # Post-processor will handle extracting specific integration points.
+    col_tags = model_nodes_info.get('all_column_tags', [])
+    if col_tags:
+        ops.recorder('Element', '-file', str(output_dir / f"{analysis_name}_all_col_plastic_rotation_{direction}.out"), 
+                     '-time', '-ele', *col_tags, 'section', 'deformation')
+                     
+    beam_tags = model_nodes_info.get('all_beam_tags', [])
+    if beam_tags:
+        ops.recorder('Element', '-file', str(output_dir / f"{analysis_name}_all_beam_plastic_rotation_{direction}.out"), 
+                     '-time', '-ele', *beam_tags, 'section', 'deformation')
+
     # --- 4. 변위 제어 해석 실행 ---
     target_disp = (params['story_height'] * params['num_stories']) * params['target_drift']
     ops.integrator('DisplacementControl', control_node, dof, target_disp / params['num_steps'])

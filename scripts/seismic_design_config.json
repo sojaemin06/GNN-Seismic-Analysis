@@ -1,0 +1,9 @@
+{
+    "project_name": "Seismic Performance Evaluation Project",
+    "description": "Configuration using Seismic Zone Factor (Z) for Chungnam area",
+    "site_parameters": {
+        "site_class": "S2",
+        "Z": 0.11,
+        "importance_class": "I" 
+    }
+}

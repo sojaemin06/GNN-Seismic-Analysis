@@ -47,7 +47,7 @@ def animate_and_plot_pushover(df_curve, df_disp, perf_points, params, model_node
         num_int_pts = params.get('num_int_pts', 5)
         ip_start, ip_end = 1, num_int_pts
         
-        ROT_IO, ROT_LS, ROT_CP = 0.005, 0.02, 0.04
+        ROT_IO, ROT_LS, ROT_CP = 0.002, 0.02, 0.04
         mkr_cp = {'marker': 's', 'color': 'red', 'markersize': 12, 'mew': 1.5, 'mec': 'black'}
         mkr_ls = {'marker': 'D', 'color': 'orange', 'markersize': 10, 'mew': 1.0, 'mec': 'black'}
         mkr_io = {'marker': 'o', 'color': 'blue', 'markersize': 8, 'mew': 0.5, 'mec': 'black'}
@@ -168,7 +168,15 @@ def animate_and_plot_pushover(df_curve, df_disp, perf_points, params, model_node
             
             row = df_to_use.iloc[idx]
             for loc_idx, ip in enumerate([ip_start, ip_end]):
-                theta_p = abs(row.get(f'Ele{tag}_IP{ip}_ry', 0)) + abs(row.get(f'Ele{tag}_IP{ip}_rz', 0))
+                # [수정] 곡률(kz, ky)을 읽어서 소성회전각(rad)으로 변환
+                # 가정: 소성힌지 길이 Lp = 0.5m (시각화용 근사값)
+                L_p_approx = 0.5 
+                kappa_z = row.get(f'Ele{tag}_IP{ip}_kz', 0)
+                kappa_y = row.get(f'Ele{tag}_IP{ip}_ky', 0)
+                
+                # 곡률(rad/m) * Lp(m) = 회전각(rad)
+                theta_p = (abs(kappa_z) + abs(kappa_y)) * L_p_approx
+                
                 loc = ni_c if loc_idx == 0 else nj_c
                 
                 if theta_p >= ROT_CP: cp_coords.append((loc[plot_coord_idx], loc[1]))
@@ -250,6 +258,7 @@ def animate_and_plot_pushover(df_curve, df_disp, perf_points, params, model_node
     z_tolerance = 1e-6
 
     # --- 2. 힌지 및 손상 데이터 로드 ---
+    df_col_rot, df_beam_rot, df_wall_forces = None, None, None
     try:
         node_coords = model_nodes_info['all_node_coords']
         all_line_elements = model_nodes_info['all_line_elements']
@@ -257,14 +266,11 @@ def animate_and_plot_pushover(df_curve, df_disp, perf_points, params, model_node
         all_column_tags = model_nodes_info.get('all_column_tags', []) 
         all_beam_tags_type3 = model_nodes_info.get('all_beam_tags_type3', []) 
 
-        df_col_rot = final_states_dfs.get('col_rot_df')
-        df_beam_rot = final_states_dfs.get('beam_rot_df')
-        df_wall_forces = final_states_dfs.get('wall_forces_df')
-        
         num_int_pts = params.get('num_int_pts', 5)
         ip_start, ip_end = 1, num_int_pts
         
-        ROT_IO, ROT_LS, ROT_CP = 0.005, 0.02, 0.04
+        # [Debug] Lower threshold to check visibility
+        ROT_IO, ROT_LS, ROT_CP = 0.002, 0.02, 0.04
         mkr_cp = {'marker': 's', 'color': 'red', 'markersize': 12, 'mew': 1.5, 'mec': 'black'}
         mkr_ls = {'marker': 'D', 'color': 'orange', 'markersize': 10, 'mew': 1.0, 'mec': 'black'}
         mkr_io = {'marker': 'o', 'color': 'blue', 'markersize': 8, 'mew': 0.5, 'mec': 'black'}
@@ -356,18 +362,13 @@ def animate_and_plot_pushover(df_curve, df_disp, perf_points, params, model_node
     ax4.legend(loc='lower right')
 
     # --- 4. 애니메이션 함수 정의 ---
-    def init():
-        artists = [line, point, structure_line, time_text_ax2, time_text_ax3, yield_point_artist, 
-                   peak_point_artist, collapse_line_artist, hinge_io_plot_ax3, hinge_ls_plot_ax3, 
-                   hinge_cp_plot_ax3, drift_profile_line, failure_marker_artist]
-        for artist in artists:
-            if isinstance(artist, plt.Line2D): artist.set_data([], [])
-            else: artist.set_text('')
-        for poly_info in wall_polygons: poly_info['patch'].set_facecolor('gray')
-        return artists + [p['patch'] for p in wall_polygons]
-
     def animate(i):
-        idx = min(i * step_size, total_steps - 1)
+        # [Fix] Ensure the last frame shows the very last data point
+        if i == num_frames - 1:
+            idx = total_steps - 1
+        else:
+            idx = min(i * step_size, total_steps - 1)
+            
         text_info = f'Disp: {x_data_roof[idx]:.4f} m\nShear: {y_data_shear[idx]:.0f} kN'
         
         line.set_data(x_data_roof[:idx+1], y_data_shear[:idx+1]) 
@@ -390,6 +391,9 @@ def animate_and_plot_pushover(df_curve, df_disp, perf_points, params, model_node
             target_coord = params.get('plot_x_line_index', 0) * params['bay_width_x']
             coord_idx_check = 0 # X 좌표를 확인
             coord_idx_plot = 2  # Z 좌표를 플로팅
+        
+        # Tolerance for coordinate check
+        tolerance = 0.1 # 10cm tolerance
 
         all_tags_to_plot = all_column_tags + all_beam_tags
         rot_df_map = {'col': df_col_rot, 'beam': df_beam_rot}
@@ -398,17 +402,32 @@ def animate_and_plot_pushover(df_curve, df_disp, perf_points, params, model_node
             df_to_use = rot_df_map['col'] if tag in all_column_tags else rot_df_map['beam']
             if df_to_use is None or tag not in all_line_elements: continue
             
+            # [Fix] Handle case where rotation data is shorter than displacement data (due to zero-trimming)
+            rot_idx = min(idx, len(df_to_use) - 1)
+            
             ni_t, nj_t = all_line_elements[tag]
             ni_c, nj_c = node_coords.get(ni_t), node_coords.get(nj_t)
             if not ni_c or not nj_c: continue
 
-            if abs(ni_c[coord_idx_check] - target_coord) > 1e-6:
+            # if abs(ni_c[coord_idx_check] - target_coord) > tolerance:
+            #     continue
+            
+            try:
+                row = df_to_use.iloc[rot_idx]
+            except IndexError:
                 continue
             
-            row = df_to_use.iloc[idx]
             for loc_idx, ip in enumerate([ip_start, ip_end]):
                 try:
-                    theta_p = abs(row.get(f'Ele{tag}_IP{ip}_ry', 0)) + abs(row.get(f'Ele{tag}_IP{ip}_rz', 0))
+                    # [수정] 곡률(kz, ky)을 읽어서 소성회전각(rad)으로 변환
+                    # 가정: 소성힌지 길이 Lp = 0.5m (시각화용 근사값)
+                    L_p_approx = 0.5 
+                    kappa_z = row.get(f'Ele{tag}_IP{ip}_kz', 0)
+                    kappa_y = row.get(f'Ele{tag}_IP{ip}_ky', 0)
+                    
+                    # 곡률(rad/m) * Lp(m) = 회전각(rad)
+                    theta_p = (abs(kappa_z) + abs(kappa_y)) * L_p_approx
+                    
                     loc = ni_c if loc_idx == 0 else nj_c
                     
                     if theta_p >= ROT_CP: cp_coords.append((loc[coord_idx_plot], loc[1]))
@@ -420,6 +439,10 @@ def animate_and_plot_pushover(df_curve, df_disp, perf_points, params, model_node
         hinge_io_plot_ax3.set_data(*zip(*io_coords) if io_coords else ([],[]))
         hinge_ls_plot_ax3.set_data(*zip(*ls_coords) if ls_coords else ([],[]))
         hinge_cp_plot_ax3.set_data(*zip(*cp_coords) if cp_coords else ([],[]))
+        
+        # [Debug] Print hinge counts for the last frame
+        if i == num_frames - 1:
+            print(f"Frame {i}: Detected Hinges - IO: {len(io_coords)}, LS: {len(ls_coords)}, CP: {len(cp_coords)}")
 
         drifts = [(current_disps[i+1] - current_disps[i]) / story_height * 100 for i in range(num_stories)]
         drift_profile_line.set_data(drifts, story_mid_heights)
@@ -454,7 +477,7 @@ def animate_and_plot_pushover(df_curve, df_disp, perf_points, params, model_node
     # --- 6. 저장: 정적 플롯 (PNG) ---
     try:
         static_image_path = output_dir / f"{analysis_name}_pushover_final_plot.png"
-        animate(num_frames) # 최종 상태로 업데이트
+        animate(num_frames - 1) # 최종 상태로 업데이트
         fig.savefig(static_image_path, dpi=300, bbox_inches='tight')
         print(f"Final static pushover plot saved to: {static_image_path}")
     except Exception as e:

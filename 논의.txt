@@ -1,6 +1,114 @@
-1. 비선형 해석을 위한 콘크리트의 응력-변형률 관계는 포물선 및 직선 관계를 포함하여 실험을 통하여 검증된 응력-변형률 관계를 사용할 수 있다. 단, 콘크리트의 인장능력은 무시한다. 별도의
-실험으로 검증하지 않는 한, 횡구속되지 않은 콘크리트의 최대 응력에 상응하는 압축변형률은 0.002를 사용하며, 압축파괴 시 종국변형률과 잔류응력은 각각 0.003과 최대 응력의 10%를 넘을 수 없다. 횡철근 등에 의하여 횡구속된 콘크리트는 횡구속효과를 고려하여 콘크리트의 압축 응력-변형률 관계를 정의할 수 있다. 구속된 콘크리트 압축변형률의 한계는 실험적 근거에 기반하여 정의하여야 하며, 횡구속 철근의 파단, 주근의 좌굴, 대변형에서의 저항력 손실 등을 고려하여야 한다. 반복하중을 받는 콘크리트의 이력모델은 하중 제하(unloading) 또는 재재하(reloading) 에 의한 에너지 소산이 없고 잔류변형에 의한 압축응력 발현의 지연을 고려하여 정의한다.
-2. 철근의 응력-변형률 관계는 이선형 혹은 3선형 곡선으로 정의할 수 있다. 또한 철근의 압축변형률은 0.02, 인장변형률은 0.05를 초과할 수 없고, 강재 시편의 단조가력 시험에서 구한 최대 변형률을 한계치로 사용해서는 안 된다. 별도의 실험적 근거가 없는 경우, 철근의 탄성계수는 200GPa을 사용한다. 철근이 독립적인 섬유요소로 모델링된 벽체의 경우, 압축을 받는 철근은 좌굴거동에 의한 응력 저하를 고려하여야 한다. 단조하중을 받는 철근의 경우, 압축변형률 0.003에서 좌굴이 발생하여 항복응력의 10%로 응력이 저하되는 다중선형 관계를 사용할 수 있다.
-3. 비선형해석시 부재 유형별 소성회전각을 허용기준으로 사용한다. 또한 압축연단 콘크리트의 변형률과 철근의 인장 또는 압축 변형률이 (1)과 (2)에서 제시된 재료의 변형률 한계에 도달한 것으로
-확인되면 소성회전각의 크기에 관계없이 해당 부재는 붕괴로 판정한다.
-4. 섬유요소를 이용하여 모델링된 구조요소의 이력거동은 실제 실험에서 나타나는 거동과 잘 부합하지 않을 수 있으며, 상세 모델링 변수의 조절이 필요할 수 있다. 따라서 이와 같은 구조요소의 수치모델은 실제 실험결과 또는 이 장에서 제시하는 힘-변위 관계의 포락선 모델과의 비교를 통해 검증하여야 한다. 이를 위한 모의 해석에서는 회전각 또는 전단변형각 등 부재 수준에서의 거동을 나타내는 지표를 내진성능평가의 변형요구량 범위에서 산출하여 실험 등과 비교한다.
+
+(GNN) C:\SCI_GNN_pushover\GNN_Project>C:/SCI_GNN_pushover/GNN_Project/GNN/Scripts/python.exe c:/SCI_GNN_pushover/GNN_Project/scripts/run_single_analysis.py
+Warning: Could not import helper functions from generate_dataset.py. Using fallback values.
+--- [!] 단일 RC 모멘트 골조 해석 모드 활성화 (설계안 샘플링) ---
+
+--- Running X-direction analysis ---
+Model built successfully with 4x4 Bays (Grouped Members).
+
+Plotting model geometry using Matplotlib for X-direction...
+Matplotlib 3D plot (with shells) saved to: results\Run_Single_RC_Moment_Frame_Sampled_X\Run_Single_RC_Moment_Frame_Sampled_X_model_3D_Matplotlib.png
+Matplotlib 2D Elevation plot saved to: results\Run_Single_RC_Moment_Frame_Sampled_X\Run_Single_RC_Moment_Frame_Sampled_X_model_2D_Elevation_X.png
+
+Plotting with opsvis (Wireframe & Fibers)...
+opsvis 3D (Wireframe) model saved to: results\Run_Single_RC_Moment_Frame_Sampled_X\Run_Single_RC_Moment_Frame_Sampled_X_opsvis_model_Wireframe.png
+Column Fiber Section (101) saved to: results\Run_Single_RC_Moment_Frame_Sampled_X\Run_Single_RC_Moment_Frame_Sampled_X_opsvis_sec101_col.png  
+Beam Fiber Section (102) saved to: results\Run_Single_RC_Moment_Frame_Sampled_X\Run_Single_RC_Moment_Frame_Sampled_X_opsvis_sec102_beam.png   
+
+Plotting assumed material stress-strain curves...
+Combined concrete curve plot saved to: results\Run_Single_RC_Moment_Frame_Sampled_X\Run_Single_RC_Moment_Frame_Sampled_X_material_concrete_combined.png
+Separate rebar curve plot saved to: results\Run_Single_RC_Moment_Frame_Sampled_X\Run_Single_RC_Moment_Frame_Sampled_X_material_rebar.png      
+
+Running Gravity Analysis...
+Gravity analysis complete.
+
+Running Eigenvalue Analysis...
+ArpackSolver::Error with _saupd info = -9999
+Could not build an Arnoldi factorization.
+IPARAM(5) - the size of the current Arnoldi factorization is 12.       
+The user is advised to check that enough workspace and array storage have been allocated.
+WARNING StaticAnalysis::eigen() - EigenSOE failed in solve()
+WANRING failed to do eigen analysis
+Default eigenvalue analysis failed. Trying with 'fullGenLapack' solver...
+WARNING - the 'fullGenLapack' eigen solver is VERY SLOW. Consider using the default eigen solver.FullGenEigenSolver::solve() - the eigenvalue 
+13 is numerically undetermined or infinite
+FullGenEigenSolver::solve() - the eigenvalue 14 is numerically undetermined or infinite
+FullGenEigenSolver::solve() - the eigenvalue 15 is numerically undetermined or infinite
+FullGenEigenSolver::solve() - the eigenvalue 16 is numerically undetermined or infinite
+FullGenEigenSolver::solve() - the eigenvalue 17 is numerically undetermined or infinite
+FullGenEigenSolver::solve() - the eigenvalue 18 is numerically undetermined or infinite
+FullGenEigenSolver::solve() - the eigenvalue 19 is numerically undetermined or infinite
+FullGenEigenSolver::solve() - the eigenvalue 20 is numerically undetermined or infinite
+Cumulative Mass Participation Ratio X: 160.84%
+Cumulative Mass Participation Ratio Z: 100.00%
+
+--- 비선형 정적해석(Pushover) 적용 타당성 검증 시작 ---
+X-dir: 4 modes for 93.1% mass participation.
+Z-dir: 5 modes for 94.1% mass participation.
+
+[X-Direction Verification (Dominant Mode: 1)]
+Story | V_multi (kN) | V_dominant (kN) | Ratio | Result
+  1   |    327.63    |     324.73      | 1.01  |   OK
+  2   |    300.54    |     300.02      | 1.00  |   OK
+  3   |    234.89    |     233.67      | 1.01  |   OK
+  4   |    134.24    |     129.32      | 1.04  |   OK
+
+[Z-Direction Verification (Dominant Mode: 2)]
+Story | V_multi (kN) | V_dominant (kN) | Ratio | Result
+  1   |    333.56    |     331.39      | 1.01  |   OK
+  2   |    303.96    |     303.68      | 1.00  |   OK
+  3   |    235.58    |     234.39      | 1.01  |   OK
+  4   |    132.50    |     128.53      | 1.03  |   OK
+Verification plot saved to: results\Run_Single_RC_Moment_Frame_Sampled_X\Run_Single_RC_Moment_Frame_Sampled_X_NSP_verification_plot_X.png     
+Verification plot saved to: results\Run_Single_RC_Moment_Frame_Sampled_X\Run_Single_RC_Moment_Frame_Sampled_X_NSP_verification_plot_Z.png     
+
+--- 타당성 검증 완료 ---
+
+Starting Pushover Analysis for direction: X...
+Dominant X-Mode Found: Mode 1 (MPR_X = 80.80%)
+Pushover Force Ratios (based on Mode 1): [np.float64(0.07611056671623045), np.float64(0.2043189976247909), np.float64(0.32132912995027046), np.float64(0.39824130570870814)]
+Running Pushover to 0.5600 m (1000 steps)...
+Step 50/1000 complete.
+Step 100/1000 complete.
+Step 150/1000 complete.
+Step 200/1000 complete.
+Step 250/1000 complete.
+Step 300/1000 complete.
+Step 350/1000 complete.
+Step 400/1000 complete.
+Step 450/1000 complete.
+Step 500/1000 complete.
+Step 550/1000 complete.
+Step 600/1000 complete.
+Step 650/1000 complete.
+Step 700/1000 complete.
+Step 750/1000 complete.
+Step 800/1000 complete.
+Step 850/1000 complete.
+Step 900/1000 complete.
+Step 950/1000 complete.
+Step 1000/1000 complete.
+Pushover analysis finished.
+
+Processing results for X-direction and exporting to CSV...
+Pushover curve data saved to: results\Run_Single_RC_Moment_Frame_Sampled_X\Run_Single_RC_Moment_Frame_Sampled_X_pushover_curve_X.csv
+[Debug] Column Rotation Data: Total Cols=2001, Data Cols=2000, Elements=100
+[Debug] Columns per Element = 20.0
+[Debug] Column Max Curvatures - kz: 0.240011, ky: 0.000801779
+[Debug] Beam Max Curvatures - kz: 0.113538, ky: 1.4577e-15
+Modal properties saved to: results\Run_Single_RC_Moment_Frame_Sampled_X\modal_properties.json
+
+Creating pushover animation (4-panel) with plastic hinges and drift... 
+
+Animation saved successfully to: results\Run_Single_RC_Moment_Frame_Sampled_X\Run_Single_RC_Moment_Frame_Sampled_X_pushover_animation.mp4     
+Final static pushover plot saved to: results\Run_Single_RC_Moment_Frame_Sampled_X\Run_Single_RC_Moment_Frame_Sampled_X_pushover_final_plot.pngPlotting animation hinges for Z-Line 0 (Z = 0.0m)...
+Frame 199: Detected Hinges - IO: 0, LS: 0, CP: 0
+
+x방향 출력로그인데 여기까지는 소성힌지가 잘 표현돼. 현재 채팅 위 아래로 왜 두번 같은 명령 즉, 그림과 애니메이션 2번 저장하는거야?
+
+Animation saved successfully to: results\Run_Single_RC_Moment_Frame_Sampled_X\Run_Single_RC_Moment_Frame_Sampled_X_pushover_animation.mp4     
+Frame 199: Detected Hinges - IO: 0, LS: 0, CP: 0
+Final static pushover plot saved to: results\Run_Single_RC_Moment_Frame_Sampled_X\Run_Single_RC_Moment_Frame_Sampled_X_pushover_final_plot.png
+단일 해석 및 후처리 완료.
+
+

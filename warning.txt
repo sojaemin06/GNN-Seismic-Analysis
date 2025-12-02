@@ -1,14 +1,1 @@
-4.14.5.18. MultiLinear¶
-uniaxialMaterial('MultiLinear', matTag, *pts)
-This command is used to construct a uniaxial multilinear material object.
-
-matTag (int)
-
-integer tag identifying material
-
-pts (list (float))
-
-a list of strain and stress points
-
-pts = [strain1, stress1, strain2, stress2, ..., ]
-
+수정 및 보완: 1. 성능목표를 2가지 이상 선정해야돼. 내진등급은 1등급으로 하고 2400년 붕괴방지와 1400년 인명보호로 선택. 2. 지진구역은 충남으로 변경. 3. 지반의 분류는 S2의 얕고 단단한 지반으로  설정. 4. 또한 대상 구조물의 질량참여율, 고차모드 판별 등을 표로만들어서 파일로 출력해줘. 5. 각 방향에서 두가지 성능을 만족하는지 검토해야하며, 검토는 중력하중저항능력 및 층간변위가 목표성능 수치를 만족해야하며 붕괴부재가 발생하지 않아야해.

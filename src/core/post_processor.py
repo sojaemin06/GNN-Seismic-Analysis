@@ -83,16 +83,56 @@ def process_pushover_results(params, model_nodes, dominant_mode, direction='X'):
             try:
                 col_rot_data = np.loadtxt(path_col_rot)
                 if col_rot_data.ndim == 1: col_rot_data = col_rot_data.reshape(1, -1)
-                headers = ['Time']
-                for ele_tag in all_column_tags: 
-                    for ip in [1, params.get('num_int_pts', 5)]:
-                        headers.extend([f'Ele{ele_tag}_IP{ip}_ry', f'Ele{ele_tag}_IP{ip}_rz', f'Ele{ele_tag}_IP{ip}_rx'])
+                
+                # Data structure: Time + [Ele1_IP1_defs, Ele1_IP2_defs, ...], [Ele2_IP1_defs, ...]
+                # Deformation has 3 components (eps, kz, ky)
+                num_cols = col_rot_data.shape[1]
+                num_data_cols = num_cols - 1
+                num_eles = len(all_column_tags)
+                
+                print(f"[Debug] Column Rotation Data: Total Cols={num_cols}, Data Cols={num_data_cols}, Elements={num_eles}")
+                if num_eles > 0:
+                    print(f"[Debug] Columns per Element = {num_data_cols / num_eles}")
+                
+                if num_eles > 0 and num_data_cols % num_eles == 0:
+                    cols_per_ele = num_data_cols // num_eles
+                    # [Fix] Determine number of components per IP based on column count
+                    num_int_pts = 5 # Assumed default
+                    comps_per_ip = cols_per_ele // num_int_pts
+                    
+                    extracted_data = {'Time': col_rot_data[:, 0]}
+                    
+                    for i, ele_tag in enumerate(all_column_tags):
+                        start_idx = 1 + i * cols_per_ele
                         
-                if col_rot_data.ndim > 1 and col_rot_data.shape[1] == len(headers):
-                    df_col_rot = pd.DataFrame(col_rot_data, columns=headers).head(num_valid_steps)
-                    full_element_state_dfs['col_rot_df'] = df_col_rot 
+                        # IP 1 (First 3 columns of the element)
+                        extracted_data[f'Ele{ele_tag}_IP1_eps'] = col_rot_data[:, start_idx]
+                        extracted_data[f'Ele{ele_tag}_IP1_kz'] = col_rot_data[:, start_idx+1]
+                        extracted_data[f'Ele{ele_tag}_IP1_ky'] = col_rot_data[:, start_idx+2]
+                        
+                        # IP 5 (Last IP)
+                        # If comps_per_ip is 4, we need to calculate offset correctly
+                        ip5_start_idx = start_idx + (num_int_pts - 1) * comps_per_ip
+                        extracted_data[f'Ele{ele_tag}_IP5_eps'] = col_rot_data[:, ip5_start_idx]
+                        extracted_data[f'Ele{ele_tag}_IP5_kz'] = col_rot_data[:, ip5_start_idx+1]
+                        extracted_data[f'Ele{ele_tag}_IP5_ky'] = col_rot_data[:, ip5_start_idx+2]
+
+                    df_col_rot = pd.DataFrame(extracted_data).head(num_valid_steps)
+                    
+                    # [Fix] Remove trailing rows where all deformation values are exactly zero (dummy data)
+                    # Check non-Time columns
+                    def_cols = [c for c in df_col_rot.columns if 'Time' not in c]
+                    if def_cols:
+                        # Find the last index where any deformation is non-zero
+                        non_zero_idx = df_col_rot[def_cols].ne(0).any(axis=1)[::-1].idxmax()
+                        # If the last few rows are all zeros, truncate them, but keep at least 2 rows
+                        if non_zero_idx < len(df_col_rot) - 1:
+                             df_col_rot = df_col_rot.loc[:non_zero_idx]
+
+                    full_element_state_dfs['col_rot_df'] = df_col_rot
                 else:
-                    print(f"\n---! Warning: Column plastic rotation data column mismatch! Expected {len(headers)}, got {col_rot_data.shape[1]} !---")
+                    print(f"Warning: Column rotation data shape mismatch. Cols: {num_cols}, Elements: {num_eles}")
+
             except Exception as e: print(f"\n---! Warning: Error processing column plastic rotation data !--- \nError details: {e}")
         
         path_beam_rot = output_dir / f"{analysis_name}_all_beam_plastic_rotation_{direction}.out"
@@ -101,16 +141,47 @@ def process_pushover_results(params, model_nodes, dominant_mode, direction='X'):
             try:
                 beam_rot_data = np.loadtxt(path_beam_rot)
                 if beam_rot_data.ndim == 1: beam_rot_data = beam_rot_data.reshape(1, -1)
-                headers = ['Time']
-                for ele_tag in all_beam_tags:
-                    for ip in [1, params.get('num_int_pts', 5)]:
-                        headers.extend([f'Ele{ele_tag}_IP{ip}_ry', f'Ele{ele_tag}_IP{ip}_rz', f'Ele{ele_tag}_IP{ip}_rx'])
+                
+                num_cols = beam_rot_data.shape[1]
+                num_data_cols = num_cols - 1
+                num_eles = len(all_beam_tags)
+                
+                if num_eles > 0 and num_data_cols % num_eles == 0:
+                    cols_per_ele = num_data_cols // num_eles
+                    
+                    # [Fix] Determine components per IP
+                    num_int_pts = 5
+                    comps_per_ip = cols_per_ele // num_int_pts
+                    
+                    extracted_data = {'Time': beam_rot_data[:, 0]}
+                    
+                    for i, ele_tag in enumerate(all_beam_tags):
+                        start_idx = 1 + i * cols_per_ele
+                        
+                        # IP 1
+                        extracted_data[f'Ele{ele_tag}_IP1_eps'] = beam_rot_data[:, start_idx]
+                        extracted_data[f'Ele{ele_tag}_IP1_kz'] = beam_rot_data[:, start_idx+1]
+                        extracted_data[f'Ele{ele_tag}_IP1_ky'] = beam_rot_data[:, start_idx+2]
+                        
+                        # IP 5 (Last IP)
+                        ip5_start_idx = start_idx + (num_int_pts - 1) * comps_per_ip
+                        extracted_data[f'Ele{ele_tag}_IP5_eps'] = beam_rot_data[:, ip5_start_idx]
+                        extracted_data[f'Ele{ele_tag}_IP5_kz'] = beam_rot_data[:, ip5_start_idx+1]
+                        extracted_data[f'Ele{ele_tag}_IP5_ky'] = beam_rot_data[:, ip5_start_idx+2]
 
-                if beam_rot_data.ndim > 1 and beam_rot_data.shape[1] == len(headers):
-                    df_beam_rot = pd.DataFrame(beam_rot_data, columns=headers).head(num_valid_steps)
+                    df_beam_rot = pd.DataFrame(extracted_data).head(num_valid_steps)
+                    
+                    # [Fix] Remove trailing zero rows
+                    def_cols_b = [c for c in df_beam_rot.columns if 'Time' not in c]
+                    if def_cols_b:
+                        non_zero_idx_b = df_beam_rot[def_cols_b].ne(0).any(axis=1)[::-1].idxmax()
+                        if non_zero_idx_b < len(df_beam_rot) - 1:
+                             df_beam_rot = df_beam_rot.loc[:non_zero_idx_b]
+
                     full_element_state_dfs['beam_rot_df'] = df_beam_rot 
                 else:
-                    print(f"\n---! Warning: Beam plastic rotation data column mismatch! Expected {len(headers)}, got {beam_rot_data.shape[1]} !---")
+                    print(f"Warning: Beam rotation data shape mismatch. Cols: {num_cols}, Elements: {num_eles}")
+
             except Exception as e:
                 print(f"\n---! Warning: Error processing beam plastic rotation data !--- \nError details: {e}")
 
