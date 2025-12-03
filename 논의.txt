@@ -4,7 +4,7 @@ Warning: Could not import helper functions from generate_dataset.py. Using fallb
 --- [!] 단일 RC 모멘트 골조 해석 모드 활성화 (설계안 샘플링) ---
 
 --- Running X-direction analysis ---
-Model built successfully with 4x4 Bays (Grouped Members).
+Model built successfully with 3x3 Bays (Grouped Members).
 
 Plotting model geometry using Matplotlib for X-direction...
 Matplotlib 3D plot (with shells) saved to: results\Run_Single_RC_Moment_Frame_Sampled_X\Run_Single_RC_Moment_Frame_Sampled_X_model_3D_Matplotlib.png
@@ -25,13 +25,16 @@ Gravity analysis complete.
 Running Eigenvalue Analysis...
 ArpackSolver::Error with _saupd info = -9999
 Could not build an Arnoldi factorization.
-IPARAM(5) - the size of the current Arnoldi factorization is 12.       
+IPARAM(5) - the size of the current Arnoldi factorization is 9.        
 The user is advised to check that enough workspace and array storage have been allocated.
 WARNING StaticAnalysis::eigen() - EigenSOE failed in solve()
 WANRING failed to do eigen analysis
 Default eigenvalue analysis failed. Trying with 'fullGenLapack' solver...
 WARNING - the 'fullGenLapack' eigen solver is VERY SLOW. Consider using the default eigen solver.FullGenEigenSolver::solve() - the eigenvalue 
-13 is numerically undetermined or infinite
+10 is numerically undetermined or infinite
+FullGenEigenSolver::solve() - the eigenvalue 11 is numerically undetermined or infinite
+FullGenEigenSolver::solve() - the eigenvalue 12 is numerically undetermined or infinite
+FullGenEigenSolver::solve() - the eigenvalue 13 is numerically undetermined or infinite
 FullGenEigenSolver::solve() - the eigenvalue 14 is numerically undetermined or infinite
 FullGenEigenSolver::solve() - the eigenvalue 15 is numerically undetermined or infinite
 FullGenEigenSolver::solve() - the eigenvalue 16 is numerically undetermined or infinite
@@ -39,35 +42,33 @@ FullGenEigenSolver::solve() - the eigenvalue 17 is numerically undetermined or i
 FullGenEigenSolver::solve() - the eigenvalue 18 is numerically undetermined or infinite
 FullGenEigenSolver::solve() - the eigenvalue 19 is numerically undetermined or infinite
 FullGenEigenSolver::solve() - the eigenvalue 20 is numerically undetermined or infinite
-Cumulative Mass Participation Ratio X: 160.84%
+Cumulative Mass Participation Ratio X: 700.10%
 Cumulative Mass Participation Ratio Z: 100.00%
 
 --- 비선형 정적해석(Pushover) 적용 타당성 검증 시작 ---
-X-dir: 4 modes for 93.1% mass participation.
+X-dir: 4 modes for 93.8% mass participation.
 Z-dir: 5 modes for 94.1% mass participation.
 
-[X-Direction Verification (Dominant Mode: 1)]
+[X-Direction Verification (Dominant Mode: 15)]
 Story | V_multi (kN) | V_dominant (kN) | Ratio | Result
-  1   |    327.63    |     324.73      | 1.01  |   OK
-  2   |    300.54    |     300.02      | 1.00  |   OK
-  3   |    234.89    |     233.67      | 1.01  |   OK
-  4   |    134.24    |     129.32      | 1.04  |   OK
+  1   |    204.54    |      90.55      | 2.26  |   NG
+  2   |    177.43    |      50.77      | 3.50  |   NG
+  3   |    111.45    |      15.40      | 7.24  |   NG
 
 [Z-Direction Verification (Dominant Mode: 2)]
 Story | V_multi (kN) | V_dominant (kN) | Ratio | Result
-  1   |    333.56    |     331.39      | 1.01  |   OK
-  2   |    303.96    |     303.68      | 1.00  |   OK
-  3   |    235.58    |     234.39      | 1.01  |   OK
-  4   |    132.50    |     128.53      | 1.03  |   OK
+  1   |    206.11    |     204.11      | 1.01  |   OK
+  2   |    178.21    |     178.15      | 1.00  |   OK
+  3   |    111.19    |     108.56      | 1.02  |   OK
 Verification plot saved to: results\Run_Single_RC_Moment_Frame_Sampled_X\Run_Single_RC_Moment_Frame_Sampled_X_NSP_verification_plot_X.png     
 Verification plot saved to: results\Run_Single_RC_Moment_Frame_Sampled_X\Run_Single_RC_Moment_Frame_Sampled_X_NSP_verification_plot_Z.png     
 
 --- 타당성 검증 완료 ---
 
 Starting Pushover Analysis for direction: X...
-Dominant X-Mode Found: Mode 1 (MPR_X = 80.80%)
-Pushover Force Ratios (based on Mode 1): [np.float64(0.07611056671623045), np.float64(0.2043189976247909), np.float64(0.32132912995027046), np.float64(0.39824130570870814)]
-Running Pushover to 0.5600 m (1000 steps)...
+Dominant X-Mode Found: Mode 15 (MPR_X = 89.01%)
+Pushover Force Ratios (based on Mode 15): [np.float64(0.4393487950802088), np.float64(0.39053226229351895), np.float64(0.17011894262627225)]  
+Running Pushover to 0.4200 m (1000 steps)...
 Step 50/1000 complete.
 Step 100/1000 complete.
 Step 150/1000 complete.
@@ -92,23 +93,16 @@ Pushover analysis finished.
 
 Processing results for X-direction and exporting to CSV...
 Pushover curve data saved to: results\Run_Single_RC_Moment_Frame_Sampled_X\Run_Single_RC_Moment_Frame_Sampled_X_pushover_curve_X.csv
-[Debug] Column Rotation Data: Total Cols=2001, Data Cols=2000, Elements=100
+[Debug] Column Rotation Data: Total Cols=961, Data Cols=960, Elements=48
 [Debug] Columns per Element = 20.0
-[Debug] Column Max Curvatures - kz: 0.240011, ky: 0.000801779
-[Debug] Beam Max Curvatures - kz: 0.113538, ky: 1.4577e-15
 Modal properties saved to: results\Run_Single_RC_Moment_Frame_Sampled_X\modal_properties.json
 
 Creating pushover animation (4-panel) with plastic hinges and drift... 
-
-Animation saved successfully to: results\Run_Single_RC_Moment_Frame_Sampled_X\Run_Single_RC_Moment_Frame_Sampled_X_pushover_animation.mp4     
-Final static pushover plot saved to: results\Run_Single_RC_Moment_Frame_Sampled_X\Run_Single_RC_Moment_Frame_Sampled_X_pushover_final_plot.pngPlotting animation hinges for Z-Line 0 (Z = 0.0m)...
-Frame 199: Detected Hinges - IO: 0, LS: 0, CP: 0
-
-x방향 출력로그인데 여기까지는 소성힌지가 잘 표현돼. 현재 채팅 위 아래로 왜 두번 같은 명령 즉, 그림과 애니메이션 2번 저장하는거야?
-
-Animation saved successfully to: results\Run_Single_RC_Moment_Frame_Sampled_X\Run_Single_RC_Moment_Frame_Sampled_X_pushover_animation.mp4     
-Frame 199: Detected Hinges - IO: 0, LS: 0, CP: 0
-Final static pushover plot saved to: results\Run_Single_RC_Moment_Frame_Sampled_X\Run_Single_RC_Moment_Frame_Sampled_X_pushover_final_plot.png
-단일 해석 및 후처리 완료.
-
-
+Traceback (most recent call last):
+  File "c:\SCI_GNN_pushover\GNN_Project\scripts\run_single_analysis.py", line 181, in <module>
+    main(params_for_run, direction=direction)
+  File "c:\SCI_GNN_pushover\GNN_Project\scripts\run_single_analysis.py", line 157, in main
+    animate_and_plot_pushover(df_curve, df_disp, perf_points, params, model_nodes_info, final_states_dfs, None, direction)
+  File "c:\SCI_GNN_pushover\GNN_Project\src\visualization\animate_results.py", line 259, in animate_and_plot_pushover
+    anim = animation.FuncAnimation(fig, animate, init_func=init, frames=num_frames, interval=50, blit=False)
+NameError: name 'init' is not defined. Did you mean: 'int'?
