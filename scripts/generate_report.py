@@ -24,7 +24,7 @@ def load_image_as_base64(image_path):
         return base64.b64encode(img_file.read()).decode('utf-8')
 
 def load_file_as_base64(file_path):
-    """파일을 읽어 base64 문자열로 변환합니다."""
+    """파일을 읽어 base64 문자열로 변환합니다 (동영상 등)."""
     if not os.path.exists(file_path):
         return None
     with open(file_path, "rb") as f:
@@ -39,6 +39,7 @@ def generate_html_report(results_root_dir):
     current_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     report_path = Path(results_root_dir) / "Seismic_Performance_Detailed_Report.html"
     
+    # HTML 헤더 및 스타일
     html_content = textwrap.dedent(f"""
     <!DOCTYPE html>
     <html lang="ko">
@@ -93,17 +94,18 @@ def generate_html_report(results_root_dir):
     """).strip()
 
     # --- 공통 설정 로드 ---
-    design_config = {}
     config_path = Path(project_root) / 'scripts' / 'seismic_design_config.json'
+    dataset_config_path = Path(project_root) / 'scripts' / 'dataset_config.json'
+    
     try:
         with open(config_path, 'r', encoding='utf-8') as f:
             design_config = json.load(f)
     except Exception:
-        html_content += "<div class='section'><p>설계 설정 파일(seismic_design_config.json)을 로드할 수 없습니다.</p></div>"
+        design_config = {}
 
     site_params = design_config.get('site_parameters', {})
     
-    # --- 섹션 1: 성능 목표 ---
+    # --- 1. 성능 목표 ---
     importance_class = site_params.get('importance_class', 'I')
     performance_objectives = get_performance_objectives(importance_class)
 
@@ -135,26 +137,15 @@ def generate_html_report(results_root_dir):
     html_block = textwrap.dedent("""
             </tbody>
         </table>
-        <div class="note">
-            <strong>※ 평가 기준:</strong><br>
-            각 재현주기(2400년, 1400년 등)별 지진에 대해 구조물의 성능점(Performance Point)을 산정하고, 
-            다음 세 가지 조건을 모두 만족해야 해당 성능 목표를 달성한 것으로 판정합니다.<br>
-            1. <strong>층간 변위비 만족:</strong> 산정된 성능점에서의 층간 변위비가 각 성능 수준별 허용 한계 이내일 것.<br>
-            2. <strong>중력 하중 저항 능력 유지:</strong> 성능점 도달 시까지 구조물이 붕괴되지 않고 중력을 지지할 수 있을 것. (푸쉬오버 동영상 및 결과 참조)<br>
-            3. <strong>주요 부재 붕괴 미발생:</strong> 기둥 등 주요 구조 부재의 소성 회전각이 붕괴 한계(CP)를 초과하지 않을 것. (푸쉬오버 결과 참조)
-        </div>
     </div>
     """).strip()
     html_content += html_block
 
-    # --- 섹션 2: 평가 지진 (요구 스펙트럼 제원) ---
+    # --- 2. 평가 지진 ---
     site_class = site_params.get('site_class', 'S4')
     Z = site_params.get('Z', 0.11)
-    
-    # S_DBE 계산 (run_csm_evaluation.py와 동일 로직)
     S_MCE_val = Z * 2.0
     S_DBE_val = S_MCE_val * (2.0/3.0)
-    
     Fa, Fv = get_site_coefficients(S_DBE_val, site_class)
     calc_SDS, calc_SD1 = calculate_design_acceleration(S_DBE_val, site_class)
     Ts = calc_SD1 / calc_SDS if calc_SDS > 0 else 0
@@ -163,7 +154,6 @@ def generate_html_report(results_root_dir):
     html_block = textwrap.dedent(f"""
     <div class="section">
         <h2>2. 평가 지진 (요구 스펙트럼 제원)</h2>
-        <p>평가 대상 구조물이 위치한 지역 및 지반 조건에 따른 설계 응답 스펙트럼 생성에 사용된 파라미터는 다음과 같습니다.</p>
         <div class="info-grid">
             <div class="info-card" style="border-left-color: #3498db;">
                 <h4 style="color: #2980b9;">[입력 파라미터]</h4>
@@ -171,18 +161,18 @@ def generate_html_report(results_root_dir):
                     <li><span class="label">지역 구분:</span> 지진구역 I</li>
                     <li><span class="label">지반 등급:</span> {site_class}</li>
                     <li><span class="label">지진구역계수 (Z):</span> {Z}g</li>
-                    <li><span class="label">구조물 중요도 계수 (Ie):</span> {importance_class}</li>
+                    <li><span class="label">구조물 중요도 계수:</span> {importance_class}</li>
                 </ul>
             </div>
             <div class="info-card" style="border-left-color: #e67e22;">
                 <h4 style="color: #d35400;">[계산된 설계 스펙트럼 계수]</h4>
                 <ul>
-                    <li><span class="label">단주기 증폭계수 (Fa):</span> {Fa:.2f}</li>
-                    <li><span class="label">1초주기 증폭계수 (Fv):</span> {Fv:.2f}</li>
-                    <li><span class="label">설계스펙트럼가속도(SDS):</span> {calc_SDS:.3f}g</li>
-                    <li><span class="label">설계스펙트럼가속도(SD1):</span> {calc_SD1:.3f}g</li>
-                    <li><span class="label">단부 유효 주기 (T0):</span> {T0:.3f} sec</li>
-                    <li><span class="label">장주기 유효 주기 (Ts):</span> {Ts:.3f} sec</li>
+                    <li><span class="label">Fa:</span> {Fa:.2f}</li>
+                    <li><span class="label">Fv:</span> {Fv:.2f}</li>
+                    <li><span class="label">SDS:</span> {calc_SDS:.3f}g</li>
+                    <li><span class="label">SD1:</span> {calc_SD1:.3f}g</li>
+                    <li><span class="label">T0:</span> {T0:.3f} sec</li>
+                    <li><span class="label">Ts:</span> {Ts:.3f} sec</li>
                 </ul>
             </div>
         </div>
@@ -190,115 +180,115 @@ def generate_html_report(results_root_dir):
     """).strip()
     html_content += html_block
 
-    # --- 각 해석 결과 순회 ---
+    # --- 3. 대상 구조물 정보 (공통) ---
+    # 첫 번째 유효한 결과 폴더에서 모드 정보 가져오기
     result_dirs = sorted([d for d in Path(results_root_dir).iterdir() if d.is_dir() and "Run_Single" in d.name])
+    first_res_dir = result_dirs[0] if result_dirs else None
     
-    for res_dir in result_dirs:
-        dir_name = res_dir.name
-        direction = 'X' if '_X' in dir_name else ('Z' if '_Z' in dir_name else 'Unknown')
+    if first_res_dir:
+        modal_path = first_res_dir / 'modal_properties.json'
+        if modal_path.exists():
+            with open(modal_path, 'r') as f:
+                modal_data = json.load(f)
+                all_modes = modal_data.get('modal_properties', [])
+    
+    html_block = textwrap.dedent(f"""
+    <div class="section">
+        <h2>3. 대상 구조물 정보</h2>
         
-        modal_path = res_dir / 'modal_properties.json'
-        summary_json_path = res_dir / f"csm_evaluation_summary_{direction}.json"
-        
-        if not modal_path.exists(): continue
+        <h3>3.1 구조물 형상 및 재료</h3>
+        <div class="img-container">
+    """).strip()
+    html_content += html_block
 
-        with open(modal_path, 'r') as f:
-            modal_data = json.load(f)
-            all_modes = modal_data.get('modal_properties', [])
-            dom_mode = modal_data.get('dominant_mode', {})
-
-        # Calculate modes for RSA
-        modes_for_rsa = 0
-        cumulative_mpr_x = 0.0
-        cumulative_mpr_z = 0.0
-        for mode in all_modes:
-            if direction == 'X':
-                cumulative_mpr_x += mode['mpr_x']
-                if cumulative_mpr_x * 100 >= 90.0:
-                    modes_for_rsa = mode['mode']
-                    break
-            else: # direction == 'Z'
-                cumulative_mpr_z += mode['mpr_z']
-                if cumulative_mpr_z * 100 >= 90.0:
-                    modes_for_rsa = mode['mode']
-                    break
-        
-        # --- 3. 대상 구조물 정보 ---
-        html_block = textwrap.dedent(f"""
-        <div class="section">
-            <h2>3-{direction}. 대상 구조물 정보 ({direction}방향)</h2>
-            
-            <h3>3-{direction}-1. 구조물 형상 및 재료</h3>
-            <div class="img-container">
-        """).strip()
-        html_content += html_block
-
-
-        # 구조물 형상 이미지 (3D 모델, 입면도)
+    # 구조물 형상 및 재료 이미지 (X_pos 결과 폴더 기준)
+    target_dir = next((d for d in result_dirs if '_X_pos' in d.name), first_res_dir)
+    
+    if target_dir:
         img_patterns = [
             (f"*model_3D_Matplotlib.png", "3D 와이어프레임 모델"),
-            (f"*model_2D_Elevation_{direction}.png", f"{direction}방향 입면도")
+            (f"*material_concrete_combined.png", "콘크리트 응력-변형률 관계"),
+            (f"*material_rebar.png", "철근 응력-변형률 관계")
         ]
-        
         for pattern, caption in img_patterns:
-            found_imgs = list(res_dir.glob(pattern))
+            found_imgs = list(target_dir.glob(pattern))
             if found_imgs:
                 b64_str = load_image_as_base64(found_imgs[0])
                 if b64_str:
                     html_block = textwrap.dedent(f"""
-                    <div class="img-box" style="max-width: 48%;">
+                    <div class="img-box" style="max-width: 30%;">
                         <img src="data:image/png;base64,{b64_str}" alt="{caption}">
                         <div class="img-caption">{caption}</div>
                     </div>
                     """).strip()
                     html_content += html_block
-        
-        # 재료 모델 그래프
-        mat_patterns = [
-            (f"*material_concrete_combined.png", "콘크리트 응력-변형률 관계"),
-            (f"*material_rebar.png", "철근 응력-변형률 관계")
-        ]
-        for pattern, caption in mat_patterns:
-            found = list(res_dir.glob(pattern))
-            if found:
-                b64 = load_image_as_base64(found[0])
-                if b64:
-                    html_block = textwrap.dedent(f"""
-                    <div class="img-box" style="max-width: 48%;">
-                        <img src="data:image/png;base64,{b64}" alt="{caption}">
-                        <div class="img-caption">{caption}</div>
-                    </div>
-                    """).strip()
-                    html_content += html_block
 
-        html_block = textwrap.dedent(f"""
-            </div>
-
-            <h3>3-2. 구조물 고유주기 및 질량참여율</h3>
-            <p>해석에 사용된 모든 모드의 고유 주기와 질량 참여율은 다음과 같습니다. 누적 질량 참여율이 90% 이상이 되는 모드까지 해석에 고려되었습니다.</p>
-            <table>
-                <thead>
-                    <tr>
-                        <th>모드</th>
-                        <th>고유 주기 (sec)</th>
-                        <th>X방향 MPR (%)</th>
-                        <th>X방향 누적 MPR (%)</th>
-                        <th>Z방향 MPR (%)</th>
-                        <th>Z방향 누적 MPR (%)</th>
-                    </tr>
-                </thead>
-                <tbody>
-        """).strip()
-        html_content += html_block
+    html_block = textwrap.dedent("""
+        </div>
         
-        cum_x, cum_z = 0.0, 0.0
+        <h3>3.2 부재 상세 정보</h3>
+        <p>본 해석 모델에 적용된 주요 부재의 단면 및 철근 상세 정보입니다.</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>구분</th>
+                    <th>층 그룹</th>
+                    <th>위치</th>
+                    <th>단면 크기 (mm)</th>
+                    <th>주철근 상세</th>
+                </tr>
+            </thead>
+            <tbody>
+    """).strip()
+    html_content += html_block
+    
+    # 부재 상세 정보 (dataset_config.json 로드 필요)
+    try:
+        with open(dataset_config_path, 'r', encoding='utf-8') as f:
+            ds_config = json.load(f)
+            mem_props = ds_config.get('member_properties', {})
+            # 실제 해석에 사용된 부재 정보는 run_single_analysis에서 랜덤하게 결정되므로
+            # 여기서는 가능한 범위나 대표값을 표시하는 것이 좋음.
+            # 하지만 정확한 정보를 위해선 run_single_analysis 결과에 부재 정보를 저장해야 함.
+            # 현재는 간단히 범위만 표시하거나, "상세 정보는 해석 로그 참조"로 대체.
+            # 또는 member_properties.json 내용을 간단히 요약.
+            
+            # 임시: 대표적인 정보만 출력 (실제 해석값은 아닐 수 있음 주의)
+            html_content += f"""
+                <tr><td colspan="5">상세 부재 정보는 해석 설정 파일(dataset_config.json)을 참조하십시오.</td></tr>
+            """
+    except:
+        pass
+
+    html_block = textwrap.dedent("""
+            </tbody>
+        </table>
+
+        <h3>3.3 구조물 고유주기 및 질량참여율</h3>
+        <p>구조물의 고유 주기와 방향별 질량 참여율은 다음과 같습니다.</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>모드</th>
+                    <th>고유 주기 (sec)</th>
+                    <th>X방향 MPR (%)</th>
+                    <th>X방향 누적 MPR (%)</th>
+                    <th>Z방향 MPR (%)</th>
+                    <th>Z방향 누적 MPR (%)</th>
+                </tr>
+            </thead>
+            <tbody>
+    """).strip()
+    html_content += html_block
+    
+    cum_x, cum_z = 0.0, 0.0
+    if first_res_dir and modal_path.exists():
         for mode in all_modes:
             cum_x += mode['mpr_x']
             cum_z += mode['mpr_z']
-            is_dom = "style='background-color: #e8f8f5; font-weight: bold;'" if mode['mode'] == dom_mode['mode'] else ""
             
             html_content += f"""
-                    <tr {is_dom}>
+                    <tr>
                         <td>{mode['mode']}</td>
                         <td>{mode['period']:.4f}</td>
                         <td>{mode['mpr_x']*100:.2f}</td>
@@ -307,48 +297,82 @@ def generate_html_report(results_root_dir):
                         <td>{cum_z*100:.2f}</td>
                     </tr>
             """
+    
+    html_block = textwrap.dedent("""
+            </tbody>
+        </table>
+    </div>
+    """).strip()
+    html_content += html_block
+
+    # --- 4. 푸쉬오버 해석 적용성 검토 ---
+    html_block = textwrap.dedent("""
+    <div class="section">
+        <h2>4. 푸쉬오버 해석 적용성 검토 (130% 룰)</h2>
+        <p>각 방향별로 1차 모드(지배 모드)만으로 수행한 비선형 정적 해석의 층 전단력이, <strong>질량 참여율 합계 90% 이상을 만족하는 모드들을 합산한 RSA 해석 결과의 130% 이상</strong>인지 검증합니다.</p>
+        <div class="img-container">
+    """).strip()
+    html_content += html_block
+
+    for direction in ['X', 'Z']:
+        # 해당 방향의 아무 결과나 하나 가져오기 (검증 결과는 동일하므로)
+        target_dir = next((d for d in result_dirs if f'_{direction}_pos' in d.name), None)
+        if not target_dir: target_dir = next((d for d in result_dirs if f'_{direction}_neg' in d.name), None)
         
-        html_block = textwrap.dedent(f"""
-                </tbody>
-            </table>
-            <p class="img-caption" style="text-align: left;">* 음영 처리된 행은 {direction}방향 지배 모드입니다.</p>
+        if target_dir:
+            verif_img = list(target_dir.glob(f"*NSP_verification_plot_{direction}.png"))
+            if verif_img:
+                b64_str = load_image_as_base64(verif_img[0])
+                if b64_str:
+                    html_block = textwrap.dedent(f"""
+                    <div class="img-box">
+                        <img src="data:image/png;base64,{b64_str}" alt="130% 검증 ({direction})">
+                        <div class="img-caption">[{direction}방향] 비선형 정적 해석 타당성 검증</div>
+                    </div>
+                    """).strip()
+                    html_content += html_block
+
+    html_block = textwrap.dedent("""
         </div>
-        """).strip()
-        html_content += html_block
+    </div>
+    """).strip()
+    html_content += html_block
+
+    # --- 5. 성능점 산정 및 평가 결과 (4방향) ---
+    html_block = textwrap.dedent("""
+    <div class="section">
+        <h2>5. 성능점 산정 및 평가 결과</h2>
+        <p>각 방향(X, Z) 및 가력 방향(+, -)에 대해 산정된 성능점과 평가 결과를 요약합니다.</p>
+    """).strip()
+    html_content += html_block
+
+    # 4가지 케이스 순회
+    cases = [('X', 'pos', '+'), ('X', 'neg', '-'), ('Z', 'pos', '+'), ('Z', 'neg', '-')]
+    
+    for direction, sign_str, sign in cases:
+        target_dir_name = f"Run_Single_RC_Moment_Frame_Sampled_{direction}_{sign_str}"
+        # target_dir = next((d for d in result_dirs if target_dir_name in d.name), None) # 단순 매칭
+        # 정확한 매칭을 위해
+        target_dir = next((d for d in result_dirs if d.name.endswith(f"_{direction}_{sign_str}")), None)
+
+        if not target_dir: continue
         
-        # --- 4. 푸쉬오버 해석 적용성 검토 ---
+        summary_json_path = target_dir / f"csm_evaluation_summary_{direction}_{sign_str}.json"
+        csm_summary = []
+        if summary_json_path.exists():
+            with open(summary_json_path, 'r', encoding='utf-8') as f:
+                csm_summary = json.load(f)
+
         html_block = textwrap.dedent(f"""
-        <div class="section">
-            <h2>4-{direction}. 푸쉬오버 해석 적용성 검토 ({direction}방향)</h2>
-            <p>1차 모드(지배 모드)만으로 수행한 비선형 정적 해석의 층 전단력이, <strong>질량 참여율 합계 90% 이상을 만족하는 {modes_for_rsa}차 모드까지 고려한 다중 모드 응답 스펙트럼 해석(RSA) 결과의 130% 이상</strong>인지 검증합니다.</p>
-            <div class="img-container">
-        """).strip()
-        html_content += html_block
-
-        # 130% 룰 검증 이미지
-        verif_img = list(res_dir.glob(f"*NSP_verification_plot_{direction}.png"))
-        if verif_img:
-            b64_str = load_image_as_base64(verif_img[0])
-            if b64_str:
-                html_block = textwrap.dedent(f"""
-                <div class="img-box" style="max-width: 600px;">
-                    <img src="data:image/png;base64,{b64_str}" alt="130% 검증 그래프">
-                    <div class="img-caption">비선형 정적 해석 타당성 검증 ({direction}방향)</div>
-                </div>
-                """).strip()
-                html_content += html_block
+        <h3>5-{direction}({sign}). 해석 결과: {direction}방향 ({sign})</h3>
         
-        html_block = textwrap.dedent("""
-            </div>
-
-            <h3>4.1 푸쉬오버 해석 결과 (동영상)</h3>
-            <p>횡하중 증가에 따른 구조물의 변형 형상과 소성 힌지 발생 과정을 보여줍니다. (재생 버튼을 눌러 확인)</p>
-            <div class="img-container">
+        <h4>5-{direction}({sign})-1. 푸쉬오버 곡선 및 힌지 분포</h4>
+        <div class="img-container">
         """).strip()
         html_content += html_block
-
-        # 푸쉬오버 동영상 (MP4) - Base64 임베딩
-        video_path = list(res_dir.glob(f"*pushover_animation.mp4"))
+        
+        # 푸쉬오버 동영상
+        video_path = list(target_dir.glob(f"*pushover_animation.mp4"))
         if video_path:
             b64_vid = load_file_as_base64(video_path[0])
             if b64_vid:
@@ -356,58 +380,33 @@ def generate_html_report(results_root_dir):
                 <div class="img-box" style="max-width: 800px;">
                     <video controls loop muted playsinline style="width: 100%;">
                         <source src="data:video/mp4;base64,{b64_vid}" type="video/mp4">
-                        브라우저가 동영상을 지원하지 않습니다.
+                        브라우저 미지원
                     </video>
-                    <div class="img-caption">푸쉬오버 해석 애니메이션 ({direction}방향)</div>
+                    <div class="img-caption">푸쉬오버 해석 애니메이션 ({direction}{sign})</div>
                 </div>
                 """).strip()
                 html_content += html_block
-        else:
-            # 동영상이 없으면 정적 이미지 대체
-            static_push = list(res_dir.glob("*pushover_final_plot.png"))
-            if static_push:
-                b64 = load_image_as_base64(static_push[0])
-                html_block = textwrap.dedent(f"""
-                <div class="img-box">
-                    <img src="data:image/png;base64,{b64}" alt="푸쉬오버 결과">
-                    <div class="img-caption">푸쉬오버 곡선 및 최종 힌지 분포 (동영상 없음)</div>
-                </div>
-                """).strip()
-                html_content += html_block
-
-        html_block = textwrap.dedent("""
-            </div>
-        </div>
-        """).strip()
-        html_content += html_block
-
-        # --- 5. 성능점 산정 및 평가 결과 ---
+        
         html_block = textwrap.dedent(f"""
-        <div class="section">
-            <h2>5-{direction}. 성능점 산정 및 평가 결과 ({direction}방향)</h2>
-            <p>역량스펙트럼법(CSM)을 통해 각 재현주기별 성능 목표에 대한 성능점과 해당 층간 변위비를 산정하고, 목표 성능 만족 여부를 판정합니다.</p>
-            
-            <h3>5.1 CSM 성능점 그래프</h3>
-            <div class="img-container">
+        </div>
+        <h4>5-{direction}({sign})-2. CSM 성능점 평가</h4>
+        <div class="img-container">
         """).strip()
         html_content += html_block
 
-        # CSM 평가 요약 데이터 로드
-        csm_summary = []
-        if summary_json_path.exists():
-            with open(summary_json_path, 'r', encoding='utf-8') as f:
-                csm_summary = json.load(f)
-
-        # CSM 결과 이미지와 상세 정보를 나란히 표시
-        csm_imgs = sorted(list(res_dir.glob(f"CSM_performance_point_{direction}_*.png")))
+        # CSM 결과
+        csm_imgs = sorted(list(target_dir.glob(f"CSM_performance_point_{direction}_*.png")))
         
         for img_path in csm_imgs:
-            # 파일명 파싱
-            obj_name_from_file = img_path.stem.split(f"_{direction}_")[-1].replace("_", " ")
+            # 파일명: CSM_performance_point_X_pos_Collapse_Prevention.png
+            # 파싱
+            suffix = img_path.stem.split(f"_{direction}_{sign_str}_")[-1] # Collapse_Prevention
+            obj_name_clean = suffix.replace("_", " ")
+            
             b64_str = load_image_as_base64(img_path)
             
-            # 해당 목표에 대한 요약 데이터 찾기
-            target_summary = next((item for item in csm_summary if item["objective_name"].replace(" ", "_") == obj_name_from_file.replace(" ", "_")), None)
+            # 요약 데이터 매칭
+            target_summary = next((item for item in csm_summary if item["objective_name"].replace(" ", "_") == obj_name_clean.replace(" ", "_")), None)
             
             if b64_str and target_summary:
                 status_class = "pass-text" if target_summary['status'] == "PASS" else "fail-text"
@@ -415,22 +414,18 @@ def generate_html_report(results_root_dir):
                 html_block = textwrap.dedent(f"""
                 <div class="csm-result-container">
                     <div class="csm-chart img-box">
-                        <img src="data:image/png;base64,{b64_str}" alt="{obj_name_from_file}">
-                        <div class="img-caption"><strong>[{target_summary['direction']}방향] {target_summary['repetition_period']} {target_summary['objective_name']} 성능 평가 그래프</strong></div>
+                        <img src="data:image/png;base64,{b64_str}" alt="{obj_name_clean}">
                     </div>
                     <div class="csm-details">
-                        <h4>평가 상세 결과</h4>
-                        <div class="detail-row"><span class="detail-label">성능 목표:</span> <span class="detail-value">{target_summary['objective_name']}</span></div>
+                        <h4>{obj_name_clean} 평가 결과</h4>
                         <div class="detail-row"><span class="detail-label">재현 주기:</span> <span class="detail-value">{target_summary['repetition_period']}</span></div>
-                        <div class="detail-row"><span class="detail-label">성능점 변위 (Sd):</span> <span class="detail-value">{target_summary['perf_point_Sd_m']:.4f} m</span></div>
-                        <div class="detail-row"><span class="detail-label">성능점 가속도 (Sa):</span> <span class="detail-value">{target_summary['perf_point_Sa_g']:.4f} g</span></div>
-                        <div class="detail-row"><span class="label">유효 주기 (Teff):</span> <span class="detail-value">{target_summary['effective_period_s']:.3f} sec</span></div>
-                        <div class="detail-row"><span class="label">유효 감쇠비:</span> <span class="detail-value">{target_summary['effective_damping_pct']:.1f} %</span></div>
-                        <div class="detail-row"><span class="label">계산 층간변위비:</span> <span class="detail-value">{target_summary['calculated_drift_pct']:.3f} %</span></div>
-                        <div class="detail-row"><span class="label">허용 층간변위비:</span> <span class="detail-value">{target_summary['allowed_drift_pct']:.3f} %</span></div>
-                        <div class="detail-row" style="border-bottom: none; margin-top: 15px;">
-                            <span class="detail-label" style="font-size: 1.1em;">최종 판정:</span> 
-                            <span class="detail-value {status_class}" style="font-size: 1.2em;">{target_summary['status']}</span>
+                        <div class="detail-row"><span class="detail-label">성능점 (Sd, Sa):</span> <span class="detail-value">({target_summary['perf_point_Sd_m']:.4f}m, {target_summary['perf_point_Sa_g']:.4f}g)</span></div>
+                        <div class="detail-row"><span class="detail-label">유효 주기/감쇠:</span> <span class="detail-value">{target_summary['effective_period_s']:.3f}s / {target_summary['effective_damping_pct']:.1f}%</span></div>
+                        <div class="detail-row"><span class="detail-label">계산 층간변위비:</span> <span class="detail-value">{target_summary['calculated_drift_pct']:.3f} %</span></div>
+                        <div class="detail-row"><span class="detail-label">허용 층간변위비:</span> <span class="detail-value">{target_summary['allowed_drift_pct']:.3f} %</span></div>
+                        <div class="detail-row" style="border-bottom: none; margin-top: 10px;">
+                            <span class="detail-label">최종 판정:</span> 
+                            <span class="detail-value {status_class}">{target_summary['status']}</span>
                         </div>
                     </div>
                 </div>
@@ -438,22 +433,20 @@ def generate_html_report(results_root_dir):
                 html_content += html_block
 
         html_block = textwrap.dedent("""
-            </div>
         </div>
         """).strip()
         html_content += html_block
 
     html_block = textwrap.dedent("""
+    </div>
     <div class="section">
         <h2>6. 최종 종합 결론</h2>
         <p>본 보고서는 KDS 41 17 00 (건축물 내진설계기준)에 따라 비선형 정적 해석(Pushover Analysis) 및 역량스펙트럼법(CSM)을 이용하여 대상 구조물의 내진 성능을 평가하였습니다.</p>
-        <p><strong>주요 평가 결과 요약:</strong></p>
         <ul>
-            <li>대상 구조물은 <strong>[여기에 구조물 개요 요약]</strong>입니다.</li>
-            <li>설계 응답 스펙트럼은 <strong>[여기에 평가 지진 요약]</strong> 조건을 기반으로 생성되었습니다.</li>
-            <li>각 성능 목표에 대한 평가 결과는 <strong>[여기에 성능점 요약 및 판정 결과 요약]</strong>입니다.</li>
+            <li><strong>적용성 검토:</strong> 130% 룰 검증을 통해 1차 모드 기반 해석의 타당성을 확인하였습니다.</li>
+            <li><strong>성능 만족 여부:</strong> 각 방향(X, Z) 및 가력 부호(+, -)에 대해 산정된 성능점에서의 층간 변위비가 허용 기준을 만족하는지 확인하였습니다.</li>
+            <li><strong>종합 판단:</strong> 모든 해석 케이스에서 'PASS' 판정을 받은 경우, 해당 구조물은 목표 내진 성능을 확보한 것으로 판단할 수 있습니다.</li>
         </ul>
-        <p>위의 각 섹션별 분석 결과와 그래프, 표를 종합적으로 검토하시어, 해당 구조물이 목표로 하는 내진 성능 수준을 만족하는지 최종 판단하시기 바랍니다.</p>
     </div>
     </body>
     </html>

@@ -47,11 +47,37 @@ def run_evaluation(results_dir: Path, config: dict):
     """
     print(f"\n{'='*60}")
     print(f"Processing Directory: {results_dir.name}")
-    print(f"{'='*60}")
+    print(f"{ '='*60}")
+
+    # 디렉토리 이름에서 방향과 부호 추론 (예: Run_Single_..._X_pos)
+    dir_name = results_dir.name
+    if '_X_pos' in dir_name:
+        direction, sign, sign_str = 'X', '+', 'pos'
+    elif '_X_neg' in dir_name:
+        direction, sign, sign_str = 'X', '-', 'neg'
+    elif '_Z_pos' in dir_name:
+        direction, sign, sign_str = 'Z', '+', 'pos'
+    elif '_Z_neg' in dir_name:
+        direction, sign, sign_str = 'Z', '-', 'neg'
+    else:
+        # 이전 버전 호환성 (X, Z만 있는 경우)
+        if '_X' in dir_name: direction, sign, sign_str = 'X', '+', 'pos'
+        elif '_Z' in dir_name: direction, sign, sign_str = 'Z', '+', 'pos'
+        else:
+            print(f"Skipping directory {dir_name}: Unknown direction/sign format")
+            return
 
     # 1. 데이터 파일 경로 찾기
-    direction = 'X' if '_X' in results_dir.name else 'Z'
-    pushover_csv_path = next(results_dir.glob(f'*_pushover_curve_{direction}.csv'), None)
+    # run_single_analysis.py에서 파일명에 direction만 붙였는지, _pos/_neg까지 붙였는지 확인 필요
+    # 현재 run_single_analysis.py는 params['analysis_name']에 _X_pos 등을 붙이므로 파일명에도 반영됨
+    
+    # 파일명 패턴: *pushover_curve_{direction}.csv 또는 *pushover_curve_{direction}_{sign_str}.csv
+    # run_single_analysis.py의 process_pushover_results에서 저장할 때 
+    # f"{analysis_name}_pushover_curve_{direction}.csv" 로 저장함.
+    # analysis_name 자체가 "Run_Single_..._X_pos" 이므로
+    # 최종 파일명은 "Run_Single_..._X_pos_pushover_curve_X.csv" 형태가 됨.
+    
+    pushover_csv_path = next(results_dir.glob(f'*pushover_curve_{direction}.csv'), None)
     modal_json_path = results_dir / 'modal_properties.json'
 
     if not pushover_csv_path or not pushover_csv_path.exists():
@@ -73,7 +99,7 @@ def run_evaluation(results_dir: Path, config: dict):
             'm_eff_t1': dominant_mode[f'M_star_{direction.lower()}'],
             'phi_roof': dominant_mode[f'phi_{direction.lower()}'][-1]
         }
-        print("Data loaded successfully.")
+        print(f"Data loaded successfully. (Direction: {direction}, Sign: {sign})")
     except Exception as e:
         print(f"Error reading data: {e}")
         return
@@ -120,8 +146,8 @@ def run_evaluation(results_dir: Path, config: dict):
             'site_class': site_class,
             'objective_name': obj['name'],
             'target_drift_ratio': obj['target_drift_ratio_limit'],
-            'repetition_period': obj['repetition_period'], # 추가
-            'description': obj['description'], # 추가
+            'repetition_period': obj['repetition_period'],
+            'description': obj['description'],
             'method': method
         }
         
@@ -147,18 +173,19 @@ def run_evaluation(results_dir: Path, config: dict):
     for res in results:
         obj_name = res['objective_name']
         pp = res['performance_point']
-        design_params = next(dp for dp in design_params_list if dp['objective_name'] == obj_name) # 해당 목표의 원본 파라미터 찾기
+        design_params = next(dp for dp in design_params_list if dp['objective_name'] == obj_name)
         
         # 변위 계산
         roof_disp_actual = pp['Sd'] * csm_modal_props['pf1'] * csm_modal_props['phi_roof']
         drift_ratio = (abs(roof_disp_actual) / total_height) * 100 # % 단위
         
-        status = "PASS" if drift_ratio <= (design_params['target_drift_ratio'] * 100) else "FAIL" # 타겟 변위는 %로 저장되어있으므로 100곱함
+        status = "PASS" if drift_ratio <= (design_params['target_drift_ratio'] * 100) else "FAIL"
         
         summary_results.append({
             "objective_name": obj_name,
             "repetition_period": design_params['repetition_period'],
             "direction": direction,
+            "sign": sign, # 부호 정보 추가
             "perf_point_Sd_m": float(f"{pp['Sd']:.4f}"),
             "perf_point_Sa_g": float(f"{pp['Sa']:.4f}"),
             "effective_period_s": float(f"{pp['T_eff']:.3f}"),
@@ -166,11 +193,11 @@ def run_evaluation(results_dir: Path, config: dict):
             "calculated_drift_pct": float(f"{drift_ratio:.3f}"),
             "allowed_drift_pct": float(f"{design_params['target_drift_ratio']*100:.3f}"),
             "status": status,
-            "description": design_params['description'] # 성능 목표 설명 추가
+            "description": design_params['description']
         })
 
-    # Summary 결과를 JSON 파일로 저장
-    summary_json_path = results_dir / f"csm_evaluation_summary_{direction}.json"
+    # Summary 결과를 JSON 파일로 저장 (부호 포함 파일명)
+    summary_json_path = results_dir / f"csm_evaluation_summary_{direction}_{sign_str}.json"
     with open(summary_json_path, 'w', encoding='utf-8') as f:
         json.dump(convert_numpy_to_native(summary_results), f, indent=4, ensure_ascii=False)
     print(f"CSM evaluation summary saved to: {summary_json_path}")
@@ -180,21 +207,22 @@ def run_evaluation(results_dir: Path, config: dict):
     
     print(f"\n[{'[Evaluation Results]':^70}]")
     print(f"{'-'*70}")
-    print(f"{'Objective':<30} | {'Sa(g)':<7} | {'Sd(m)':<8} | {'Drift(%)':<8} | {'Limit(%)':<8} | {'Result':<8}")
+    print(f"{ 'Objective':<30} | {'Sa(g)':<7} | {'Sd(m)':<8} | {'Drift(%)':<8} | {'Limit(%)':<8} | {'Result':<8}")
     print(f"{'-'*70}")
 
-    for i, res in enumerate(results): # res는 calculate_performance_point_csm의 반환값
+    for i, res in enumerate(results): 
         obj_name = res['objective_name']
         pp = res['performance_point']
         
-        # summary_results에서 해당 목표의 결과 가져오기 (이미 계산됨)
-        summary = summary_results[i] # 순서가 같다고 가정
+        summary = summary_results[i]
         
         print(f"{obj_name:<30} | {summary['perf_point_Sa_g']:<7.4f} | {summary['perf_point_Sd_m']:<8.4f} | {summary['calculated_drift_pct']:<8.3f} | {summary['allowed_drift_pct']:<8.3f} | {summary['status']}")
 
-        # 애니메이션 생성
+        # 애니메이션 생성 (파일명에 부호 포함)
         safe_obj_name = obj_name.replace(" ", "_").replace("(", "").replace(")", "")
-        animate_csm_process(res, results_dir, direction, filename_suffix=safe_obj_name)
+        # animate_csm_process는 filename_suffix만 받으므로, 여기서 구분자를 잘 넣어줘야 함
+        suffix = f"{sign_str}_{safe_obj_name}"
+        animate_csm_process(res, results_dir, direction, filename_suffix=suffix)
 
     print(f"{'-'*70}\n")
 
@@ -215,12 +243,24 @@ if __name__ == '__main__':
         else:
             print(f"Directory not found: {args.dir}")
     else:
+        # [수정] 기본 디렉토리 목록을 4가지 케이스로 확장
         default_dirs = [
+            Path(project_root) / 'results' / 'Run_Single_RC_Moment_Frame_Sampled_X_pos',
+            Path(project_root) / 'results' / 'Run_Single_RC_Moment_Frame_Sampled_X_neg',
+            Path(project_root) / 'results' / 'Run_Single_RC_Moment_Frame_Sampled_Z_pos',
+            Path(project_root) / 'results' / 'Run_Single_RC_Moment_Frame_Sampled_Z_neg'
+        ]
+        
+        # 호환성을 위해 기존 폴더가 있다면 추가 (선택 사항)
+        legacy_dirs = [
             Path(project_root) / 'results' / 'Run_Single_RC_Moment_Frame_Sampled_X',
             Path(project_root) / 'results' / 'Run_Single_RC_Moment_Frame_Sampled_Z'
         ]
-        for d in default_dirs:
+        
+        all_dirs = default_dirs + legacy_dirs
+        
+        for d in all_dirs:
             if d.exists():
                 run_evaluation(d, config_data)
-            else:
-                print(f"Default directory not found: {d}")
+            # else:
+            #     print(f"Default directory not found: {d}")

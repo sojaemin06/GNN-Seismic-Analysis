@@ -94,18 +94,31 @@ def get_single_run_parameters():
     
     return {**params, **config['nonlinear_materials']}
 
-def main(params, direction='X'):
-    """[수정] 리팩토링된 함수들을 사용하여 전체 해석 파이프라인을 실행합니다."""
+def main(params, direction='X', sign='+'):
+    """[수정] 리팩토링된 함수들을 사용하여 전체 해석 파이프라인을 실행합니다.
+    sign: '+' 또는 '-' (가력 방향 부호)
+    """
     try:
         params['output_dir'].mkdir(parents=True, exist_ok=True)
     except Exception as e:
         print(f"Error creating directory {params['output_dir']}: {e}")
         return None
 
+    # 방향 부호에 따른 target_drift 조정
+    original_target_drift = params['target_drift']
+    if sign == '-':
+        params['target_drift'] = -abs(original_target_drift)
+    else:
+        params['target_drift'] = abs(original_target_drift)
+
+    print(f"Target Drift set to: {params['target_drift']} (Sign: {sign})")
+
     model_nodes_info = build_model(params)
     skip_plots = params.get('skip_post_processing', False)
 
     if not skip_plots:
+        # 플롯은 한 번만 그리면 됨 (양방향 모두 구조는 같음)
+        # 하지만 파일명 중복 방지를 위해 여기서도 그림
         plot_model_matplotlib(params, model_nodes_info, direction)
         plot_with_opsvis(params)
         plot_material_stress_strain(params)
@@ -118,24 +131,26 @@ def main(params, direction='X'):
         print("\n고유치 해석 실패. 해석을 중단합니다."); ops.wipe(); return None
 
     is_nsp_valid_x, is_nsp_valid_y = verify_nsp_applicability(params, model_nodes_info, modal_props)
-    # if not (is_nsp_valid_x and is_nsp_valid_y):
-    #     print("\n[Warning] 현재 모델은 1차 모드 지배 조건을 만족하지 않습니다."); ops.wipe(); return None
-
+    
+    # 푸쉬오버 해석 실행 (sign 정보는 params['target_drift']에 이미 반영됨)
+    # run_pushover_analysis 내부에서 target_drift 부호를 사용함
     ok, dominant_mode = run_pushover_analysis(params, model_nodes_info, modal_props, direction=direction)
     if not ok:
         print("\n푸쉬오버 해석 실행 중 오류 발생."); ops.wipe(); return None
     
+    # 결과 처리 및 파일명에 sign 반영을 위해 process_pushover_results 호출 시 주의 필요
+    # 현재 process_pushover_results는 파일명을 params['analysis_name']에서 가져옴
+    # 따라서 params['analysis_name']을 미리 변경해두어야 함 (main 호출 전에 처리됨)
+    
     df_curve, df_disp, final_states_dfs, df_m_phi = process_pushover_results(params, model_nodes_info, dominant_mode, direction=direction)
     
-    # Save modal properties to a json file for later use
+    # Save modal properties to a json file
     modal_data_to_save = {
         'modal_properties': modal_props,
         'dominant_mode': dominant_mode
     }
     modal_json_path = params['output_dir'] / 'modal_properties.json'
     with open(modal_json_path, 'w') as f:
-        # Convert numpy arrays to lists for JSON serialization
-        # This is a bit complex, need a helper function
         def convert_numpy_to_list(obj):
             if isinstance(obj, np.ndarray):
                 return obj.tolist()
@@ -154,6 +169,7 @@ def main(params, direction='X'):
     perf_points = calculate_performance_points(df_curve)
     
     if not skip_plots:
+        # 애니메이션 생성 시에도 sign 정보가 반영된 결과 파일을 사용하게 됨
         animate_and_plot_pushover(df_curve, df_disp, perf_points, params, model_nodes_info, final_states_dfs, None, direction)
     
     print("\n단일 해석 및 후처리 완료."); ops.wipe()
@@ -165,17 +181,25 @@ if __name__ == '__main__':
     # 1. 단일 실행용 파라미터 가져오기
     parameters = get_single_run_parameters()
     
-    # 2. X, Z 방향에 대해 순차적으로 해석 실행
-    for direction in ['X', 'Z']:
-        print(f"\n--- Running {direction}-direction analysis ---")
-        # 각 방향 해석을 위해 파라미터 복사 (ops.wipe()가 이전 상태를 지우므로)
-        params_for_run = parameters.copy()
-        
-        # 출력 디렉토리 이름에 방향 추가
-        original_name = params_for_run['analysis_name']
-        original_dir = params_for_run['output_dir']
-        
-        params_for_run['analysis_name'] = f"{original_name}_{direction}"
-        params_for_run['output_dir'] = original_dir.parent / f"{original_dir.name}_{direction}"
+    # 2. X(+,-), Z(+,-) 방향에 대해 순차적으로 해석 실행
+    directions = ['X', 'Z']
+    signs = ['+', '-']
+    
+    for direction in directions:
+        for sign in signs:
+            print(f"\n--- Running {direction}-direction ({sign}) analysis ---")
+            
+            params_for_run = parameters.copy()
+            
+            # 출력 디렉토리 및 해석 이름에 방향과 부호 추가
+            # 예: Run_Single_..._X_pos, Run_Single_..._X_neg
+            original_name = params_for_run['analysis_name']
+            original_dir = params_for_run['output_dir']
+            
+            sign_str = "pos" if sign == '+' else "neg"
+            
+            params_for_run['analysis_name'] = f"{original_name}_{direction}_{sign_str}"
+            # 디렉토리명도 구분 (선택사항, 파일명만 구분해도 되지만 관리가 편함)
+            params_for_run['output_dir'] = original_dir.parent / f"{original_dir.name}_{direction}_{sign_str}"
 
-        main(params_for_run, direction=direction)
+            main(params_for_run, direction=direction, sign=sign)
