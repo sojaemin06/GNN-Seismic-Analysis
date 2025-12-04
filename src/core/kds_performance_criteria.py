@@ -25,6 +25,7 @@ def get_performance_objectives(importance_class):
         "name": "Collapse Prevention",
         "method": "scaling",
         "factor": 1.5, # 중요도계수 (특등급 기준 1.5) -> 2/3 * 1.5 = 1.0 MCE
+        "repetition_period": "2400년",
         "target_drift_ratio_limit": 0.030, 
         "description": "건축물 성능수준: 붕괴방지 (구조요소: 붕괴방지) / 지진크기: 2400년 (MCE)"
     }
@@ -34,6 +35,7 @@ def get_performance_objectives(importance_class):
         "name": "Life Safety",
         "method": "scaling",
         "factor": 1.5, # 중요도계수 (특등급)
+        "repetition_period": "2400년",
         "target_drift_ratio_limit": 0.020,
         "description": "건축물 성능수준: 인명보호 (구조요소: 인명안전) / 지진크기: 2400년"
     }
@@ -43,6 +45,7 @@ def get_performance_objectives(importance_class):
         "name": "Life Safety",
         "method": "scaling",
         "factor": 1.2, # 중요도계수 (1등급)
+        "repetition_period": "1400년",
         "target_drift_ratio_limit": 0.020,
         "description": "건축물 성능수준: 인명보호 (구조요소: 인명안전) / 지진크기: 1400년"
     }
@@ -52,6 +55,7 @@ def get_performance_objectives(importance_class):
         "name": "Life Safety",
         "method": "scaling",
         "factor": 1.0, # 중요도계수 (2등급)
+        "repetition_period": "1000년",
         "target_drift_ratio_limit": 0.020,
         "description": "건축물 성능수준: 인명보호 (구조요소: 인명안전) / 지진크기: 1000년"
     }
@@ -59,6 +63,7 @@ def get_performance_objectives(importance_class):
         "name": "Operational",
         "method": "scaling",
         "factor": 1.0, # 중요도계수 (2등급 수준)
+        "repetition_period": "1000년",
         "target_drift_ratio_limit": 0.007,
         "description": "건축물 성능수준: 기능수행 (구조요소: 거주가능) / 지진크기: 1000년"
     }
@@ -68,6 +73,7 @@ def get_performance_objectives(importance_class):
         "name": "Operational",
         "method": "direct",
         "factor": 0.57, # 위험도계수 I
+        "repetition_period": "100년",
         "target_drift_ratio_limit": 0.007,
         "description": "건축물 성능수준: 기능수행 (구조요소: 거주가능) / 재현주기 100년"
     }
@@ -77,6 +83,7 @@ def get_performance_objectives(importance_class):
         "name": "Operational",
         "method": "direct",
         "factor": 0.4, # 위험도계수 I
+        "repetition_period": "50년",
         "target_drift_ratio_limit": 0.007,
         "description": "건축물 성능수준: 기능수행 (구조요소: 거주가능) / 재현주기 50년"
     }

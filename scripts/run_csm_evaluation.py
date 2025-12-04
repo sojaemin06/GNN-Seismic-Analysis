@@ -5,6 +5,7 @@ import json
 import pandas as pd
 import argparse
 from pathlib import Path
+import numpy as np
 
 # --- 프로젝트 루트 경로를 sys.path에 추가 ---
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -25,6 +26,20 @@ def load_config(config_path):
     except Exception as e:
         print(f"Error loading config file: {e}")
         sys.exit(1)
+
+def convert_numpy_to_native(obj):
+    """Numpy 데이터 타입을 Python 네이티브 타입으로 변환 (JSON 직렬화용)."""
+    if isinstance(obj, (np.int_, np.intc, np.intp, np.int8, np.int16, np.int32, np.int64, np.uint8, np.uint16, np.uint32, np.uint64)):
+        return int(obj)
+    elif isinstance(obj, (np.float64, np.float16, np.float32, np.float64)):
+        return float(obj)
+    elif isinstance(obj, (np.ndarray,)):
+        return obj.tolist()
+    elif isinstance(obj, dict):
+        return {k: convert_numpy_to_native(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_numpy_to_native(elem) for elem in obj]
+    return obj
 
 def run_evaluation(results_dir: Path, config: dict):
     """
@@ -93,7 +108,7 @@ def run_evaluation(results_dir: Path, config: dict):
         performance_objectives = get_performance_objectives(importance_class)
         print(f"\n[Performance Objectives for Class '{importance_class}']")
         for obj in performance_objectives:
-            print(f" - {obj['description']} (Drift Limit: {obj['target_drift_ratio_limit']*100}%)")
+            print(f" - {obj['description']} (Drift Limit: {obj['target_drift_ratio_limit']*100:.2f}%)")
     except ValueError as e:
         print(f"Error setting performance objectives: {e}")
         return
@@ -105,6 +120,8 @@ def run_evaluation(results_dir: Path, config: dict):
             'site_class': site_class,
             'objective_name': obj['name'],
             'target_drift_ratio': obj['target_drift_ratio_limit'],
+            'repetition_period': obj['repetition_period'], # 추가
+            'description': obj['description'], # 추가
             'method': method
         }
         
@@ -122,41 +139,61 @@ def run_evaluation(results_dir: Path, config: dict):
     if not results:
         print("Calculation failed.")
         return
-
-    # 5. 결과 리포트 및 애니메이션 생성
-    total_height = 3.5 * 4 # (참고: 실제 높이는 모델 데이터에서 가져오는 것이 좋으나 현재는 고정값 사용) 
     
-    print(f"\n{'[Evaluation Results]':^70}")
-    print(f"{'-'*70}")
-    print(f"{'Objective':<30} | {'Sa(g)':<7} | {'Sd(m)':<8} | {'Drift(%)':<8} | {'Limit(%)':<8} | {'Result'}")
-    print(f"{'-'*70}")
-
+    # --- CSM 평가 요약 데이터 추출 및 저장 ---
+    summary_results = []
+    total_height = 3.5 * 4 # 임시 (추후 모델 데이터에서 가져오도록 수정)
+    
     for res in results:
         obj_name = res['objective_name']
         pp = res['performance_point']
+        design_params = next(dp for dp in design_params_list if dp['objective_name'] == obj_name) # 해당 목표의 원본 파라미터 찾기
         
         # 변위 계산
         roof_disp_actual = pp['Sd'] * csm_modal_props['pf1'] * csm_modal_props['phi_roof']
         drift_ratio = (abs(roof_disp_actual) / total_height) * 100 # % 단위
         
-        # 기준 찾기
-        target_limit = next(p['target_drift_ratio'] for p in design_params_list if p['objective_name'] == obj_name) * 100
+        status = "PASS" if drift_ratio <= (design_params['target_drift_ratio'] * 100) else "FAIL" # 타겟 변위는 %로 저장되어있으므로 100곱함
         
-        status = "PASS" if drift_ratio <= target_limit else "FAIL"
+        summary_results.append({
+            "objective_name": obj_name,
+            "repetition_period": design_params['repetition_period'],
+            "direction": direction,
+            "perf_point_Sd_m": float(f"{pp['Sd']:.4f}"),
+            "perf_point_Sa_g": float(f"{pp['Sa']:.4f}"),
+            "effective_period_s": float(f"{pp['T_eff']:.3f}"),
+            "effective_damping_pct": float(f"{pp['beta_eff']*100:.1f}"),
+            "calculated_drift_pct": float(f"{drift_ratio:.3f}"),
+            "allowed_drift_pct": float(f"{design_params['target_drift_ratio']*100:.3f}"),
+            "status": status,
+            "description": design_params['description'] # 성능 목표 설명 추가
+        })
+
+    # Summary 결과를 JSON 파일로 저장
+    summary_json_path = results_dir / f"csm_evaluation_summary_{direction}.json"
+    with open(summary_json_path, 'w', encoding='utf-8') as f:
+        json.dump(convert_numpy_to_native(summary_results), f, indent=4, ensure_ascii=False)
+    print(f"CSM evaluation summary saved to: {summary_json_path}")
+
+
+    # 5. 결과 리포트 및 애니메이션 생성
+    
+    print(f"\n[{'[Evaluation Results]':^70}]")
+    print(f"{'-'*70}")
+    print(f"{'Objective':<30} | {'Sa(g)':<7} | {'Sd(m)':<8} | {'Drift(%)':<8} | {'Limit(%)':<8} | {'Result':<8}")
+    print(f"{'-'*70}")
+
+    for i, res in enumerate(results): # res는 calculate_performance_point_csm의 반환값
+        obj_name = res['objective_name']
+        pp = res['performance_point']
         
-        print(f"{obj_name:<30} | {pp['Sa']:<7.4f} | {pp['Sd']:<8.4f} | {drift_ratio:<8.3f} | {target_limit:<8.3f} | {status}")
+        # summary_results에서 해당 목표의 결과 가져오기 (이미 계산됨)
+        summary = summary_results[i] # 순서가 같다고 가정
+        
+        print(f"{obj_name:<30} | {summary['perf_point_Sa_g']:<7.4f} | {summary['perf_point_Sd_m']:<8.4f} | {summary['calculated_drift_pct']:<8.3f} | {summary['allowed_drift_pct']:<8.3f} | {summary['status']}")
 
         # 애니메이션 생성
-        # 파일명에 성능목표 이름 포함 (공백은 언더스코어로 변경)
         safe_obj_name = obj_name.replace(" ", "_").replace("(", "").replace(")", "")
-        animation_filename = f"CSM_{safe_obj_name}_{direction}.gif"
-        
-        # 기존 animate_csm_process는 파일명을 직접 생성하므로, 
-        # 여기서는 결과 딕셔너리에 파일명 힌트를 추가하거나 함수를 수정해야 함.
-        # 일단 현재 animate_csm_process는 direction만 받아서 파일명을 자동 생성함.
-        # 다중 목표를 위해 animate_csm.py를 수정하거나, 임시로 호출함.
-        # 여기서는 animate_csm_process를 수정하여 'filename_suffix'를 받을 수 있게 하고 호출함.
-        
         animate_csm_process(res, results_dir, direction, filename_suffix=safe_obj_name)
 
     print(f"{'-'*70}\n")

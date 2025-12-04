@@ -125,7 +125,7 @@ def calculate_performance_point_csm(df_pushover, modal_properties, design_params
 
             iteration_history.append({
                 'iter': i + 1, 'mu': mu, 'beta_eff': beta_eff, 
-                'trial_Sd': pi_trial['Sd'], 'new_Sd': new_pi_trial['Sd'],
+                'trial_Sd': pi_trial['Sd'], 'trial_Sa': pi_trial['Sa'], 'new_Sd': new_pi_trial['Sd'],
                 'demand_curve_damped': (Sd_demand_5pct.tolist(), Sa_demand_5pct.tolist())
             })
             
