@@ -166,10 +166,38 @@ def run_evaluation(results_dir: Path, config: dict):
         print("Calculation failed.")
         return
     
+    # [NEW] 회전각 이력 데이터 로드 (Step별 힌지 상태 확인용)
+    # 주의: 파일명이 run_single_analysis에서 생성된 규칙을 따라야 함.
+    # *all_col_plastic_rotation_{direction}.out
+    col_rot_path = next(results_dir.glob(f'*all_col_plastic_rotation_{direction}.out'), None)
+    beam_rot_path = next(results_dir.glob(f'*all_beam_plastic_rotation_{direction}.out'), None)
+    
+    col_rot_data, beam_rot_data = None, None
+    if col_rot_path and col_rot_path.exists():
+        try:
+            col_rot_data = np.loadtxt(col_rot_path)
+            if col_rot_data.ndim == 1: col_rot_data = col_rot_data.reshape(1, -1)
+        except: pass
+    if beam_rot_path and beam_rot_path.exists():
+        try:
+            beam_rot_data = np.loadtxt(beam_rot_path)
+            if beam_rot_data.ndim == 1: beam_rot_data = beam_rot_data.reshape(1, -1)
+        except: pass
+
+    # 회전각 한계 (animate_results.py와 동일하게 적용)
+    # TODO: 추후 config에서 불러오도록 개선
+    ROT_CP = 0.04 # Collapse Prevention Limit (rad)
+    
     # --- CSM 평가 요약 데이터 추출 및 저장 ---
     summary_results = []
     total_height = 3.5 * 4 # 임시 (추후 모델 데이터에서 가져오도록 수정)
     
+    # pushover_curve의 Roof_Displacement_m과 Step 매핑을 위해
+    # df_curve는 이미 로드됨 ('Roof_Displacement_m', 'Base_Shear_N', 'Pseudo_Time')
+    # .out 파일의 첫 번째 컬럼은 Time (Pseudo Time)
+    
+    max_base_shear = df_curve['Base_Shear_N'].abs().max()
+
     for res in results:
         obj_name = res['objective_name']
         pp = res['performance_point']
@@ -181,6 +209,66 @@ def run_evaluation(results_dir: Path, config: dict):
         
         status = "PASS" if drift_ratio <= (design_params['target_drift_ratio'] * 100) else "FAIL"
         
+        # [NEW] 1. 중력하중 저항능력 평가 (Stability Check)
+        # 성능점에서의 전단력이 최대 강도의 80% 미만으로 떨어졌는지 확인
+        # (간접적인 중력 저항 능력 상실 또는 불안정성 척도)
+        perf_shear = np.interp(pp['Sd'], results[0]['capacity_adrs']['Sd'], results[0]['capacity_adrs']['Sa']) * csm_modal_props['m_eff_t1'] * 9.81 # 근사값
+        # 정확히는 푸쉬오버 곡선상에서 보간
+        current_base_shear = np.interp(abs(roof_disp_actual), df_curve['Roof_Displacement_m'].abs(), df_curve['Base_Shear_N'].abs())
+        
+        stability_ratio = current_base_shear / max_base_shear if max_base_shear > 0 else 0
+        stability_status = "OK" if stability_ratio >= 0.8 else "WARNING"
+        
+        if stability_ratio < 0.8:
+             status = "FAIL (Instability)"
+
+        # [NEW] 2. 붕괴 부재 판별 (Collapsed Members)
+        collapsed_count = 0
+        collapsed_members = []
+        
+        # 성능점 시점(Time) 찾기
+        target_time = np.interp(abs(roof_disp_actual), df_curve['Roof_Displacement_m'].abs(), df_curve['Pseudo_Time'])
+        
+        # 해당 Time에 가장 가까운 스텝 인덱스 찾기
+        # col_rot_data[:, 0] 은 Time 컬럼
+        step_idx = 0
+        if col_rot_data is not None:
+            times = col_rot_data[:, 0]
+            step_idx = (np.abs(times - target_time)).argmin()
+            
+            # 해당 스텝의 회전각 확인
+            # 데이터 구조: Time, Ele1_IP1_eps, Ele1_IP1_kz, Ele1_IP1_ky, ...
+            # process_pushover_results 로직 참고: 
+            # num_data_cols = total_cols - 1
+            # cols_per_ele = num_data_cols / num_eles
+            # 5개 IP 가정
+            
+            # 단순화를 위해 모든 kz, ky 컬럼을 순회하며 체크 (태그 매핑 없이 개수만 파악)
+            # 1번째 컬럼은 Time이므로 제외
+            all_vals = col_rot_data[step_idx, 1:]
+            # 3개씩 묶음 (eps, kz, ky)
+            num_components = len(all_vals) // 3
+            for i in range(num_components):
+                kz = all_vals[i*3 + 1]
+                ky = all_vals[i*3 + 2]
+                theta = (abs(kz) + abs(ky)) * 0.5 # Lp=0.5m 가정
+                if theta > ROT_CP:
+                    collapsed_count += 1
+                    # 상세 태그 추적은 복잡하므로 개수만 카운트 (필요시 개선)
+        
+        # 빔에 대해서도 동일 수행
+        if beam_rot_data is not None:
+             times_b = beam_rot_data[:, 0]
+             if step_idx < len(times_b): # 인덱스 유효성 체크
+                 all_vals_b = beam_rot_data[step_idx, 1:]
+                 num_components_b = len(all_vals_b) // 3
+                 for i in range(num_components_b):
+                    kz = all_vals_b[i*3 + 1]
+                    ky = all_vals_b[i*3 + 2]
+                    theta = (abs(kz) + abs(ky)) * 0.5
+                    if theta > ROT_CP:
+                        collapsed_count += 1
+
         summary_results.append({
             "objective_name": obj_name,
             "repetition_period": design_params['repetition_period'],
@@ -193,6 +281,8 @@ def run_evaluation(results_dir: Path, config: dict):
             "calculated_drift_pct": float(f"{drift_ratio:.3f}"),
             "allowed_drift_pct": float(f"{design_params['target_drift_ratio']*100:.3f}"),
             "status": status,
+            "stability_ratio": float(f"{stability_ratio:.2f}"),
+            "collapsed_member_count": collapsed_count,
             "description": design_params['description']
         })
 

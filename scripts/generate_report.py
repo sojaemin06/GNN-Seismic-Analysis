@@ -7,14 +7,50 @@ from pathlib import Path
 import datetime
 import base64
 import textwrap
+import io
+import numpy as np
+import matplotlib.pyplot as plt
+# GUI 백엔드 오류 방지
+plt.switch_backend('Agg')
 
 # --- 프로젝트 루트 경로 추가 ---
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from src.core.kds_2022_spectrum import get_site_coefficients, calculate_design_acceleration
+from src.core.kds_2022_spectrum import get_site_coefficients, calculate_design_acceleration, generate_kds2022_demand_spectrum
 from src.core.kds_performance_criteria import get_performance_objectives
+
+def create_design_spectrum_plot_b64(design_config):
+    """설계 응답 스펙트럼 이미지를 생성하고 base64로 반환합니다."""
+    try:
+        site_params = design_config.get('site_parameters', {})
+        site_class = site_params.get('site_class', 'S4')
+        Z = site_params.get('Z', 0.11)
+        S_MCE_val = Z * 2.0
+        S_DBE_val = S_MCE_val * (2.0/3.0)
+        
+        Sd, Sa, SDS, SD1 = generate_kds2022_demand_spectrum(S_DBE_val, site_class)
+        # T_long default is 5.0 in generate_kds2022_demand_spectrum
+        T = np.linspace(0.01, 5.0, 500)
+        
+        plt.figure(figsize=(6, 4))
+        plt.plot(T, Sa, 'b-', linewidth=2, label='Design Spectrum (DBE, 5% Damping)')
+        plt.title(f"Design Response Spectrum (Site: {site_class}, Z: {Z}g)")
+        plt.xlabel("Period (sec)")
+        plt.ylabel("Spectral Acceleration (g)")
+        plt.grid(True, which='both', linestyle='--', alpha=0.5)
+        plt.legend()
+        plt.tight_layout()
+        
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', dpi=100)
+        plt.close()
+        buf.seek(0)
+        return base64.b64encode(buf.read()).decode('utf-8')
+    except Exception as e:
+        print(f"Error generating spectrum plot: {e}")
+        return None
 
 def load_image_as_base64(image_path):
     """이미지 파일을 읽어 base64 문자열로 변환합니다."""
@@ -151,9 +187,21 @@ def generate_html_report(results_root_dir):
     Ts = calc_SD1 / calc_SDS if calc_SDS > 0 else 0
     T0 = 0.2 * Ts
 
+    # [NEW] Spectrum Image
+    spectrum_b64 = create_design_spectrum_plot_b64(design_config)
+    spectrum_html = ""
+    if spectrum_b64:
+        spectrum_html = f"""
+        <div class="img-box" style="max-width: 600px; margin: 20px auto;">
+            <img src="data:image/png;base64,{spectrum_b64}" alt="Design Response Spectrum">
+            <div class="img-caption">설계 응답 스펙트럼 (Design Spectrum)</div>
+        </div>
+        """
+
     html_block = textwrap.dedent(f"""
     <div class="section">
         <h2>2. 평가 지진 (요구 스펙트럼 제원)</h2>
+        <p class="note">※ 본 설계 스펙트럼은 <strong>5% 감쇠비</strong>를 기준으로 작성되었습니다.</p>
         <div class="info-grid">
             <div class="info-card" style="border-left-color: #3498db;">
                 <h4 style="color: #2980b9;">[입력 파라미터]</h4>
@@ -167,15 +215,16 @@ def generate_html_report(results_root_dir):
             <div class="info-card" style="border-left-color: #e67e22;">
                 <h4 style="color: #d35400;">[계산된 설계 스펙트럼 계수]</h4>
                 <ul>
-                    <li><span class="label">Fa:</span> {Fa:.2f}</li>
-                    <li><span class="label">Fv:</span> {Fv:.2f}</li>
-                    <li><span class="label">SDS:</span> {calc_SDS:.3f}g</li>
-                    <li><span class="label">SD1:</span> {calc_SD1:.3f}g</li>
-                    <li><span class="label">T0:</span> {T0:.3f} sec</li>
-                    <li><span class="label">Ts:</span> {Ts:.3f} sec</li>
+                    <li><span class="label">단주기 지반증폭계수 (Fa):</span> {Fa:.2f}</li>
+                    <li><span class="label">1초주기 지반증폭계수 (Fv):</span> {Fv:.2f}</li>
+                    <li><span class="label">단주기 설계스펙트럼가속도 (SDS):</span> {calc_SDS:.3f}g</li>
+                    <li><span class="label">1초주기 설계스펙트럼가속도 (SD1):</span> {calc_SD1:.3f}g</li>
+                    <li><span class="label">설계스펙트럼 천이주기 (T0):</span> {T0:.3f} sec</li>
+                    <li><span class="label">설계스펙트럼 천이주기 (Ts):</span> {Ts:.3f} sec</li>
                 </ul>
             </div>
         </div>
+        {spectrum_html}
     </div>
     """).strip()
     html_content += html_block
@@ -226,39 +275,183 @@ def generate_html_report(results_root_dir):
     html_block = textwrap.dedent("""
         </div>
         
-        <h3>3.2 부재 상세 정보</h3>
-        <p>본 해석 모델에 적용된 주요 부재의 단면 및 철근 상세 정보입니다.</p>
+        <h3>3.2 부재 상세 정보 (단면 및 철근)</h3>
+        <p>본 해석 모델에 적용된 각 부재 그룹별 단면 상세(Section Schedule)는 다음과 같습니다.</p>
+
+    """).strip()
+    html_content += html_block
+
+    # [NEW] 단면 일람표 생성 로직
+    if target_dir:
+        # 1. 파일 스캔 및 분류
+        col_images = {} # {group_idx: {'Exterior': path, 'Interior': path}}
+        beam_images = {}
+        
+        for img_path in target_dir.glob("*opsvis_sec_*.png"):
+            # Filename ex: ..._opsvis_sec_Col_Group0_Exterior.png
+            parts = img_path.stem.split('_')
+            if 'Col' in parts:
+                target_dict = col_images
+            elif 'Beam' in parts:
+                target_dict = beam_images
+            else:
+                continue
+                
+            # Extract Group Index and Location
+            try:
+                group_part = next(p for p in parts if p.startswith('Group'))
+                group_idx = int(group_part.replace('Group', ''))
+                
+                loc_part = parts[-1] # Exterior or Interior
+                
+                if group_idx not in target_dict: target_dict[group_idx] = {}
+                target_dict[group_idx][loc_part] = img_path
+            except:
+                continue
+
+        # 2. 기둥 일람표 HTML 생성
+        html_block = textwrap.dedent("""
+        <h4>3.2.1 기둥 일람표 (Column Schedule)</h4>
+        <table>
+            <thead>
+                <tr>
+                    <th>구분 (Group)</th>
+                    <th>외부 (Exterior)</th>
+                    <th>내부 (Interior)</th>
+                </tr>
+            </thead>
+            <tbody>
+        """).strip()
+        html_content += html_block
+        
+        sorted_col_groups = sorted(col_images.keys())
+        if not sorted_col_groups:
+             html_content += "<tr><td colspan='3'>단면 이미지가 없습니다.</td></tr>"
+        
+        for grp_idx in sorted_col_groups:
+            ext_img = col_images[grp_idx].get('Exterior')
+            int_img = col_images[grp_idx].get('Interior')
+            
+            ext_html = "N/A"
+            if ext_img:
+                b64 = load_image_as_base64(ext_img)
+                if b64: ext_html = f'<img src="data:image/png;base64,{b64}" style="max-width: 200px;"><br>Group {grp_idx} (Ext)'
+            
+            int_html = "N/A"
+            if int_img:
+                b64 = load_image_as_base64(int_img)
+                if b64: int_html = f'<img src="data:image/png;base64,{b64}" style="max-width: 200px;"><br>Group {grp_idx} (Int)'
+                
+            html_content += f"""
+            <tr>
+                <td><strong>Group {grp_idx}</strong><br>(Story {grp_idx*2+1}~{(grp_idx+1)*2})</td>
+                <td>{ext_html}</td>
+                <td>{int_html}</td>
+            </tr>
+            """
+            
+        html_content += "</tbody></table>"
+
+        # 3. 보 일람표 HTML 생성
+        html_block = textwrap.dedent("""
+        <h4>3.2.2 보 일람표 (Beam Schedule)</h4>
+        <table>
+            <thead>
+                <tr>
+                    <th>구분 (Group)</th>
+                    <th>외부 (Exterior)</th>
+                    <th>내부 (Interior)</th>
+                </tr>
+            </thead>
+            <tbody>
+        """).strip()
+        html_content += html_block
+        
+        sorted_beam_groups = sorted(beam_images.keys())
+        if not sorted_beam_groups:
+             html_content += "<tr><td colspan='3'>단면 이미지가 없습니다.</td></tr>"
+
+        for grp_idx in sorted_beam_groups:
+            ext_img = beam_images[grp_idx].get('Exterior')
+            int_img = beam_images[grp_idx].get('Interior')
+            
+            ext_html = "N/A"
+            if ext_img:
+                b64 = load_image_as_base64(ext_img)
+                if b64: ext_html = f'<img src="data:image/png;base64,{b64}" style="max-width: 200px;"><br>Group {grp_idx} (Ext)'
+            
+            int_html = "N/A"
+            if int_img:
+                b64 = load_image_as_base64(int_img)
+                if b64: int_html = f'<img src="data:image/png;base64,{b64}" style="max-width: 200px;"><br>Group {grp_idx} (Int)'
+                
+            html_content += f"""
+            <tr>
+                <td><strong>Group {grp_idx}</strong><br>(Story {grp_idx*2+1}~{(grp_idx+1)*2})</td>
+                <td>{ext_html}</td>
+                <td>{int_html}</td>
+            </tr>
+            """
+        
+        html_content += "</tbody></table>"
+
+    html_block = textwrap.dedent("""
+        <p>본 해석 모델에 적용된 주요 부재의 설정 범위(Configuration)는 다음과 같습니다.</p>
         <table>
             <thead>
                 <tr>
                     <th>구분</th>
-                    <th>층 그룹</th>
                     <th>위치</th>
-                    <th>단면 크기 (mm)</th>
-                    <th>주철근 상세</th>
+                    <th>단면 크기 범위 (m)</th>
+                    <th>주철근 범위</th>
                 </tr>
             </thead>
             <tbody>
     """).strip()
     html_content += html_block
     
-    # 부재 상세 정보 (dataset_config.json 로드 필요)
+    # 부재 상세 정보 (dataset_config.json)
     try:
         with open(dataset_config_path, 'r', encoding='utf-8') as f:
             ds_config = json.load(f)
             mem_props = ds_config.get('member_properties', {})
-            # 실제 해석에 사용된 부재 정보는 run_single_analysis에서 랜덤하게 결정되므로
-            # 여기서는 가능한 범위나 대표값을 표시하는 것이 좋음.
-            # 하지만 정확한 정보를 위해선 run_single_analysis 결과에 부재 정보를 저장해야 함.
-            # 현재는 간단히 범위만 표시하거나, "상세 정보는 해석 로그 참조"로 대체.
-            # 또는 member_properties.json 내용을 간단히 요약.
             
-            # 임시: 대표적인 정보만 출력 (실제 해석값은 아닐 수 있음 주의)
-            html_content += f"""
-                <tr><td colspan="5">상세 부재 정보는 해석 설정 파일(dataset_config.json)을 참조하십시오.</td></tr>
+            # 기둥 정보
+            col_sec = mem_props.get('col_section_tiers_m', {})
+            rebar_col = mem_props.get('rebar_col_list', [])
+            rebar_col_names = ", ".join([r['name'] for r in rebar_col]) if rebar_col else "D22~D32"
+            
+            for loc, tiers in col_sec.items():
+                range_str = f"{tiers[0][0]}m ~ {tiers[-1][0]}m" if tiers else "N/A"
+                html_content += f"""
+                <tr>
+                    <td>기둥 (Column)</td>
+                    <td>{loc} (외부/내부 등)</td>
+                    <td>{range_str}</td>
+                    <td>{rebar_col_names}</td>
+                </tr>
+                """
+            
+            # 보 정보
+            beam_sec = mem_props.get('beam_section_tiers_m', {})
+            rebar_beam = mem_props.get('rebar_beam_list', [])
+            rebar_beam_names = ", ".join([r['name'] for r in rebar_beam]) if rebar_beam else "D19~D25"
+
+            for loc, tiers in beam_sec.items():
+                range_str = f"{tiers[0][0]}m ~ {tiers[-1][0]}m" if tiers else "N/A"
+                html_content += f"""
+                <tr>
+                    <td>보 (Beam)</td>
+                    <td>{loc} (외부/내부 등)</td>
+                    <td>{range_str}</td>
+                    <td>{rebar_beam_names}</td>
+                </tr>
+                """
+
+    except Exception as e:
+         html_content += f"""
+                <tr><td colspan="4">부재 상세 정보를 불러오는 중 오류 발생: {e}</td></tr>
             """
-    except:
-        pass
 
     html_block = textwrap.dedent("""
             </tbody>
@@ -350,6 +543,10 @@ def generate_html_report(results_root_dir):
     cases = [('X', 'pos', '+'), ('X', 'neg', '-'), ('Z', 'pos', '+'), ('Z', 'neg', '-')]
     
     for direction, sign_str, sign in cases:
+        # [NEW] 음방향 결과 플립 설정 (반대로 그려지는 현상 수정)
+        flip_style = 'style="transform: scaleX(-1);"' if sign_str == 'neg' else ''
+        flip_note = '<p class="note">※ 음방향(-) 해석 결과는 시각적 편의를 위해 좌우 반전(Flip)하여 표시하였습니다.</p>' if sign_str == 'neg' else ''
+
         target_dir_name = f"Run_Single_RC_Moment_Frame_Sampled_{direction}_{sign_str}"
         # target_dir = next((d for d in result_dirs if target_dir_name in d.name), None) # 단순 매칭
         # 정확한 매칭을 위해
@@ -365,6 +562,7 @@ def generate_html_report(results_root_dir):
 
         html_block = textwrap.dedent(f"""
         <h3>5-{direction}({sign}). 해석 결과: {direction}방향 ({sign})</h3>
+        {flip_note}
         
         <h4>5-{direction}({sign})-1. 푸쉬오버 곡선 및 힌지 분포</h4>
         <div class="img-container">
@@ -378,11 +576,24 @@ def generate_html_report(results_root_dir):
             if b64_vid:
                 html_block = textwrap.dedent(f"""
                 <div class="img-box" style="max-width: 800px;">
-                    <video controls loop muted playsinline style="width: 100%;">
+                    <video controls loop muted playsinline style="width: 100%;" {flip_style}>
                         <source src="data:video/mp4;base64,{b64_vid}" type="video/mp4">
                         브라우저 미지원
                     </video>
                     <div class="img-caption">푸쉬오버 해석 애니메이션 ({direction}{sign})</div>
+                </div>
+                """).strip()
+                html_content += html_block
+
+        # [NEW] 푸쉬오버 최종 플롯 (이미지)
+        final_plot_path = list(target_dir.glob(f"*pushover_final_plot.png"))
+        if final_plot_path:
+            b64_img = load_image_as_base64(final_plot_path[0])
+            if b64_img:
+                html_block = textwrap.dedent(f"""
+                <div class="img-box" style="max-width: 800px;">
+                    <img src="data:image/png;base64,{b64_img}" alt="Pushover Final Plot" {flip_style}>
+                    <div class="img-caption">푸쉬오버 최종 상태 ({direction}{sign})</div>
                 </div>
                 """).strip()
                 html_content += html_block
@@ -442,11 +653,72 @@ def generate_html_report(results_root_dir):
     <div class="section">
         <h2>6. 최종 종합 결론</h2>
         <p>본 보고서는 KDS 41 17 00 (건축물 내진설계기준)에 따라 비선형 정적 해석(Pushover Analysis) 및 역량스펙트럼법(CSM)을 이용하여 대상 구조물의 내진 성능을 평가하였습니다.</p>
+        
+        <h3>6.1 평가 결과 요약</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>해석 방향</th>
+                    <th>성능 목표 (재현 주기)</th>
+                    <th>층간변위비 (허용/계산)</th>
+                    <th>중력하중 저항능력</th>
+                    <th>붕괴 부재 수</th>
+                    <th>최종 판정</th>
+                </tr>
+            </thead>
+            <tbody>
+    """).strip()
+    html_content += html_block
+
+    # [NEW] 모든 결과 수집하여 표 생성
+    overall_status = "PASS"
+    
+    for direction, sign_str, sign in cases:
+        # csm_evaluation_summary_X_pos.json 읽기
+        target_dir = next((d for d in result_dirs if d.name.endswith(f"_{direction}_{sign_str}")), None)
+        if not target_dir: continue
+        
+        summary_json_path = target_dir / f"csm_evaluation_summary_{direction}_{sign_str}.json"
+        if summary_json_path.exists():
+            with open(summary_json_path, 'r', encoding='utf-8') as f:
+                csm_summary = json.load(f)
+                
+            for item in csm_summary:
+                status_class = "pass-text" if item['status'] == "PASS" else "fail-text"
+                if "FAIL" in item['status']: overall_status = "FAIL"
+                
+                # 안정성 지표 및 붕괴 부재 수 (이전 버전 json에 없을 경우 대비)
+                stability_ratio = item.get('stability_ratio', 1.0)
+                stability_text = f"{stability_ratio*100:.0f}% (OK)" if stability_ratio >= 0.8 else f"{stability_ratio*100:.0f}% (WARNING)"
+                collapsed_count = item.get('collapsed_member_count', 0)
+                
+                html_content += f"""
+                <tr>
+                    <td>{direction}({sign})</td>
+                    <td>{item['objective_name']} ({item['repetition_period']})</td>
+                    <td>{item['allowed_drift_pct']:.2f}% / {item['calculated_drift_pct']:.3f}%</td>
+                    <td>{stability_text}</td>
+                    <td>{collapsed_count}개</td>
+                    <td class="{status_class}">{item['status']}</td>
+                </tr>
+                """
+
+    html_block = textwrap.dedent(f"""
+            </tbody>
+        </table>
+
+        <h3>6.2 종합 판단</h3>
         <ul>
             <li><strong>적용성 검토:</strong> 130% 룰 검증을 통해 1차 모드 기반 해석의 타당성을 확인하였습니다.</li>
-            <li><strong>성능 만족 여부:</strong> 각 방향(X, Z) 및 가력 부호(+, -)에 대해 산정된 성능점에서의 층간 변위비가 허용 기준을 만족하는지 확인하였습니다.</li>
-            <li><strong>종합 판단:</strong> 모든 해석 케이스에서 'PASS' 판정을 받은 경우, 해당 구조물은 목표 내진 성능을 확보한 것으로 판단할 수 있습니다.</li>
+            <li><strong>최종 결과:</strong> 모든 성능 목표에 대해 <span class="{'pass-text' if overall_status == 'PASS' else 'fail-text'}">{overall_status}</span> 하였습니다.</li>
         </ul>
+        <div class="note">
+            <p><strong>※ 참고 사항:</strong></p>
+            <ul>
+                <li>중력하중 저항능력은 성능점에서의 전단강도 보유율(잔존 강도 비율)로 평가하였으며, 80% 이상일 경우 'OK'로 판정합니다.</li>
+                <li>붕괴 부재 수는 성능점에서의 소성회전각이 <strong>붕괴방지(CP) 한계 (0.04 rad)</strong>를 초과하는 부재(기둥/보)의 총 개수입니다.</li>
+            </ul>
+        </div>
     </div>
     </body>
     </html>

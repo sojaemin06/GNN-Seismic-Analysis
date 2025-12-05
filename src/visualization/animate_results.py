@@ -28,6 +28,10 @@ def animate_and_plot_pushover(df_curve, df_disp, perf_points, params, model_node
     
     x_data_roof = df_curve['Roof_Displacement_m'].values
     y_data_shear = (df_curve['Base_Shear_N'] / 1000).values # kN 단위
+
+    # [수정] 푸쉬오버 곡선(ax1)은 절대값으로 플로팅하여 1사분면에 표시 (방향 무관 비교 가능)
+    x_data_roof_abs = np.abs(x_data_roof)
+    y_data_shear_abs = np.abs(y_data_shear)
     
     num_stories = params['num_stories']
     story_height = params['story_height']
@@ -90,11 +94,11 @@ def animate_and_plot_pushover(df_curve, df_disp, perf_points, params, model_node
     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(19, 14), gridspec_kw={'width_ratios': [1.2, 1], 'height_ratios': [1, 1]})
     fig.suptitle(f"{analysis_name} Pushover Analysis ({direction}-dir)", fontsize=16, y=0.97)
 
-    # 3-1. 축 1: 푸쉬오버 곡선
-    max_x_lim = max(x_data_roof) * 1.05 if max(x_data_roof) > 0 else 0.1
-    max_y_lim = max(y_data_shear) * 1.05 if max(y_data_shear) > 0 else 1.0
+    # 3-1. 축 1: 푸쉬오버 곡선 (절대값 사용)
+    max_x_lim = max(x_data_roof_abs) * 1.05 if max(x_data_roof_abs) > 0 else 0.1
+    max_y_lim = max(y_data_shear_abs) * 1.05 if max(y_data_shear_abs) > 0 else 1.0
     ax1.set_xlim(0, max_x_lim); ax1.set_ylim(0, max_y_lim)
-    ax1.set_xlabel('Roof Displacement (m)'); ax1.set_ylabel('Base Shear (kN)'); ax1.grid(True)
+    ax1.set_xlabel('Roof Displacement (m) [Abs]'); ax1.set_ylabel('Base Shear (kN) [Abs]'); ax1.grid(True)
     line, = ax1.plot([], [], 'b-', lw=2, label='Pushover Curve') 
     point, = ax1.plot([], [], 'bo', markersize=8) 
     yield_point_artist, = ax1.plot([], [], 'go', markersize=10, label='Approx. Yield')
@@ -103,12 +107,15 @@ def animate_and_plot_pushover(df_curve, df_disp, perf_points, params, model_node
     failure_marker_artist, = ax1.plot([], [], 'X', color='darkred', markersize=14, label='1st Material Failure', zorder=10)
     ax1.legend(loc='lower right')
 
-    # 3-2. 축 2: 입면 변형도
-    max_disp_for_plot = max_x_lim * 1.2 
-    ax2.set_xlim(-max_disp_for_plot * 0.1, max_disp_for_plot)
+    # 3-2. 축 2: 입면 변형도 (실제 변위, 대칭 축 설정)
+    max_disp_abs = max(x_data_roof_abs)
+    limit_disp = max_disp_abs * 1.2 if max_disp_abs > 0 else 1.0
+    ax2.set_xlim(-limit_disp, limit_disp) # 대칭 설정
     ax2.set_ylim(0, building_y_coords[-1] * 1.2 if building_y_coords else 1.0)
     ax2.set_xlabel('Lateral Displacement (m)'); ax2.set_ylabel('Height (m)')
     ax2.set_title('Building Deformation'); ax2.grid(True)
+    # 중심선 표시
+    ax2.axvline(0, color='k', linestyle='--', alpha=0.3)
     structure_line, = ax2.plot([], [], 'r-o', lw=3, markersize=8)
     time_text_ax2 = ax2.text(0.05, 0.95, '', transform=ax2.transAxes, va='top')
     
@@ -145,6 +152,7 @@ def animate_and_plot_pushover(df_curve, df_disp, perf_points, params, model_node
     hinge_cp_plot_ax3, = ax3.plot([], [], **mkr_cp, linestyle='None', zorder=10)
 
     # 3-4. 축 4: 층간 변형각
+    # 층간변형각은 항상 양수로 표현하는 것이 일반적
     ax4.set_ylim(ax2.get_ylim()); ax4.set_xlim(0, 5) # 5% drift limit
     ax4.set_title('Inter-story Drift Ratio'); ax4.set_xlabel('Drift Ratio (%)'); ax4.set_ylabel('Height (m)'); ax4.grid(True)
     drift_profile_line, = ax4.plot([], [], 'g-s', lw=2, markersize=8, label='Current Drift')
@@ -175,8 +183,9 @@ def animate_and_plot_pushover(df_curve, df_disp, perf_points, params, model_node
             
         text_info = f'Disp: {x_data_roof[idx]:.4f} m\nShear: {y_data_shear[idx]:.0f} kN'
         
-        line.set_data(x_data_roof[:idx+1], y_data_shear[:idx+1]) 
-        point.set_data([x_data_roof[idx]], [y_data_shear[idx]])
+        # [수정] ax1에는 절대값 플로팅
+        line.set_data(x_data_roof_abs[:idx+1], y_data_shear_abs[:idx+1]) 
+        point.set_data([x_data_roof_abs[idx]], [y_data_shear_abs[idx]])
         
         current_disps = [0.0] + list(df_disp.iloc[idx, 1:].values)
         structure_line.set_data(current_disps, building_y_coords) 
@@ -245,17 +254,19 @@ def animate_and_plot_pushover(df_curve, df_disp, perf_points, params, model_node
         hinge_ls_plot_ax3.set_data(*zip(*ls_coords) if ls_coords else ([],[]))
         hinge_cp_plot_ax3.set_data(*zip(*cp_coords) if cp_coords else ([],[]))
 
-        drifts = [(current_disps[i+1] - current_disps[i]) / story_height * 100 for i in range(num_stories)]
+        # [수정] 층간 변형각 절대값으로 표시
+        drifts = [abs(current_disps[i+1] - current_disps[i]) / story_height * 100 for i in range(num_stories)]
         drift_profile_line.set_data(drifts, story_mid_heights)
 
-        if perf_points.get('yield_disp', 0) > 0 and x_data_roof[idx] >= perf_points['yield_disp']:
+        # [수정] 주요 이벤트 마커 절대값 좌표 사용
+        if perf_points.get('yield_disp', 0) > 0 and x_data_roof_abs[idx] >= perf_points['yield_disp']:
             yield_point_artist.set_data([perf_points['yield_disp']], [perf_points.get('yield_shear', 0) / 1000])
-        if perf_points.get('peak_disp', 0) > 0 and x_data_roof[idx] >= perf_points['peak_disp']:
+        if perf_points.get('peak_disp', 0) > 0 and x_data_roof_abs[idx] >= perf_points['peak_disp']:
             peak_point_artist.set_data([perf_points['peak_disp']], [perf_points['peak_shear'] / 1000])
-        if perf_points.get('collapse_disp') is not None and x_data_roof[idx] >= perf_points['collapse_disp']:
+        if perf_points.get('collapse_disp') is not None and x_data_roof_abs[idx] >= perf_points['collapse_disp']:
             collapse_line_artist.set_data([perf_points['collapse_disp'], perf_points['collapse_disp']], [0, max_y_lim])
         
-        if first_failure_event and x_data_roof[idx] >= first_failure_event['roof_disp']:
+        if first_failure_event and x_data_roof_abs[idx] >= first_failure_event['roof_disp']:
             if not failure_marker_artist.get_xdata(): # 마커가 한번만 그려지도록
                 failure_marker_artist.set_data([first_failure_event['roof_disp']], [first_failure_event['base_shear'] / 1000])
                 ax1.text(first_failure_event['roof_disp'], first_failure_event['base_shear'] / 1000, 

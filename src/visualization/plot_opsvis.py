@@ -45,60 +45,95 @@ def plot_with_opsvis(params):
         print(f"---! Error plotting opsvis 3D wireframe model: {e}")
         plt.close('all') 
 
-    # --- 2. 파이버 단면 플로팅 (기둥: 101, 보: 102) ---
+    # --- 2. 파이버 단면 플로팅 (모든 그룹 및 위치별 생성) ---
     try:
-        # [수정] 그룹화된 파라미터에서 대표 단면 크기를 가져옴
-        col_dims = params['col_props_by_group'][0]['exterior']
-        beam_dims = params['beam_props_by_group'][0]['exterior']
-        col_width = col_dims[0]; col_depth = col_dims[1]
-        beam_width = beam_dims[0]; beam_depth = beam_dims[1]
+        # 공통 철근 정보
+        cover = params['cover']
+        As = params['rebar_Area']
         
-        # [수정] params 딕셔너리에서 철근 개수 가져오기
-        cover = params['cover']; As = params['rebar_Area']
+        # 기본값 설정 (params에 없을 경우 대비)
         num_bars_x = params.get('num_bars_x', 3)
         num_bars_z = params.get('num_bars_z', 3)
         num_bars_top = params.get('num_bars_top', 4)
         num_bars_bot = params.get('num_bars_bot', 4)
-
-        core_fib_y = 10; core_fib_z = 10; cover_layers = 1
-        total_fib_y = core_fib_y + (2 * cover_layers); total_fib_z = core_fib_z + (2 * cover_layers)
-        y_core = col_depth/2.0 - cover; z_core = col_width/2.0 - cover
         
-        # [수정] 기둥 단면 철근 개수를 변수(num_bars_x, num_bars_z)로 수정
-        # 참고: 현재 layer 정의는 각 코어 경계에 철근을 배치하는 방식입니다.
-        col_section_list = [
-            ['section', 'Fiber', 101, '-torsion', 4],
-            ['patch', 'rect', 1, total_fib_y, total_fib_z, -col_depth/2.0, -col_width/2.0, col_depth/2.0, col_width/2.0],
-            ['patch', 'rect', 2, core_fib_y, core_fib_z, -y_core, -z_core, y_core, z_core],
-            ['layer', 'straight', 3, num_bars_x, As, -y_core, -z_core, -y_core, z_core], # Left
-            ['layer', 'straight', 3, num_bars_x, As, y_core, -z_core, y_core, z_core],   # Right
-            ['layer', 'straight', 3, num_bars_z, As, -y_core, z_core, y_core, z_core],   # Top
-            ['layer', 'straight', 3, num_bars_z, As, -y_core, -z_core, y_core, -z_core]  # Bottom
-        ]
-        
-        y_core_b = beam_depth/2.0 - cover; z_core_b = beam_width/2.0 - cover
-        
-        # [수정] 보 단면 철근 개수를 변수(num_bars_top, num_bars_bot)로 수정
-        beam_section_list = [
-            ['section', 'Fiber', 102, '-torsion', 4],
-            ['patch', 'rect', 1, total_fib_y, total_fib_z, -beam_depth/2.0, -beam_width/2.0, beam_depth/2.0, beam_width/2.0],
-            ['patch', 'rect', 2, core_fib_y, core_fib_z, -y_core_b, -z_core_b, y_core_b, z_core_b],
-            ['layer', 'straight', 3, num_bars_top, As, y_core_b, -z_core_b, y_core_b, z_core_b],
-            ['layer', 'straight', 3, num_bars_bot, As, -y_core_b, -z_core_b, -y_core_b, z_core_b]
-        ]
+        # 색상 설정
         matcolor = ['w', 'lightgrey', 'gold', 'r', 'w'] 
-        col_section_path = output_dir / f"{analysis_name}_opsvis_sec101_col.png"
-        ovs.plot_fiber_section(col_section_list, matcolor=matcolor) 
-        plt.axis('equal')
-        plt.savefig(str(col_section_path), dpi=150, bbox_inches='tight') 
-        plt.clf() 
-        print(f"Column Fiber Section (101) saved to: {col_section_path}")
-        beam_section_path = output_dir / f"{analysis_name}_opsvis_sec102_beam.png"
-        ovs.plot_fiber_section(beam_section_list, matcolor=matcolor)
-        plt.axis('equal')
-        plt.savefig(str(beam_section_path), dpi=150, bbox_inches='tight')
-        plt.clf() 
-        print(f"Beam Fiber Section (102) saved to: {beam_section_path}")
+
+        # --- 기둥 단면 생성 ---
+        col_groups = params.get('col_props_by_group', {})
+        for grp_idx, props in col_groups.items():
+            for loc in ['exterior', 'interior']:
+                if loc not in props: continue
+                
+                dims = props[loc] # (width, depth) or similar
+                col_width = dims[0]
+                col_depth = dims[1]
+                
+                core_fib_y = 10; core_fib_z = 10; cover_layers = 1
+                total_fib_y = core_fib_y + (2 * cover_layers)
+                total_fib_z = core_fib_z + (2 * cover_layers)
+                y_core = col_depth/2.0 - cover
+                z_core = col_width/2.0 - cover
+                
+                # 단면 리스트 구성
+                sec_list = [
+                    ['section', 'Fiber', 101, '-torsion', 4], # Tag는 시각화용 임의값
+                    ['patch', 'rect', 1, total_fib_y, total_fib_z, -col_depth/2.0, -col_width/2.0, col_depth/2.0, col_width/2.0],
+                    ['patch', 'rect', 2, core_fib_y, core_fib_z, -y_core, -z_core, y_core, z_core],
+                    ['layer', 'straight', 3, num_bars_x, As, -y_core, -z_core, -y_core, z_core], # Left
+                    ['layer', 'straight', 3, num_bars_x, As, y_core, -z_core, y_core, z_core],   # Right
+                    ['layer', 'straight', 3, num_bars_z, As, -y_core, z_core, y_core, z_core],   # Top
+                    ['layer', 'straight', 3, num_bars_z, As, -y_core, -z_core, y_core, -z_core]  # Bottom
+                ]
+                
+                # 파일명 예: ..._opsvis_sec_Col_Group0_Exterior.png
+                filename = f"{analysis_name}_opsvis_sec_Col_Group{grp_idx}_{loc.capitalize()}.png"
+                filepath = output_dir / filename
+                
+                ovs.plot_fiber_section(sec_list, matcolor=matcolor)
+                plt.axis('equal')
+                # 제목 추가 (선택사항)
+                plt.title(f"Col Group {grp_idx} ({loc.capitalize()})\n{col_width:.2f}m x {col_depth:.2f}m")
+                plt.savefig(str(filepath), dpi=100, bbox_inches='tight')
+                plt.clf()
+                print(f"Saved Section: {filename}")
+
+        # --- 보 단면 생성 ---
+        beam_groups = params.get('beam_props_by_group', {})
+        for grp_idx, props in beam_groups.items():
+            for loc in ['exterior', 'interior']:
+                if loc not in props: continue
+                
+                dims = props[loc]
+                beam_width = dims[0]
+                beam_depth = dims[1]
+                
+                core_fib_y = 10; core_fib_z = 10; cover_layers = 1
+                total_fib_y = core_fib_y + (2 * cover_layers)
+                total_fib_z = core_fib_z + (2 * cover_layers)
+                
+                y_core_b = beam_depth/2.0 - cover
+                z_core_b = beam_width/2.0 - cover
+                
+                sec_list = [
+                    ['section', 'Fiber', 102, '-torsion', 4],
+                    ['patch', 'rect', 1, total_fib_y, total_fib_z, -beam_depth/2.0, -beam_width/2.0, beam_depth/2.0, beam_width/2.0],
+                    ['patch', 'rect', 2, core_fib_y, core_fib_z, -y_core_b, -z_core_b, y_core_b, z_core_b],
+                    ['layer', 'straight', 3, num_bars_top, As, y_core_b, -z_core_b, y_core_b, z_core_b],
+                    ['layer', 'straight', 3, num_bars_bot, As, -y_core_b, -z_core_b, -y_core_b, z_core_b]
+                ]
+                
+                filename = f"{analysis_name}_opsvis_sec_Beam_Group{grp_idx}_{loc.capitalize()}.png"
+                filepath = output_dir / filename
+                
+                ovs.plot_fiber_section(sec_list, matcolor=matcolor)
+                plt.axis('equal')
+                plt.title(f"Beam Group {grp_idx} ({loc.capitalize()})\n{beam_width:.2f}m x {beam_depth:.2f}m")
+                plt.savefig(str(filepath), dpi=100, bbox_inches='tight')
+                plt.clf()
+                print(f"Saved Section: {filename}")
+                
     except Exception as e:
         print(f"---! Error plotting opsvis fiber sections: {e}")
     
