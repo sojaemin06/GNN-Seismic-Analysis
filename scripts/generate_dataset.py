@@ -133,7 +133,9 @@ def generate_random_design_parameters(config_path):
     params = {
         'analysis_name': 'Generated_RC_Moment_Frame',
         'output_dir': Path('results_temp/Generated_RC_Moment_Frame'), # 임시 결과 저장 디렉토리
-        'target_drift': 0.04, 'num_steps': 20, 'num_modes': 20,
+        'target_drift': 0.04, 
+        'num_steps': config['analysis_parameters']['num_steps'], # [MODIFIED] Use value from config
+        'num_modes': 20,
         'num_int_pts': 5, 'plot_z_line_index': 0, 'plot_x_line_index': 0,
         'num_bays_x': num_bays_x, 'num_bays_z': num_bays_z, 'num_stories': num_stories,
         'bay_width_x': random.choice(geo_params['bay_width_x_m_range']),
@@ -198,27 +200,23 @@ def run_and_export_graph_data(sample_id, dataset_config_path, output_data_dir):
             # Model Build
             model_nodes_info = build_model(params_for_run)
             
-            # [NEW] Calculate Mass Properties
-            total_mass = 0.0
+            # [NEW] Calculate Mass Properties (for Node Features)
             node_mass_map = {}
             for node_tag in model_nodes_info['all_node_coords']:
-                # Assume mass is lumped at nodes. Check X-dir mass (dof 1)
-                # Note: OpenSees nodeMass returns tuple (mx, my, mz, ...) depending on ndm/ndf
-                # For 3D frame (ndm=3, ndf=6), we check index 0.
                 mass_vals = ops.nodeMass(node_tag)
                 if mass_vals:
-                    m = mass_vals[0] # X-direction mass
-                    total_mass += m
-                    node_mass_map[node_tag] = m
+                    node_mass_map[node_tag] = mass_vals[0]
                 else:
                     node_mass_map[node_tag] = 0.0
             
-            params_for_run['total_weight'] = total_mass * 9.81
             params_for_run['node_mass_map'] = node_mass_map
             
-            # Gravity Analysis
-            if not run_gravity_analysis(params_for_run):
+            # Gravity Analysis (Get accurate weight from reactions)
+            ok_gravity, total_reaction_y = run_gravity_analysis(params_for_run, model_nodes_info)
+            if not ok_gravity:
                 return False, f"Gravity_Fail_{direction}_{sign_str}"
+            
+            params_for_run['total_weight'] = abs(total_reaction_y) # Use Reaction Y as Total Weight
             
             # Eigen Analysis
             ok_eigen, modal_props = run_eigen_analysis(params_for_run, model_nodes_info, silent=True)
@@ -310,4 +308,4 @@ def main_generate_dataset(num_samples: int = 100):
 
 if __name__ == '__main__':
     # 기본 100개 샘플 생성. 필요시 argparse로 개수 조절 가능
-    main_generate_dataset(num_samples=10) # 테스트를 위해 일단 10개로 설정
+    main_generate_dataset(num_samples=100) # 테스트를 위해 일단 10개로 설정

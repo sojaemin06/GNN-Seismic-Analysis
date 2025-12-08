@@ -3,8 +3,8 @@ import math
 import numpy as np
 
 # ### 3. 모듈형 함수: 중력 해석 ###
-def run_gravity_analysis(params):
-    """중력 하중을 재하하고 정적 해석을 수행합니다."""
+def run_gravity_analysis(params, model_nodes_info=None):
+    """중력 하중을 재하하고 정적 해석을 수행합니다. (성공 여부, 총 반력 Y 반환)"""
     print("\nRunning Gravity Analysis...")
     ops.timeSeries('Linear', 1); ops.pattern('Plain', 1, 1)
     num_bays_x, num_bays_z = params['num_bays_x'], params['num_bays_z']
@@ -17,12 +17,32 @@ def run_gravity_analysis(params):
         for node_tag in slave_nodes: ops.load(node_tag, 0.0, nodal_gravity_load, 0.0, 0.0, 0.0, 0.0)
     ops.constraints('Transformation'); ops.numberer('RCM'); ops.system('UmfPack')
     ops.test('NormDispIncr', 1.0e-6, 2000, 0); ops.algorithm('KrylovNewton'); ops.integrator('LoadControl', 0.1); ops.analysis('Static')
+    
     ok = ops.analyze(10)
     if ok != 0:
         print("Gravity analysis failed. Trying Newton algorithm...")
         ops.algorithm('Newton'); ok = ops.analyze(10)
-        if ok != 0: print("Gravity analysis failed completely."); return False
-    print("Gravity analysis complete."); ops.loadConst('-time', 0.0); return True
+        if ok != 0: print("Gravity analysis failed completely."); return False, 0.0
+    
+    # Calculate Total Base Reaction (Y-dir)
+    ops.reactions()
+    total_reaction_y = 0.0
+    
+    # Use base nodes from info if available, else infer (1 to num_base_nodes)
+    base_nodes = []
+    if model_nodes_info and 'base_nodes' in model_nodes_info:
+        base_nodes = model_nodes_info['base_nodes']
+    else:
+        base_nodes = range(1, num_nodes_x * num_nodes_z + 1)
+
+    for node in base_nodes:
+        # Node reaction: 1=X, 2=Y, 3=Z...
+        rxn = ops.nodeReaction(node)
+        if rxn: total_reaction_y += rxn[1] # Add Y reaction (index 1)
+        
+    print(f"Gravity analysis complete. Total Base Reaction Y: {total_reaction_y:.2f} N")
+    ops.loadConst('-time', 0.0)
+    return True, total_reaction_y
 
 # ### 4. 모듈형 함수: 고유치 해석 ###
 def run_eigen_analysis(params, model_nodes_info, silent=False):

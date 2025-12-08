@@ -6,11 +6,12 @@
 ## 2. 입력 명세 (Input Specifications)
 
 ### 2.1. 노드 특성 (Node Features)
-- **차원:** 5
-- **구성:** `[x, y, z, is_base, mass]`
+- **차원:** 6
+- **구성:** `[x, y, z, is_base, mass_norm, node_degree_norm]`
     - `x, y, z`: 절점 좌표 (m 단위). 건물의 상대적 비례(Aspect Ratio)를 학습.
     - `is_base`: 지지점 여부 (1.0 or 0.0). 경계 조건 정보.
-    - `mass`: 절점 질량 (ton 단위, 정규화됨). 지진 하중($F=ma$)의 크기를 결정하는 핵심 인자.
+    - `mass_norm`: 절점 질량 (ton 단위, 정규화됨). 지진 하중($F=ma$)의 크기를 결정하는 핵심 인자.
+    - `node_degree_norm`: 노드에 연결된 부재 수 (정규화됨). 노드의 연결성 및 중요도를 GNN에 명시적으로 제공.
 
 ### 2.2. 엣지 특성 (Edge Features)
 - **차원:** 12 (기존 10 + 2 파생 변수)

@@ -24,14 +24,22 @@ def extract_graph_data(model_nodes_info, params, direction):
     
     # Normalization Constants
     MASS_SCALE = 100000.0 # 100 ton
+    DEGREE_SCALE = 10.0 # Heuristic, max degree expected around 10 for typical frames
+
+    # Calculate Node Degrees
+    node_degree_map = {node_id: 0 for node_id in node_ids}
+    for ele_tag, (node_i, node_j) in model_nodes_info['all_line_elements'].items():
+        node_degree_map[node_i] += 1
+        node_degree_map[node_j] += 1
 
     for node_id in node_ids:
         x, y, z = node_coords_dict[node_id]
         is_base = 1.0 if np.isclose(y, 0) else 0.0
         mass = node_mass_map.get(node_id, 0.0)
+        node_degree = node_degree_map.get(node_id, 0)
         
-        # [Feature 0-4]: x, y, z, is_base, mass_norm
-        node_features_list.append([x, y, z, is_base, mass / MASS_SCALE])
+        # [Feature 0-5]: x, y, z, is_base, mass_norm, node_degree_norm
+        node_features_list.append([x, y, z, is_base, mass / MASS_SCALE, node_degree / DEGREE_SCALE])
 
     x_tensor = torch.tensor(node_features_list, dtype=torch.float)
 
