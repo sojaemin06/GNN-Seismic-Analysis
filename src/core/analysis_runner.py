@@ -15,7 +15,7 @@ def run_gravity_analysis(params):
     for i in range(1, params['num_stories'] + 1):
         slave_nodes = [(i * num_nodes_x * num_nodes_z) + (j * num_nodes_x) + k + 1 for j in range(num_nodes_z) for k in range(num_nodes_x)]
         for node_tag in slave_nodes: ops.load(node_tag, 0.0, nodal_gravity_load, 0.0, 0.0, 0.0, 0.0)
-    ops.constraints('Transformation'); ops.numberer('RCM'); ops.system('BandGeneral')
+    ops.constraints('Transformation'); ops.numberer('RCM'); ops.system('UmfPack')
     ops.test('NormDispIncr', 1.0e-6, 2000, 0); ops.algorithm('KrylovNewton'); ops.integrator('LoadControl', 0.1); ops.analysis('Static')
     ok = ops.analyze(10)
     if ok != 0:
@@ -131,7 +131,7 @@ def run_pushover_analysis(params, model_nodes_info, modal_props, direction='X'):
     # --- 4. 변위 제어 해석 실행 ---
     target_disp = (params['story_height'] * params['num_stories']) * params['target_drift']
     ops.integrator('DisplacementControl', control_node, dof, target_disp / params['num_steps'])
-    ops.numberer('RCM'); ops.system('BandGeneral'); ops.test('NormDispIncr', 1.0e-5, 1000, 0); ops.algorithm('NewtonLineSearch'); ops.analysis('Static')
+    ops.numberer('RCM'); ops.system('UmfPack'); ops.test('NormDispIncr', 1.0e-4, 2000, 0); ops.algorithm('NewtonLineSearch'); ops.analysis('Static')
     
     print(f"Running Pushover to {target_disp:.4f} m ({params['num_steps']} steps)...")
     for i in range(params['num_steps']):

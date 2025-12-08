@@ -543,9 +543,9 @@ def generate_html_report(results_root_dir):
     cases = [('X', 'pos', '+'), ('X', 'neg', '-'), ('Z', 'pos', '+'), ('Z', 'neg', '-')]
     
     for direction, sign_str, sign in cases:
-        # [NEW] 음방향 결과 플립 설정 (반대로 그려지는 현상 수정)
-        flip_style = 'style="transform: scaleX(-1);"' if sign_str == 'neg' else ''
-        flip_note = '<p class="note">※ 음방향(-) 해석 결과는 시각적 편의를 위해 좌우 반전(Flip)하여 표시하였습니다.</p>' if sign_str == 'neg' else ''
+        # [수정] 음방향 결과 플립 설정 제거 (텍스트 반전 문제 등 방지)
+        flip_style = ''
+        flip_note = ''
 
         target_dir_name = f"Run_Single_RC_Moment_Frame_Sampled_{direction}_{sign_str}"
         # target_dir = next((d for d in result_dirs if target_dir_name in d.name), None) # 단순 매칭

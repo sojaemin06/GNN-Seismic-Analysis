@@ -6,55 +6,61 @@
 ## 2. 입력 명세 (Input Specifications)
 
 ### 2.1. 노드 특성 (Node Features)
-- **차원:** 4
-- **구성:** `[x, y, z, is_base]`
-    - `x, y, z`: 절점 좌표 (m 단위)
-    - `is_base`: 지지점 여부 (y ≈ 0 이면 1.0, 아니면 0.0)
+- **차원:** 5
+- **구성:** `[x, y, z, is_base, mass]`
+    - `x, y, z`: 절점 좌표 (m 단위). 건물의 상대적 비례(Aspect Ratio)를 학습.
+    - `is_base`: 지지점 여부 (1.0 or 0.0). 경계 조건 정보.
+    - `mass`: 절점 질량 (ton 단위, 정규화됨). 지진 하중($F=ma$)의 크기를 결정하는 핵심 인자.
 
 ### 2.2. 엣지 특성 (Edge Features)
-- **차원:** 10
-- **구성:** `[is_col, is_beam, width, depth, fc, Fy, cover, rebar_Area, num_bars_1, num_bars_2]`
-    - `is_col`: 기둥이면 1.0
-    - `is_beam`: 보이면 1.0
-    - `width`, `depth`: 단면 치수 (m)
-    - `fc`: 콘크리트 압축강도 (MPa, 스케일링됨)
-    - `Fy`: 철근 항복강도 (MPa, 스케일링됨)
-    - `cover`: 피복 두께 (m)
-    - `rebar_Area`: 개별 철근 단면적
-    - `num_bars_1`: (기둥) X방향 철근 수 / (보) 상부 철근 수
-    - `num_bars_2`: (기둥) Z방향 철근 수 / (보) 하부 철근 수
+- **차원:** 12 (기존 10 + 2 파생 변수)
+- **구성:**
+  `[is_col, is_beam, width, depth, fc_norm, Fy_norm, cover, rebar_Area_norm, num_bars_1, num_bars_2, I_norm, rho]`
+    - **기본 기하 정보:** `is_col`, `is_beam`, `width`, `depth`
+    - **재료 정보 (정규화 필수):**
+        - `fc_norm`: $f_c / 50$ (MPa 단위 기준)
+        - `Fy_norm`: $F_y / 600$ (MPa 단위 기준)
+    - **철근 상세:** `cover`, `num_bars_1`, `num_bars_2`
+    - **공학적 파생 변수 (Engineered Features):**
+        - `rebar_Area_norm`: $Area_{bar} \times 1000$ (단위 스케일 보정)
+        - `I_norm`: 단면 2차 모멘트 ($bh^3/12$), $10^{-4} m^4$ 단위로 스케일링. 강성(Stiffness) 정보 제공.
+        - `rho` ($\rho$): 철근비 ($A_s / A_g$). 부재의 연성 및 항복 강도 결정 인자.
 
 ### 2.3. 전역 특성 (Global Features)
-- **차원:** 2
-- **구성:** `[is_X_dir, is_Z_dir]`
-    - `[1.0, 0.0]`: X방향 해석
-    - `[0.0, 1.0]`: Z방향 해석
-    - **용도:** 모델의 예측 조건을 결정하는 핵심 정보.
+- **차원:** 4
+- **구성:** One-hot Vector for Direction
+    - `[1, 0, 0, 0]`: X+ (Positive X)
+    - `[0, 1, 0, 0]`: X- (Negative X)
+    - `[0, 0, 1, 0]`: Z+ (Positive Z)
+    - `[0, 0, 0, 1]`: Z- (Negative Z)
 
 ## 3. 출력 명세 (Output Specifications)
 
 ### 3.1. 타겟 (Target)
-- **유형:** 푸쉬오버 곡선 (밑면 전단력)
+- **유형:** 정규화된 푸쉬오버 곡선 (Normalized Pushover Curve)
 - **차원:** 100 (고정된 보간 포인트)
-- **값:** 지붕층 변위가 0부터 최대 변위까지 선형 증가할 때의 대응되는 밑면 전단력 값 (표준화됨).
+- **Y값 (예측 대상):** **밑면 전단력 계수 (Base Shear Coefficient)**
+    - $V_{coeff} = \frac{V_{base}}{W_{total}}$
+    - $V_{base}$: 밑면 전단력 (N)
+    - $W_{total}$: 구조물 전체 유효 중량 (N)
+    - **범위:** 대략 0.1 ~ 0.5 (건물 규모에 상관없이 안정적인 범위 유지)
+- **X값 (입력 조건):** 지붕층 변위비 (Roof Drift Ratio)
+    - $\delta_{drift} = \frac{\delta_{roof}}{H_{total}}$
+    - $H_{total}$: 건물 전체 높이
+    - **범위:** 0.0 ~ 0.03 (3% 변형률까지)
 
 ## 4. 모델 아키텍처 (제안)
 
 ### 4.1. 백본 (Backbone)
-- **유형:** 메시지 패싱 신경망 (GAT, GCN 등)
-- **깊이:** 3~5 레이어 (전체 구조 거동 포착)
-- **은닉층 차원:** 64 또는 128
+- **유형:** GATv2Conv (Graph Attention Network v2)
+- **Edge Feature 활용:** 엣지의 강성($I$)과 강도($\rho$, $F_y$) 정보가 Attention 가중치 산정에 직접 반영되도록 설계.
 
 ### 4.2. 조건부 메커니즘 (Conditioning)
-- 전역 특성(해석 방향)을 반영하는 방법:
-- **전략:** 노드 임베딩을 Global Pooling한 후, 전역 특성 벡터와 결합(Concatenate)하여 최종 MLP(Decoder)에 입력.
+- **전략:** Global Pooling된 그래프 임베딩 벡터에 4차원 방향 벡터(One-hot)를 Concatenate.
 
 ### 4.3. Readout (Decoder)
-- **구조:** `[Pool(Node_Embeddings), Global_Feature]` -> MLP -> Output
-- **MLP 구성:**
-    - 입력: 풀링된 그래프 특징 + 방향 벡터
-    - 은닉층: 2~3개 (ReLU 활성화)
-    - 출력: 100 (푸쉬오버 곡선 예측값)
+- **구조:** `[Graph_Embedding + Direction_Vector]` -> MLP -> `Output(100)`
+
 
 ## 5. 학습 전략
 

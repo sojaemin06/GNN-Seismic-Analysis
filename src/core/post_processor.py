@@ -4,7 +4,7 @@ import traceback
 from pathlib import Path
 
 # ### 6. 모듈형 함수: 결과 처리 및 CSV 저장 ###
-def process_pushover_results(params, model_nodes, dominant_mode, direction='X'):
+def process_pushover_results(params, model_nodes, dominant_mode, direction='X', skip_plots=False):
     """
     Pushover 해석으로 생성된 .out 파일들을 읽어 CSV로 변환 및 저장합니다.
     """

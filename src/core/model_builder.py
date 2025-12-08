@@ -7,6 +7,7 @@ def build_model(params):
     """
     [수정됨] 그룹화된 부재 속성을 사용하여 OpenSeesPy 모델을 구축합니다.
     [수정] forceBeamColumn 요소를 사용하여 모델 안정성을 향상시킵니다.
+    [수정] 부재별 철근 상세 정보(개수, 면적)를 params['col_props_by_group'] 등에서 직접 읽어오도록 개선되었습니다.
     """
     ops.wipe()
     ops.model('basic', '-ndm', 3, '-ndf', 6)
@@ -117,15 +118,35 @@ def build_model(params):
     num_story_groups = math.ceil(num_stories / 2)
     for group_idx in range(num_story_groups):
         for col_type in ['exterior', 'interior']:
-            dims = params['col_props_by_group'][group_idx][col_type]
+            # [수정] params 구조 변경 반영: dims 뿐만 아니라 rebar 정보도 가져옴
+            prop_data = params['col_props_by_group'][group_idx][col_type]
+            dims = prop_data['dims']
+            rebar_info = prop_data['rebar']
+            
+            rebar_area = rebar_info['area']
+            nz = rebar_info['nz'] # Number of bars along Z-axis face (Width direction)
+            nx = rebar_info['nx'] # Number of bars along X-axis face (Depth direction)
+
             ops.section('Fiber', sec_tag_counter, '-torsion', 4)
             y_core = dims[1]/2.0 - params['cover']; z_core = dims[0]/2.0 - params['cover']
             ops.patch('rect', 1, 12, 12, -dims[1]/2.0, -dims[0]/2.0, dims[1]/2.0, dims[0]/2.0)
             ops.patch('rect', 2, 10, 10, -y_core, -z_core, y_core, z_core)
-            ops.layer('straight', 3, params['num_bars_z'], params['rebar_Area'], -y_core, z_core, y_core, z_core)
-            ops.layer('straight', 3, params['num_bars_z'], params['rebar_Area'], -y_core, -z_core, y_core, -z_core)
-            ops.layer('straight', 3, params['num_bars_x'] - 2, params['rebar_Area'], -y_core, -z_core+params['cover'], -y_core, z_core-params['cover'])
-            ops.layer('straight', 3, params['num_bars_x'] - 2, params['rebar_Area'], y_core, -z_core+params['cover'], y_core, z_core-params['cover'])
+            
+            # [수정] 동적 철근 개수 적용
+            # nz: bars along Z face (top/bottom in local coords?) -> along Width
+            ops.layer('straight', 3, nz, rebar_area, -y_core, z_core, y_core, z_core)
+            ops.layer('straight', 3, nz, rebar_area, -y_core, -z_core, y_core, -z_core)
+            # nx: bars along X face (left/right in local coords) -> along Depth
+            # Corner bars are already covered by nz layers? 'straight' includes endpoints.
+            # To avoid duplicate corner bars: use intermediate points or adjust count.
+            # Usually: 
+            # Layer 1 (Top): [o o o o]
+            # Layer 2 (Bot): [o o o o]
+            # Layer 3 (Left): [  o o  ] (excluding corners)
+            # Layer 4 (Right): [  o o  ] (excluding corners)
+            if nx > 2:
+                ops.layer('straight', 3, nx - 2, rebar_area, -y_core, -z_core+params['cover'], -y_core, z_core-params['cover'])
+                ops.layer('straight', 3, nx - 2, rebar_area, y_core, -z_core+params['cover'], y_core, z_core-params['cover'])
             
             ops.beamIntegration('Lobatto', integ_tag_counter, sec_tag_counter, num_int_pts)
             integration_tags[(group_idx, f'col_{col_type}')] = integ_tag_counter
@@ -133,13 +154,22 @@ def build_model(params):
             integ_tag_counter += 1
 
         for beam_type in ['exterior', 'interior']:
-            dims = params['beam_props_by_group'][group_idx][beam_type]
+            prop_data = params['beam_props_by_group'][group_idx][beam_type]
+            dims = prop_data['dims']
+            rebar_info = prop_data['rebar']
+            
+            rebar_area = rebar_info['area']
+            num_top = rebar_info['top']
+            num_bot = rebar_info['bot']
+
             ops.section('Fiber', sec_tag_counter, '-torsion', 4)
             y_core_b = dims[1]/2.0 - params['cover']; z_core_b = dims[0]/2.0 - params['cover']
             ops.patch('rect', 1, 12, 12, -dims[1]/2.0, -dims[0]/2.0, dims[1]/2.0, dims[0]/2.0)
             ops.patch('rect', 2, 10, 10, -y_core_b, -z_core_b, y_core_b, z_core_b)
-            ops.layer('straight', 3, params['num_bars_top'], params['rebar_Area'], -z_core_b, y_core_b, z_core_b, y_core_b)
-            ops.layer('straight', 3, params['num_bars_bot'], params['rebar_Area'], -z_core_b, -y_core_b, z_core_b, -y_core_b)
+            
+            # [수정] 동적 철근 개수 적용
+            ops.layer('straight', 3, num_top, rebar_area, -z_core_b, y_core_b, z_core_b, y_core_b)
+            ops.layer('straight', 3, num_bot, rebar_area, -z_core_b, -y_core_b, z_core_b, -y_core_b)
             
             ops.beamIntegration('Lobatto', integ_tag_counter, sec_tag_counter, num_int_pts)
             integration_tags[(group_idx, f'beam_{beam_type}')] = integ_tag_counter
@@ -172,7 +202,9 @@ def build_model(params):
             for k in range(num_nodes_x):
                 is_edge_col = (j == 0 or j == num_nodes_z - 1) or (k == 0 or k == num_nodes_x - 1)
                 col_type = 'exterior' if is_edge_col else 'interior'
-                dims = params['col_props_by_group'][story_group_idx][col_type]
+                # [수정] dims 접근 방식 변경
+                dims = params['col_props_by_group'][story_group_idx][col_type]['dims']
+                
                 col_integ_tag = integration_tags[(story_group_idx, f'col_{col_type}')]
                 node_i, node_j = node_tags[(i, j, k)], node_tags[(i+1, j, k)]
                 ops.element('forceBeamColumn', ele_tag, node_i, node_j, 1, col_integ_tag)
@@ -185,7 +217,8 @@ def build_model(params):
                     is_ext_beam = (j == 0 or j == num_nodes_z - 1)
                     beam_type = 'exterior' if is_ext_beam else 'interior'
                     beam_integ_tag = integration_tags[(story_group_idx, f'beam_{beam_type}')]
-                    dims = params['beam_props_by_group'][story_group_idx][beam_type]
+                    dims = params['beam_props_by_group'][story_group_idx][beam_type]['dims']
+                    
                     node_i, node_j = node_tags[(i+1, j, k)], node_tags[(i+1, j, k+1)]
                     ops.element('forceBeamColumn', ele_tag, node_i, node_j, 2, beam_integ_tag)
                     model_info['all_line_elements'][ele_tag] = (node_i, node_j)
@@ -198,7 +231,8 @@ def build_model(params):
                     is_ext_beam = (k == 0 or k == num_nodes_x - 1)
                     beam_type = 'exterior' if is_ext_beam else 'interior'
                     beam_integ_tag = integration_tags[(story_group_idx, f'beam_{beam_type}')]
-                    dims = params['beam_props_by_group'][story_group_idx][beam_type]
+                    dims = params['beam_props_by_group'][story_group_idx][beam_type]['dims']
+                    
                     node_i, node_j = node_tags[(i+1, j, k)], node_tags[(i+1, j+1, k)]
                     ops.element('forceBeamColumn', ele_tag, node_i, node_j, 3, beam_integ_tag)
                     model_info['all_line_elements'][ele_tag] = (node_i, node_j)

@@ -55,22 +55,92 @@ def get_single_run_parameters():
     fc_factor = get_fc_expected_strength_factor(fc_nominal_mpa)
     fy_factor = get_fy_expected_strength_factor(fy_nominal_mpa)
 
+    # [NEW] 철근 직경 선택 (기둥/보 분리)
+    col_rebar_pool = member_params.get('rebar_col_list', [{'name': 'D25', 'area': 0.000507}])
+    beam_rebar_pool = member_params.get('rebar_beam_list', [{'name': 'D22', 'area': 0.000387}])
+    
+    selected_col_rebar = random.choice(col_rebar_pool)
+    selected_beam_rebar = random.choice(beam_rebar_pool)
+    
+    # [NEW] 목표 철근비 선택 (Random Range)
+    # 기둥: 1.0% ~ 2.5%
+    target_rho_col = random.uniform(0.010, 0.025)
+    # 보: 0.6% ~ 1.5%
+    target_rho_beam = random.uniform(0.006, 0.015)
+    
+    print(f"Selected Rebar -> Col: {selected_col_rebar['name']} (Rho: {target_rho_col*100:.1f}%), Beam: {selected_beam_rebar['name']} (Rho: {target_rho_beam*100:.1f}%)")
+
     col_props_by_group = {}
     beam_props_by_group = {}
     last_ext_col_dim, last_int_col_dim = (0, 0), (0, 0)
     num_story_groups = math.ceil(num_stories / 2)
 
     for group_idx in reversed(range(num_story_groups)):
+        # --- Column Section ---
         ext_col_choices = [tuple(d) for d in member_params['col_section_tiers_m']['exterior'] if d[0] >= last_ext_col_dim[0]]
         int_col_choices_all = [tuple(d) for d in member_params['col_section_tiers_m']['interior'] if d[0] >= last_int_col_dim[0]]
+        
         current_ext_col_dim = random.choice(ext_col_choices if ext_col_choices else member_params['col_section_tiers_m']['exterior'])
         int_col_choices_filtered = [d for d in int_col_choices_all if d[0] >= current_ext_col_dim[0]]
         current_int_col_dim = random.choice(int_col_choices_filtered if int_col_choices_filtered else int_col_choices_all)
-        col_props_by_group[group_idx] = {'exterior': current_ext_col_dim, 'interior': current_int_col_dim}
+        
+        # [Logic] Calculate Number of Bars for Columns
+        def calc_col_bars(dims, rho, bar_area):
+            Ag = dims[0] * dims[1]
+            As_req = Ag * rho
+            num_total = max(4, round(As_req / bar_area))
+            if num_total % 2 != 0: num_total += 1 # 짝수 보정
+            # 4면 배근 가정: num_bars_x + num_bars_z = num_total/2 + 2 ??
+            # 단순화: 각 면에 고르게 배치. 
+            # num_bars_z means bars along z-axis (top/bottom face). Actually bars along width.
+            # Let's assume equal spacing on all sides.
+            n_side = max(2, int(num_total / 4) + 1)
+            # Total = (n_side * 2) + ((n_side-2) * 2) = 2*n_side + 2*n_side - 4 = 4*n_side - 4
+            return n_side, n_side # num_bars_z, num_bars_x (number of bars along the face)
+
+        ext_nz, ext_nx = calc_col_bars(current_ext_col_dim, target_rho_col, selected_col_rebar['area'])
+        int_nz, int_nx = calc_col_bars(current_int_col_dim, target_rho_col, selected_col_rebar['area'])
+
+        col_props_by_group[group_idx] = {
+            'exterior': {
+                'dims': current_ext_col_dim, 
+                'rebar': {'area': selected_col_rebar['area'], 'nz': ext_nz, 'nx': ext_nx}
+            },
+            'interior': {
+                'dims': current_int_col_dim, 
+                'rebar': {'area': selected_col_rebar['area'], 'nz': int_nz, 'nx': int_nx}
+            }
+        }
         last_ext_col_dim, last_int_col_dim = current_ext_col_dim, current_int_col_dim
+
+        # --- Beam Section ---
+        ext_beam_dim = tuple(random.choice(member_params['beam_section_tiers_m']['exterior']))
+        int_beam_dim = tuple(random.choice(member_params['beam_section_tiers_m']['interior']))
+        
+        # [Logic] Calculate Number of Bars for Beams (Top/Bot)
+        def calc_beam_bars(dims, rho, bar_area):
+            Ag = dims[0] * dims[1]
+            As_req = Ag * rho
+            # 보 철근은 상/하부 배근. As_req를 상하부 합계로 볼 것인가?
+            # 보통 rho는 인장 철근비 기준. 상부/하부 각각 rho 적용? -> 너무 많음.
+            # As_total = As_req. Top/Bot 각각 절반씩?
+            # 실무: As_top ≈ 0.6~0.7 * As_total, As_bot ≈ 0.3~0.5 * As_total (단부는 상부 인장)
+            # 단순화: 상부/하부 동일하게 As_req / 2 씩 배근 (대칭 배근 가정)
+            num_one_side = max(2, round((As_req / 2) / bar_area))
+            return num_one_side, num_one_side # top, bot
+
+        ext_top, ext_bot = calc_beam_bars(ext_beam_dim, target_rho_beam, selected_beam_rebar['area'])
+        int_top, int_bot = calc_beam_bars(int_beam_dim, target_rho_beam, selected_beam_rebar['area'])
+
         beam_props_by_group[group_idx] = {
-            'exterior': tuple(random.choice(member_params['beam_section_tiers_m']['exterior'])),
-            'interior': tuple(random.choice(member_params['beam_section_tiers_m']['interior']))
+            'exterior': {
+                'dims': ext_beam_dim,
+                'rebar': {'area': selected_beam_rebar['area'], 'top': ext_top, 'bot': ext_bot}
+            },
+            'interior': {
+                'dims': int_beam_dim,
+                'rebar': {'area': selected_beam_rebar['area'], 'top': int_top, 'bot': int_bot}
+            }
         }
     
     params = {
@@ -84,8 +154,9 @@ def get_single_run_parameters():
         'story_height': 3.5,
         'seismic_zone_factor': 0.11, 'hazard_factor': 1.0, 'soil_type': 'S4',
         'skip_post_processing': False, 'g': 9.81, 'dead_load_pa': 5000, 'live_load_pa': 2500,
-        'cover': 0.04, 'rebar_Area': 0.000507, 'num_bars_z': 5, 'num_bars_x': 5,
-        'num_bars_top': 3, 'num_bars_bot': 3, 'E_steel': 200e9,
+        'cover': 0.04, 
+        # [Deleted] Global fixed rebar params
+        'E_steel': 200e9,
         'f_ck_nominal': -fc_nominal_mpa * 1e6, 'fc': -fc_nominal_mpa * 1e6 * fc_factor,
         'Fy_nominal': fy_nominal_mpa * 1e6, 'Fy': fy_nominal_mpa * 1e6 * fy_factor,
         'col_props_by_group': col_props_by_group,
