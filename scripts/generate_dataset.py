@@ -2,13 +2,14 @@ import math
 import sys
 import os
 import json
+import time # [NEW]
 import pandas as pd
 from pathlib import Path 
 import random
 import torch
 from tqdm import tqdm
 import openseespy.opensees as ops
-import traceback # 추가
+import traceback
 
 # --- 프로젝트 루트 경로를 sys.path에 추가 ---
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -159,6 +160,7 @@ def run_and_export_graph_data(sample_id, dataset_config_path, output_data_dir):
     """
     단일 해석을 수행하고 결과를 GNN 그래프 데이터로 변환하여 저장합니다.
     """
+    start_time = time.time() # [NEW] Start timer
     params = generate_random_design_parameters(dataset_config_path)
     
     # 임시 결과 저장 디렉토리를 각 샘플별로 고유하게 설정
@@ -169,7 +171,7 @@ def run_and_export_graph_data(sample_id, dataset_config_path, output_data_dir):
         params['output_dir'].mkdir(parents=True, exist_ok=True)
     except Exception as e:
         print(f"Error creating temporary directory {params['output_dir']}: {e}")
-        return False, f"Dir_Error: {e}"
+        return False, f"Dir_Error: {e}", time.time() - start_time
 
     graph_data_list = []
     directions = ['X', 'Z']
@@ -189,7 +191,7 @@ def run_and_export_graph_data(sample_id, dataset_config_path, output_data_dir):
             try:
                 params_for_run['output_dir'].mkdir(parents=True, exist_ok=True)
             except Exception as e:
-                return False, f"SubDir_Error: {e}"
+                return False, f"SubDir_Error: {e}", time.time() - start_time
 
             # target_drift 설정
             if sign_str == 'neg':
@@ -214,38 +216,38 @@ def run_and_export_graph_data(sample_id, dataset_config_path, output_data_dir):
             # Gravity Analysis (Get accurate weight from reactions)
             ok_gravity, total_reaction_y = run_gravity_analysis(params_for_run, model_nodes_info)
             if not ok_gravity:
-                return False, f"Gravity_Fail_{direction}_{sign_str}"
+                return False, f"Gravity_Fail_{direction}_{sign_str}", time.time() - start_time
             
             params_for_run['total_weight'] = abs(total_reaction_y) # Use Reaction Y as Total Weight
             
             # Eigen Analysis
             ok_eigen, modal_props = run_eigen_analysis(params_for_run, model_nodes_info, silent=True)
             if not ok_eigen:
-                return False, f"Eigen_Fail_{direction}_{sign_str}"
+                return False, f"Eigen_Fail_{direction}_{sign_str}", time.time() - start_time
 
             # Pushover Analysis
             ok_pushover, dominant_mode = run_pushover_analysis(params_for_run, model_nodes_info, modal_props, direction=direction)
             if not ok_pushover:
-                return False, f"Pushover_Fail_{direction}_{sign_str}"
+                return False, f"Pushover_Fail_{direction}_{sign_str}", time.time() - start_time
             
             # Post-processing (Results CSV to DataFrame)
             df_curve, _, _, _ = process_pushover_results(params_for_run, model_nodes_info, dominant_mode, direction=direction, skip_plots=True)
             
             if df_curve is None or df_curve.empty or len(df_curve) < 2:
-                return False, f"PostProcess_Fail_{direction}_{sign_str}"
+                return False, f"PostProcess_Fail_{direction}_{sign_str}", time.time() - start_time
 
             # Graph Data Extraction
             graph_data = extract_graph_data(model_nodes_info, params_for_run, direction) # params_for_run 전달
             
             if graph_data is None: # None이 반환되면 실패 처리
-                return False, f"GraphData_Extraction_Fail_{direction}_{sign_str}"
+                return False, f"GraphData_Extraction_Fail_{direction}_{sign_str}", time.time() - start_time
             
             # Target (Pushover Curve) Processing
             max_roof_disp = abs(params_for_run['target_drift'] * params_for_run['story_height'] * params_for_run['num_stories'])
             processed_curve = process_pushover_curve(df_curve, max_roof_disp, total_weight=params_for_run.get('total_weight'))
             
             if processed_curve is None:
-                return False, f"CurveProcess_Fail_{direction}_{sign_str}"
+                return False, f"CurveProcess_Fail_{direction}_{sign_str}", time.time() - start_time
             
             graph_data.y = processed_curve.unsqueeze(0) # [1, 100] 형태로 저장
 
@@ -254,7 +256,7 @@ def run_and_export_graph_data(sample_id, dataset_config_path, output_data_dir):
             torch.save(graph_data, output_file_path)
             graph_data_list.append(graph_data)
             
-    return True, "Success"
+    return True, "Success", time.time() - start_time
 
 
 def main_generate_dataset(num_samples: int = 100):
@@ -267,45 +269,90 @@ def main_generate_dataset(num_samples: int = 100):
 
     success_count = 0
     failure_count = 0
+    skipped_count = 0 # [NEW] Skipped count
+
+    # [NEW] Find the starting sample ID to avoid overwriting
+    existing_files = list(processed_data_dir.glob('data_*.pt'))
+    existing_sample_ids = []
+    for f in existing_files:
+        try:
+            # Extract sample_id from filename like "data_X_X_pos.pt"
+            parts = f.stem.split('_') # e.g., ['data', '0', 'X', 'pos']
+            if len(parts) >= 2 and parts[1].isdigit():
+                existing_sample_ids.append(int(parts[1]))
+        except ValueError:
+            continue
     
-    with open(log_file_path, 'w', encoding='utf-8') as log_f, \
-         open(error_log_file_path, 'w', encoding='utf-8') as error_f:
+    start_sample_id = 0
+    if existing_sample_ids:
+        start_sample_id = max(existing_sample_ids) + 1
+    
+    print(f"Starting data generation from Sample ID: {start_sample_id}")
+    
+    session_start_time = time.time() # [NEW] Session timer
+
+    with open(log_file_path, 'a', encoding='utf-8') as log_f, \
+         open(error_log_file_path, 'a', encoding='utf-8') as error_f: # Append mode for logs
         
-        log_f.write(f"Dataset Generation Started: {pd.Timestamp.now()}\n")
-        log_f.write(f"Total samples to generate: {num_samples}\n\n")
+        log_f.write(f"\n--- Dataset Generation Session Started: {pd.Timestamp.now()} ---\n")
+        log_f.write(f"Attempting to generate {num_samples} NEW samples (starting from ID {start_sample_id}).\n\n")
         
         for i in tqdm(range(num_samples), desc="Generating Dataset"):
+            current_sample_id = start_sample_id + i
+            
+            # [NEW] Check if sample already exists (all 4 directions)
+            all_directions_exist = True
+            for direction in ['X', 'Z']:
+                for sign_str in ['pos', 'neg']:
+                    output_file_path = processed_data_dir / f"data_{current_sample_id}_{direction}_{sign_str}.pt"
+                    if not output_file_path.exists():
+                        all_directions_exist = False
+                        break
+                if not all_directions_exist:
+                    break
+            
+            if all_directions_exist:
+                skipped_count += 1
+                log_f.write(f"Sample {current_sample_id}: SKIPPED (already exists)\n")
+                continue # Skip to next sample
+            
             try:
-                success, message = run_and_export_graph_data(i, dataset_config_path, processed_data_dir)
+                success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
                 if success:
                     success_count += 1
-                    log_f.write(f"Sample {i}: SUCCESS - {message}\n")
+                    log_f.write(f"Sample {current_sample_id}: SUCCESS - {message} (Time: {elapsed:.2f}s)\n")
                 else:
                     failure_count += 1
-                    error_f.write(f"Sample {i}: FAILED - {message}\n")
-                    log_f.write(f"Sample {i}: FAILED - {message}\n") # 로그에도 실패 기록
+                    error_f.write(f"Sample {current_sample_id}: FAILED - {message} (Time: {elapsed:.2f}s)\n")
+                    log_f.write(f"Sample {current_sample_id}: FAILED - {message} (Time: {elapsed:.2f}s)\n")
             except Exception:
                 failure_count += 1
-                error_detail = traceback.format_exc() # 상세 트레이스백 기록
-                error_f.write(f"Sample {i}: UNCAUGHT EXCEPTION:\n{error_detail}\n")
-                log_f.write(f"Sample {i}: UNCAUGHT EXCEPTION - See error log for details.\n")
+                error_detail = traceback.format_exc()
+                error_f.write(f"Sample {current_sample_id}: UNCAUGHT EXCEPTION:\n{error_detail}\n")
+                log_f.write(f"Sample {current_sample_id}: UNCAUGHT EXCEPTION - See error log for details.\n")
             finally:
                 # 임시 결과 디렉토리 삭제
-                temp_dir_name = f"temp_results_{os.getpid()}_{i}"
+                temp_dir_name = f"temp_results_{os.getpid()}_{current_sample_id}"
                 temp_dir_path = Path(os.getcwd()) / temp_dir_name
                 if temp_dir_path.exists():
                     import shutil
                     shutil.rmtree(temp_dir_path)
         
-        log_f.write(f"\nDataset Generation Finished: {pd.Timestamp.now()}\n")
-        log_f.write(f"Total Attempts: {num_samples}\n")
-        log_f.write(f"Successful Samples: {success_count}\n")
-        log_f.write(f"Failed Samples: {failure_count}\n")
+        session_end_time = time.time()
+        total_duration = session_end_time - session_start_time
         
-    print(f"\nDataset generation completed. Successful: {success_count}, Failed: {failure_count}")
+        log_f.write(f"\n--- Dataset Generation Session Finished: {pd.Timestamp.now()} ---\n")
+        log_f.write(f"Total Attempts (New Samples): {num_samples}\n")
+        log_f.write(f"Successful New Samples: {success_count}\n")
+        log_f.write(f"Failed New Samples: {failure_count}\n")
+        log_f.write(f"Skipped Existing Samples: {skipped_count}\n")
+        log_f.write(f"Total Session Duration: {total_duration:.2f}s ({total_duration/60:.2f} min)\n")
+        
+    print(f"\nDataset generation completed. Successful New: {success_count}, Failed: {failure_count}, Skipped: {skipped_count}")
+    print(f"Total Duration: {time.time() - session_start_time:.2f}s")
     print(f"Logs: {log_file_path}")
     print(f"Errors: {error_log_file_path}")
 
 if __name__ == '__main__':
     # 기본 100개 샘플 생성. 필요시 argparse로 개수 조절 가능
-    main_generate_dataset(num_samples=100) # 테스트를 위해 일단 10개로 설정
+    main_generate_dataset(num_samples=99) # 테스트를 위해 1개로 설정

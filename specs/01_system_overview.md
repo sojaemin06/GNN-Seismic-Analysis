@@ -51,3 +51,21 @@ GNN_Project/
 │   └── visualization/   # 시각화
 └── specs/               # 프로젝트 명세서 (Spec Kit)
 ```
+
+## 6. 개발 및 실험 환경 (Environment)
+
+### 6.1. 하드웨어 (권장 사양)
+- **CPU:** **Intel Core i7 / AMD Ryzen 7 이상** (다중 코어 필수)
+    - *이유:* OpenSees 데이터 생성은 CPU 연산 집약적입니다. 코어 수가 많을수록 병렬 처리(추후 도입 시) 효율이 비례하여 증가합니다.
+- **RAM:** **32GB 이상**
+    - *이유:* 대량의 구조 해석 결과(텍스트/바이너리)를 메모리에 로드하고 GNN 데이터셋을 구축하기 위해 넉넉한 메모리가 필요합니다.
+- **GPU:** **NVIDIA RTX 3060 (VRAM 12GB) 이상**
+    - *이유:* GNN 학습 속도 가속화를 위해 CUDA 지원 GPU가 필요합니다. (CPU 학습 시 속도 저하 발생)
+- **Storage:** **SSD 500GB 이상**
+    - *이유:* 수천 개의 작은 데이터 파일(.pt, .out)을 빠르게 읽고 쓰기 위해 고속 I/O가 필수적입니다.
+
+### 6.2. 소프트웨어
+- **OS:** Windows 10/11 (64bit) 또는 Linux (Ubuntu 20.04+)
+- **Python:** 3.10 이상
+- **Core Libs:** `openseespy` (3.5+), `torch` (2.0+), `torch_geometric`
+

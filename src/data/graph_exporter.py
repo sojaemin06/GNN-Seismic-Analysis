@@ -119,21 +119,27 @@ def extract_graph_data(model_nodes_info, params, direction):
             # Rebar Details
             feat[7] = rebar['area'] * AREA_SCALE
             
-            # Engineered Features
-            Ag = b * h
-            I_val = (b * h**3) / 12.0
+            # [Feature 0-11]: Existing features
+            feat[0] = 1.0 if feat[0] == 1.0 else 0.0 # Clean up float
+            feat[1] = 1.0 if feat[1] == 1.0 else 0.0
             
-            if feat[0] == 1.0: # Column
-                feat[8] = rebar['nx']
-                feat[9] = rebar['nz']
-                total_steel = rebar['area'] * (2*(rebar['nx'] + rebar['nz']) - 4)
-            else: # Beam
-                feat[8] = rebar['top']
-                feat[9] = rebar['bot']
-                total_steel = rebar['area'] * (rebar['top'] + rebar['bot'])
+            # --- [NEW] Material Shape Parameters (Global for the building) ---
+            # Extract from params (OpenSees material props)
+            # Default to unconfined properties as baseline for conservative estimate
+            conc_props = params.get('concrete02_unconfined', {})
+            steel_props = params.get('steel02', {})
             
-            feat[10] = I_val * I_SCALE
-            feat[11] = total_steel / Ag # rho (Reinforcement Ratio)
+            # Feature 12: Concrete epsc0 (Strain at max stress) - Scale ~ 0.002
+            feat.append(conc_props.get('epsc0', 0.002) * 1000.0) 
+            
+            # Feature 13: Concrete fpcu_ratio (Residual strength ratio) - Scale ~ 0.1
+            feat.append(conc_props.get('fpcu_ratio', 0.1) * 10.0)
+            
+            # Feature 14: Concrete epsU_ratio (Ultimate strain ratio) - Scale ~ 1.5
+            feat.append(conc_props.get('epsU_ratio', 1.5))
+            
+            # Feature 15: Steel Hardening Ratio (b) - Scale ~ 0.01
+            feat.append(steel_props.get('b', 0.01) * 100.0)
             
             is_valid = True
 
@@ -149,7 +155,7 @@ def extract_graph_data(model_nodes_info, params, direction):
         return None
 
     edge_index = torch.tensor(edge_list, dtype=torch.long).t().contiguous()
-    edge_attr = torch.tensor(edge_attr_list, dtype=torch.float)
+    edge_attr = torch.tensor(edge_attr_list, dtype=torch.float) # [Num_Edges, 16]
 
     # ---------------------------------------------------------
     # 3. Global Features (dim=4, One-hot)
