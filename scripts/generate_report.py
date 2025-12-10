@@ -634,6 +634,15 @@ def generate_html_report(results_root_dir):
                         <div class="detail-row"><span class="detail-label">유효 주기/감쇠:</span> <span class="detail-value">{target_summary['effective_period_s']:.3f}s / {target_summary['effective_damping_pct']:.1f}%</span></div>
                         <div class="detail-row"><span class="detail-label">계산 층간변위비:</span> <span class="detail-value">{target_summary['calculated_drift_pct']:.3f} %</span></div>
                         <div class="detail-row"><span class="detail-label">허용 층간변위비:</span> <span class="detail-value">{target_summary['allowed_drift_pct']:.3f} %</span></div>
+                        
+                        <!-- [NEW] 붕괴 부재 수 표시 -->
+                        <div class="detail-row">
+                            <span class="detail-label">붕괴 부재 수:</span> 
+                            <span class="detail-value {'fail-text' if target_summary.get('collapsed_member_count', 0) > 0 else ''}">
+                                {target_summary.get('collapsed_member_count', 0)} 개
+                            </span>
+                        </div>
+
                         <div class="detail-row" style="border-bottom: none; margin-top: 10px;">
                             <span class="detail-label">최종 판정:</span> 
                             <span class="detail-value {status_class}">{target_summary['status']}</span>

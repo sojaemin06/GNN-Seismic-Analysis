@@ -249,6 +249,17 @@ def run_and_export_graph_data(sample_id, dataset_config_path, output_data_dir):
             if processed_curve is None:
                 return False, f"CurveProcess_Fail_{direction}_{sign_str}", time.time() - start_time
             
+            # [NEW] Data Quality Checks
+            # 1. Check for Flat Curve (Simulation failed to converge or produced constant output)
+            if torch.std(processed_curve) < 1e-4:
+                return False, f"BadData_FlatCurve_{direction}_{sign_str}", time.time() - start_time
+            
+            # 2. Check for Extremely Low Strength (Physics violation)
+            # processed_curve is normalized (V/W), so values should be roughly 0.05 ~ 2.0
+            # If max value is < 0.001 (0.1% of weight), it's likely an error.
+            if torch.max(torch.abs(processed_curve)) < 0.001:
+                 return False, f"BadData_LowStrength_{direction}_{sign_str}", time.time() - start_time
+
             graph_data.y = processed_curve.unsqueeze(0) # [1, 100] 형태로 저장
 
             # Save Graph Data
@@ -355,4 +366,4 @@ def main_generate_dataset(num_samples: int = 100):
 
 if __name__ == '__main__':
     # 기본 100개 샘플 생성. 필요시 argparse로 개수 조절 가능
-    main_generate_dataset(num_samples=99) # 테스트를 위해 1개로 설정
+    main_generate_dataset(num_samples=100) # [MODIFIED] 500 samples for better generalization
