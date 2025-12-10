@@ -129,24 +129,64 @@ def build_model(params):
 
             ops.section('Fiber', sec_tag_counter, '-torsion', 4)
             y_core = dims[1]/2.0 - params['cover']; z_core = dims[0]/2.0 - params['cover']
-            ops.patch('rect', 1, 12, 12, -dims[1]/2.0, -dims[0]/2.0, dims[1]/2.0, dims[0]/2.0)
+            y_total = dims[1]/2.0; z_total = dims[0]/2.0
+            
+            # [Refactored] Define Core and Cover patches separately to avoid overlap
+            
+            # 1. Confined Core (Material 2)
+            # Center rectangle
             ops.patch('rect', 2, 10, 10, -y_core, -z_core, y_core, z_core)
             
-            # [수정] 동적 철근 개수 적용
-            # nz: bars along Z face (top/bottom in local coords?) -> along Width
-            ops.layer('straight', 3, nz, rebar_area, -y_core, z_core, y_core, z_core)
-            ops.layer('straight', 3, nz, rebar_area, -y_core, -z_core, y_core, -z_core)
-            # nx: bars along X face (left/right in local coords) -> along Depth
-            # Corner bars are already covered by nz layers? 'straight' includes endpoints.
-            # To avoid duplicate corner bars: use intermediate points or adjust count.
-            # Usually: 
-            # Layer 1 (Top): [o o o o]
-            # Layer 2 (Bot): [o o o o]
-            # Layer 3 (Left): [  o o  ] (excluding corners)
-            # Layer 4 (Right): [  o o  ] (excluding corners)
+            # 2. Unconfined Cover (Material 1) - 4 Patches
+            # Top Cover (+Y side)
+            ops.patch('rect', 1, 10, 2, y_core, -z_total, y_total, z_total)
+            # Bottom Cover (-Y side)
+            ops.patch('rect', 1, 10, 2, -y_total, -z_total, -y_core, z_total)
+            # Left Side Cover (-Z side, between Top/Bot)
+            ops.patch('rect', 1, 2, 8, -y_core, -z_total, y_core, -z_core)
+            # Right Side Cover (+Z side, between Top/Bot)
+            ops.patch('rect', 1, 2, 8, -y_core, z_core, y_core, z_total)
+            
+            # [Refactored 2.0] Rebar Placement with strict axis definitions
+            # Y-axis = Depth (Height in section), Z-axis = Width
+            # nz = Number of bars along Z-axis (Width)
+            # nx = Number of bars along Y-axis (Depth)
+            
+            # 1. Corner Bars (4 corners)
+            # Top-Right (+Y, +Z)
+            ops.layer('straight', 3, 1, rebar_area, y_core, z_core, y_core, z_core)
+            # Top-Left (+Y, -Z)
+            ops.layer('straight', 3, 1, rebar_area, y_core, -z_core, y_core, -z_core)
+            # Bot-Right (-Y, +Z)
+            ops.layer('straight', 3, 1, rebar_area, -y_core, z_core, -y_core, z_core)
+            # Bot-Left (-Y, -Z)
+            ops.layer('straight', 3, 1, rebar_area, -y_core, -z_core, -y_core, -z_core)
+            
+            # 2. Intermediate Bars along Z-axis (Top & Bottom faces)
+            # These vary in Z, fixed Y. Using 'nz' count.
+            if nz > 2:
+                # Spacing along Z
+                s_z = (2.0 * z_core) / (nz - 1)
+                z_start = -z_core + s_z # Start from left (negative Z) + spacing
+                z_end = z_core - s_z    # End at right (positive Z) - spacing
+                
+                # Top Face (+Y)
+                ops.layer('straight', 3, nz - 2, rebar_area, y_core, z_start, y_core, z_end)
+                # Bottom Face (-Y)
+                ops.layer('straight', 3, nz - 2, rebar_area, -y_core, z_start, -y_core, z_end)
+
+            # 3. Intermediate Bars along Y-axis (Left & Right faces)
+            # These vary in Y, fixed Z. Using 'nx' count.
             if nx > 2:
-                ops.layer('straight', 3, nx - 2, rebar_area, -y_core, -z_core+params['cover'], -y_core, z_core-params['cover'])
-                ops.layer('straight', 3, nx - 2, rebar_area, y_core, -z_core+params['cover'], y_core, z_core-params['cover'])
+                # Spacing along Y
+                s_y = (2.0 * y_core) / (nx - 1)
+                y_start = -y_core + s_y # Start from bottom (negative Y) + spacing
+                y_end = y_core - s_y    # End at top (positive Y) - spacing
+                
+                # Right Face (+Z)
+                ops.layer('straight', 3, nx - 2, rebar_area, y_start, z_core, y_end, z_core)
+                # Left Face (-Z)
+                ops.layer('straight', 3, nx - 2, rebar_area, y_start, -z_core, y_end, -z_core)
             
             ops.beamIntegration('Lobatto', integ_tag_counter, sec_tag_counter, num_int_pts)
             integration_tags[(group_idx, f'col_{col_type}')] = integ_tag_counter
@@ -164,8 +204,22 @@ def build_model(params):
 
             ops.section('Fiber', sec_tag_counter, '-torsion', 4)
             y_core_b = dims[1]/2.0 - params['cover']; z_core_b = dims[0]/2.0 - params['cover']
-            ops.patch('rect', 1, 12, 12, -dims[1]/2.0, -dims[0]/2.0, dims[1]/2.0, dims[0]/2.0)
+            y_total_b = dims[1]/2.0; z_total_b = dims[0]/2.0
+
+            # [Refactored] Beam Core and Cover patches
+            
+            # 1. Confined Core (Material 2)
             ops.patch('rect', 2, 10, 10, -y_core_b, -z_core_b, y_core_b, z_core_b)
+            
+            # 2. Unconfined Cover (Material 1) - 4 Patches
+            # Top Cover (+Y)
+            ops.patch('rect', 1, 10, 2, y_core_b, -z_total_b, y_total_b, z_total_b)
+            # Bottom Cover (-Y)
+            ops.patch('rect', 1, 10, 2, -y_total_b, -z_total_b, -y_core_b, z_total_b)
+            # Left Side Cover (-Z)
+            ops.patch('rect', 1, 2, 8, -y_core_b, -z_total_b, y_core_b, -z_core_b)
+            # Right Side Cover (+Z)
+            ops.patch('rect', 1, 2, 8, -y_core_b, z_core_b, y_core_b, z_total_b)
             
             # [수정] 동적 철근 개수 적용
             ops.layer('straight', 3, num_top, rebar_area, -z_core_b, y_core_b, z_core_b, y_core_b)

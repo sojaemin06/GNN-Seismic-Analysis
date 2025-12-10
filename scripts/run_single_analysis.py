@@ -19,10 +19,11 @@ from src.core.analysis_runner import run_gravity_analysis, run_eigen_analysis, r
 from src.core.post_processor import process_pushover_results, calculate_performance_points
 from src.core.verification import verify_nsp_applicability
 from src.visualization.plot_matplotlib import plot_model_matplotlib
-from src.visualization.plot_opsvis import plot_with_opsvis
+# from src.visualization.plot_opsvis import plot_with_opsvis # [REMOVED]
 from src.visualization.plot_hinges import plot_plastic_damage_distribution
 from src.visualization.animate_results import animate_and_plot_pushover
 from src.visualization.plot_materials import plot_material_stress_strain
+from src.visualization.plot_section import plot_section_matplotlib # [NEW]
 
 # --- 헬퍼 함수 임포트 ---
 try:
@@ -191,7 +192,8 @@ def main(params, direction='X', sign='+'):
         # 플롯은 한 번만 그리면 됨 (양방향 모두 구조는 같음)
         # 하지만 파일명 중복 방지를 위해 여기서도 그림
         plot_model_matplotlib(params, model_nodes_info, direction)
-        plot_with_opsvis(params)
+        # plot_with_opsvis(params) # [REMOVED] Deprecated in favor of custom matplotlib plotter
+        plot_section_matplotlib(params, params['output_dir']) # [NEW] Clean Section Plots
         plot_material_stress_strain(params)
     
     if not run_gravity_analysis(params):

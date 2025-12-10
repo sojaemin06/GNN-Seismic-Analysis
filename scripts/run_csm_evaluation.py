@@ -210,19 +210,57 @@ def run_evaluation(results_dir: Path, config: dict):
         status = "PASS" if drift_ratio <= (design_params['target_drift_ratio'] * 100) else "FAIL"
         
         # [NEW] 1. 중력하중 저항능력 평가 (Stability Check)
-        # ... (기존 코드 유지)
+        # 성능점에서의 전단력이 최대 강도의 80% 미만으로 떨어졌는지 확인
+        # (간접적인 중력 저항 능력 상실 또는 불안정성 척도)
+        
+        # 성능점 지붕 변위에서의 베이스 전단력을 푸쉬오버 곡선에서 보간하여 가져옴
+        current_base_shear = np.interp(abs(roof_disp_actual), df_curve['Roof_Displacement_m'].abs(), df_curve['Base_Shear_N'].abs())
+        
         stability_ratio = current_base_shear / max_base_shear if max_base_shear > 0 else 0
+        stability_status = "OK" if stability_ratio >= 0.8 else "WARNING"
         
         if stability_ratio < 0.8:
              status = "FAIL (Instability)"
 
         # [NEW] 2. 붕괴 부재 판별 (Collapsed Members)
         collapsed_count = 0
-        # ... (기존 카운팅 로직 유지) ...
-        # 빔에 대해서도 동일 수행 (기존 코드 유지) ...
+        collapsed_members = [] # Not used in current logic, but kept for context.
+        
+        # 성능점 시점(Time) 찾기
+        target_time = np.interp(abs(roof_disp_actual), df_curve['Roof_Displacement_m'].abs(), df_curve['Pseudo_Time'])
+        
+        # 해당 Time에 가장 가까운 스텝 인덱스 찾기
+        step_idx = 0 # <-- 이 부분을 여기에 위치시킵니다.
+        if col_rot_data is not None:
+            times = col_rot_data[:, 0]
+            step_idx = (np.abs(times - target_time)).argmin()
+            
+            # 해당 스텝의 회전각 확인
+            # 데이터 구조: Time, Ele1_IP1_eps, Ele1_IP1_kz, Ele1_IP1_ky, ...
+            # process_pushover_results 로직 참고: 
+            # num_data_cols = total_cols - 1
+            # cols_per_ele = num_data_cols / num_eles
+            # 5개 IP 가정
+            
+            # 단순화를 위해 모든 kz, ky 컬럼을 순회하며 체크 (태그 매핑 없이 개수만 파악)
+            # 1번째 컬럼은 Time이므로 제외
+            all_vals = col_rot_data[step_idx, 1:]
+            # 3개씩 묶음 (eps, kz, ky)
+            num_components = len(all_vals) // 3
+            for i in range(num_components):
+                kz = all_vals[i*3 + 1]
+                ky = all_vals[i*3 + 2]
+                theta = (abs(kz) + abs(ky)) * 0.5 # Lp=0.5m 가정
+                if theta > ROT_CP:
+                    collapsed_count += 1
+                    # 상세 태그 추적은 복잡하므로 개수만 카운트 (필요시 개선)
+        
+        # 빔에 대해서도 동일 수행
         if beam_rot_data is not None:
              times_b = beam_rot_data[:, 0]
-             if step_idx < len(times_b): 
+             # step_idx가 col_rot_data가 없을 때 0으로 초기화되므로,
+             # beam_rot_data의 times_b 길이보다 크지 않도록 다시 체크
+             if step_idx < len(times_b): # 인덱스 유효성 체크
                  all_vals_b = beam_rot_data[step_idx, 1:]
                  num_components_b = len(all_vals_b) // 3
                  for i in range(num_components_b):

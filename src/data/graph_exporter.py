@@ -207,8 +207,8 @@ def process_pushover_curve(df_curve, max_roof_disp, num_points=100, total_weight
         norm_factor = total_weight
 
     standard_displacements = np.linspace(0, max_roof_disp, num_points)
-    original_displacements = df_curve['Roof_Displacement_m'].values
-    original_shears = df_curve['Base_Shear_N'].values
+    original_displacements = np.abs(df_curve['Roof_Displacement_m'].values)
+    original_shears = np.abs(df_curve['Base_Shear_N'].values)
     
     if not np.all(np.diff(original_displacements) >= 0):
         sort_indices = np.argsort(original_displacements)

@@ -1,0 +1,50 @@
+[
+    {
+        "objective_name": "Collapse Prevention",
+        "repetition_period": "2400년",
+        "direction": "Z",
+        "sign": "-",
+        "perf_point_Sd_m": 0.003,
+        "perf_point_Sa_g": 0.2053,
+        "effective_period_s": 0.244,
+        "effective_damping_pct": 5.0,
+        "calculated_drift_pct": 0.027,
+        "allowed_drift_pct": 3.0,
+        "status": "FAIL (Instability)",
+        "stability_ratio": 0.1,
+        "collapsed_member_count": 0,
+        "description": "건축물 성능수준: 붕괴방지 (구조요소: 붕괴방지) / 지진크기: 2400년 (MCE)"
+    },
+    {
+        "objective_name": "Life Safety",
+        "repetition_period": "1400년",
+        "direction": "Z",
+        "sign": "-",
+        "perf_point_Sd_m": 0.0024,
+        "perf_point_Sa_g": 0.1643,
+        "effective_period_s": 0.244,
+        "effective_damping_pct": 5.0,
+        "calculated_drift_pct": 0.022,
+        "allowed_drift_pct": 2.0,
+        "status": "FAIL (Instability)",
+        "stability_ratio": 0.08,
+        "collapsed_member_count": 0,
+        "description": "건축물 성능수준: 인명보호 (구조요소: 인명안전) / 지진크기: 1400년"
+    },
+    {
+        "objective_name": "Operational",
+        "repetition_period": "100년",
+        "direction": "Z",
+        "sign": "-",
+        "perf_point_Sd_m": 0.0009,
+        "perf_point_Sa_g": 0.0584,
+        "effective_period_s": 0.244,
+        "effective_damping_pct": 5.0,
+        "calculated_drift_pct": 0.008,
+        "allowed_drift_pct": 0.7,
+        "status": "FAIL (Instability)",
+        "stability_ratio": 0.03,
+        "collapsed_member_count": 0,
+        "description": "건축물 성능수준: 기능수행 (구조요소: 거주가능) / 재현주기 100년"
+    }
+]

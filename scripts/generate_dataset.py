@@ -366,4 +366,4 @@ def main_generate_dataset(num_samples: int = 100):
 
 if __name__ == '__main__':
     # 기본 100개 샘플 생성. 필요시 argparse로 개수 조절 가능
-    main_generate_dataset(num_samples=100) # [MODIFIED] 500 samples for better generalization
+    main_generate_dataset(num_samples=5) # [MODIFIED] 500 samples for better generalization
