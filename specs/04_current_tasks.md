@@ -12,9 +12,10 @@
 - [ ] **생성 시간 측정:** 로그 파싱을 통한 정확한 데이터 생성 비용($T_{gen}$) 산출
 
 ### Task 3: 모델 재학습 및 실험 검증 (Planned)
-- [ ] **평가 로직 고도화:**
-  - `run_csm_evaluation.py`: 붕괴 부재 수(Collapsed Count)를 최종 `PASS/FAIL` 판정에 반영.
-  - `generate_report.py`: 안정성 지표 및 붕괴 부재 정보를 포함한 상세 보고서 포맷 개선.
+- [x] **평가 로직 고도화:**
+  - `run_csm_evaluation.py`: 붕괴 부재 수(Collapsed Count)를 최종 `PASS/FAIL` 판정에 반영. (완료)
+  - `generate_report.py`: 안정성 지표 및 붕괴 부재 정보를 포함한 상세 보고서 포맷 개선. (완료)
+  - **130% 룰(NSP Validity) 검증 및 리포트 연동 구현.** (완료)
 - [ ] **확장성 실험 (Scalability Experiment):**
   - 데이터 수(N=100~500)에 따른 R2 및 총 소요 시간($T_{gen} + T_{train}$) 분석 (`scripts/run_data_scalability_experiment.py`)
 - [ ] **CSM 성능점 정확도 검증:**

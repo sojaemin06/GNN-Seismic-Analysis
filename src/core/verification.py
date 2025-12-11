@@ -69,9 +69,10 @@ def _run_rsa(modes_to_run, modal_props, floor_masses, get_sa_func, direction):
 
 # --- Main Verification Function ---
 
-def verify_nsp_applicability(params, model_nodes_info, modal_props):
+def verify_nsp_applicability(params, model_nodes_info, modal_props, silent=False):
     """[수정] 미리 계산된 modal_props를 사용하여 비선형 정적해석(NSP) 적용의 타당성을 검증합니다."""
-    print("\n--- 비선형 정적해석(Pushover) 적용 타당성 검증 시작 ---")
+    if not silent:
+        print("\n--- 비선형 정적해석(Pushover) 적용 타당성 검증 시작 ---")
     
     try:
         master_nodes, num_stories = model_nodes_info['master_nodes'], params['num_stories']
@@ -86,8 +87,9 @@ def verify_nsp_applicability(params, model_nodes_info, modal_props):
             if cmpr_x < 0.9: cmpr_x += prop['mpr_x']; modes_for_90p_x.append(prop['mode'])
             if cmpr_z < 0.9: cmpr_z += prop['mpr_z']; modes_for_90p_z.append(prop['mode'])
         
-        print(f"X-dir: {len(modes_for_90p_x)} modes for {cmpr_x*100:.1f}% mass participation.")
-        print(f"Z-dir: {len(modes_for_90p_z)} modes for {cmpr_z*100:.1f}% mass participation.")
+        if not silent:
+            print(f"X-dir: {len(modes_for_90p_x)} modes for {cmpr_x*100:.1f}% mass participation.")
+            print(f"Z-dir: {len(modes_for_90p_z)} modes for {cmpr_z*100:.1f}% mass participation.")
 
         shears_multi_x = _run_rsa(modes_for_90p_x, modal_props, floor_masses, get_sa, 'X')
         shears_multi_z = _run_rsa(modes_for_90p_z, modal_props, floor_masses, get_sa, 'Z')
@@ -99,29 +101,34 @@ def verify_nsp_applicability(params, model_nodes_info, modal_props):
         shears_dominant_z = _run_rsa([dominant_mode_z['mode']], modal_props, floor_masses, get_sa, 'Z')
 
         is_valid_x = True
-        print(f"\n[X-Direction Verification (Dominant Mode: {dominant_mode_x['mode']})]\nStory | V_multi (kN) | V_dominant (kN) | Ratio | Result")
+        if not silent:
+            print(f"\n[X-Direction Verification (Dominant Mode: {dominant_mode_x['mode']})]\nStory | V_multi (kN) | V_dominant (kN) | Ratio | Result")
         for i in range(num_stories):
             v_m, v_f = shears_multi_x[i]/1000, shears_dominant_x[i]/1000
             ratio = v_m / v_f if v_f > 1e-6 else 0
             result = 'OK' if ratio <= 1.3 else 'NG'
             if ratio > 1.3: is_valid_x = False
-            print(f"{i+1:^5} | {v_m:^12.2f} | {v_f:^15.2f} | {ratio:^5.2f} | {result:^6}")
+            if not silent:
+                print(f"{i+1:^5} | {v_m:^12.2f} | {v_f:^15.2f} | {ratio:^5.2f} | {result:^6}")
 
         is_valid_z = True
-        print(f"\n[Z-Direction Verification (Dominant Mode: {dominant_mode_z['mode']})]\nStory | V_multi (kN) | V_dominant (kN) | Ratio | Result")
+        if not silent:
+            print(f"\n[Z-Direction Verification (Dominant Mode: {dominant_mode_z['mode']})]\nStory | V_multi (kN) | V_dominant (kN) | Ratio | Result")
         for i in range(num_stories):
             v_m, v_f = shears_multi_z[i]/1000, shears_dominant_z[i]/1000
             ratio = v_m / v_f if v_f > 1e-6 else 0
             result = 'OK' if ratio <= 1.3 else 'NG'
             if ratio > 1.3: is_valid_z = False
-            print(f"{i+1:^5} | {v_m:^12.2f} | {v_f:^15.2f} | {ratio:^5.2f} | {result:^6}")
+            if not silent:
+                print(f"{i+1:^5} | {v_m:^12.2f} | {v_f:^15.2f} | {ratio:^5.2f} | {result:^6}")
 
         if not params.get('skip_post_processing', False):
             output_dir, name = params['output_dir'], params['analysis_name']
             _plot_shear_verification(shears_multi_x, shears_dominant_x, num_stories, 'X', output_dir / f"{name}_NSP_verification_plot_X.png")
             _plot_shear_verification(shears_multi_z, shears_dominant_z, num_stories, 'Z', output_dir / f"{name}_NSP_verification_plot_Z.png")
 
-        print("\n--- 타당성 검증 완료 ---")
+        if not silent:
+            print("\n--- 타당성 검증 완료 ---")
         return is_valid_x, is_valid_z
         
     except Exception as e:

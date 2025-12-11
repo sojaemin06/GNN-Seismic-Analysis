@@ -21,6 +21,7 @@ from src.core.model_builder import build_model
 from src.core.analysis_runner import run_gravity_analysis, run_eigen_analysis, run_pushover_analysis
 from src.core.post_processor import process_pushover_results
 from src.data.graph_exporter import extract_graph_data, process_pushover_curve
+from src.core.verification import verify_nsp_applicability # [NEW] Import verification module
 
 # --- 헬퍼 함수 임포트 (generate_dataset.py 자체에 포함) ---
 # 여기서 get_fc_expected_strength_factor, get_fy_expected_strength_factor 정의
@@ -225,6 +226,20 @@ def run_and_export_graph_data(sample_id, dataset_config_path, output_data_dir):
             if not ok_eigen:
                 return False, f"Eigen_Fail_{direction}_{sign_str}", time.time() - start_time
 
+            # [NEW] 130% 룰 검증 (NSP 적용 타당성 검토)
+            # verify_nsp_applicability는 X와 Z 방향 모두를 검증하므로, 현재 direction에 해당하는 결과만 사용
+            is_nsp_valid_x, is_nsp_valid_z = verify_nsp_applicability(params_for_run, model_nodes_info, modal_props, silent=True) # silent=True 추가
+            
+            is_current_direction_valid = False
+            if direction == 'X':
+                is_current_direction_valid = is_nsp_valid_x
+            elif direction == 'Z':
+                is_current_direction_valid = is_nsp_valid_z
+            
+            if not is_current_direction_valid:
+                # 130% 룰 위반 시 해당 샘플은 실패 처리
+                return False, f"BadData_130Rule_Fail_{direction}_{sign_str}", time.time() - start_time
+            
             # Pushover Analysis
             ok_pushover, dominant_mode = run_pushover_analysis(params_for_run, model_nodes_info, modal_props, direction=direction)
             if not ok_pushover:
