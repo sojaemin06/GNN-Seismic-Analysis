@@ -94,6 +94,9 @@ def run_evaluation(results_dir: Path, config: dict):
             modal_data = json.load(f)
         
         dominant_mode = modal_data['dominant_mode']
+        # 130% 룰 만족 여부 확인 (기본값 True)
+        nsp_validity = modal_data.get('nsp_validity', {}).get(direction, True)
+
         csm_modal_props = {
             'pf1': dominant_mode[f'gamma_{direction.lower()}'],
             'm_eff_t1': dominant_mode[f'M_star_{direction.lower()}'],
@@ -308,6 +311,10 @@ def run_evaluation(results_dir: Path, config: dict):
         # 안정성 실패(Instability)가 가장 심각하므로 그게 아닐 때만 체크
         if status != "FAIL (Instability)" and collapsed_count > 0: # 안정성 실패가 아니라면 붕괴 부재 여부로 최종 판정
             status = f"FAIL ({collapsed_count} Members Collapsed)"
+        
+        # [UPDATE] 130% 룰 위반 시 상태 업데이트 (가장 우선순위 높음 or 별도 표기)
+        if not nsp_validity:
+            status = "INVALID (130% Rule)"
 
         summary_results.append({
             "objective_name": obj_name,
@@ -323,6 +330,7 @@ def run_evaluation(results_dir: Path, config: dict):
             "status": status,
             "stability_ratio": float(f"{stability_ratio:.2f}"),
             "collapsed_member_count": collapsed_count,
+            "nsp_validity": nsp_validity,
             "description": design_params['description']
         })
 

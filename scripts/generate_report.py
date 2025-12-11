@@ -512,7 +512,26 @@ def generate_html_report(results_root_dir):
         target_dir = next((d for d in result_dirs if f'_{direction}_pos' in d.name), None)
         if not target_dir: target_dir = next((d for d in result_dirs if f'_{direction}_neg' in d.name), None)
         
+        validity_text = "결과 없음"
+        validity_class = ""
+        
         if target_dir:
+            # modal_properties.json 확인
+            modal_path = target_dir / 'modal_properties.json'
+            if modal_path.exists():
+                try:
+                    with open(modal_path, 'r') as f:
+                        md = json.load(f)
+                        is_valid = md.get('nsp_validity', {}).get(direction, True)
+                        if is_valid:
+                            validity_text = "적합 (OK)"
+                            validity_class = "pass-text"
+                        else:
+                            validity_text = "부적합 (NG) - 해석법 적용 불가"
+                            validity_class = "fail-text"
+                except:
+                    pass
+
             verif_img = list(target_dir.glob(f"*NSP_verification_plot_{direction}.png"))
             if verif_img:
                 b64_str = load_image_as_base64(verif_img[0])
@@ -520,7 +539,10 @@ def generate_html_report(results_root_dir):
                     html_block = textwrap.dedent(f"""
                     <div class="img-box">
                         <img src="data:image/png;base64,{b64_str}" alt="130% 검증 ({direction})">
-                        <div class="img-caption">[{direction}방향] 비선형 정적 해석 타당성 검증</div>
+                        <div class="img-caption">
+                            [{direction}방향] 비선형 정적 해석 타당성 검증<br>
+                            <span class="{validity_class}">{validity_text}</span>
+                        </div>
                     </div>
                     """).strip()
                     html_content += html_block
@@ -695,6 +717,9 @@ def generate_html_report(results_root_dir):
             for item in csm_summary:
                 status_class = "pass-text" if item['status'] == "PASS" else "fail-text"
                 if "FAIL" in item['status']: overall_status = "FAIL"
+                if "INVALID" in item['status']: 
+                    overall_status = "INVALID"
+                    status_class = "fail-text"
                 
                 # 안정성 지표 및 붕괴 부재 수 (이전 버전 json에 없을 경우 대비)
                 stability_ratio = item.get('stability_ratio', 1.0)
@@ -718,8 +743,8 @@ def generate_html_report(results_root_dir):
 
         <h3>6.2 종합 판단</h3>
         <ul>
-            <li><strong>적용성 검토:</strong> 130% 룰 검증을 통해 1차 모드 기반 해석의 타당성을 확인하였습니다.</li>
-            <li><strong>최종 결과:</strong> 모든 성능 목표에 대해 <span class="{'pass-text' if overall_status == 'PASS' else 'fail-text'}">{overall_status}</span> 하였습니다.</li>
+            <li><strong>적용성 검토:</strong> 130% 룰 검증 결과, <span class="{'pass-text' if overall_status != 'INVALID' else 'fail-text'}">{'모든 방향에서 타당성이 확인되었습니다.' if overall_status != 'INVALID' else '일부 방향에서 130% 룰을 만족하지 못하여 비선형 정적 해석 적용이 부적절합니다.'}</span></li>
+            <li><strong>최종 결과:</strong> <span class="{'pass-text' if overall_status == 'PASS' else 'fail-text'}">{overall_status}</span></li>
         </ul>
         <div class="note">
             <p><strong>※ 참고 사항:</strong></p>

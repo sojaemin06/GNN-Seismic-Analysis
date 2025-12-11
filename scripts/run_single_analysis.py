@@ -203,7 +203,7 @@ def main(params, direction='X', sign='+'):
     if not ok:
         print("\n고유치 해석 실패. 해석을 중단합니다."); ops.wipe(); return None
 
-    is_nsp_valid_x, is_nsp_valid_y = verify_nsp_applicability(params, model_nodes_info, modal_props)
+    is_nsp_valid_x, is_nsp_valid_z = verify_nsp_applicability(params, model_nodes_info, modal_props)
     
     # 푸쉬오버 해석 실행 (sign 정보는 params['target_drift']에 이미 반영됨)
     # run_pushover_analysis 내부에서 target_drift 부호를 사용함
@@ -220,7 +220,8 @@ def main(params, direction='X', sign='+'):
     # Save modal properties to a json file
     modal_data_to_save = {
         'modal_properties': modal_props,
-        'dominant_mode': dominant_mode
+        'dominant_mode': dominant_mode,
+        'nsp_validity': {'X': is_nsp_valid_x, 'Z': is_nsp_valid_z}
     }
     modal_json_path = params['output_dir'] / 'modal_properties.json'
     with open(modal_json_path, 'w') as f:
