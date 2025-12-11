@@ -65,6 +65,30 @@ def process_pushover_results(params, model_nodes, dominant_mode, direction='X', 
         roof_disp = df_disp[disp_col_name].values
         base_shear_total = -df_base_reactions.iloc[:, 1:].sum(axis=1).values
         
+        # [NEW] Check for sudden strength drop (Structural Fracture / Instability)
+        # If base shear drops by more than 20% of max shear in a SINGLE step, 
+        # the analysis is considered invalid from that point onwards.
+        abs_shear = np.abs(base_shear_total)
+        max_shear = np.max(abs_shear)
+        truncate_idx = -1
+        
+        if max_shear > 1e-3: # Prevent division by zero or noise for very small shears
+            # Calculate difference between consecutive steps: V_i - V_{i+1}
+            shear_drops = abs_shear[:-1] - abs_shear[1:]
+            # Find indices where drop > 0.2 * max_shear
+            critical_drop_indices = np.where(shear_drops > 0.2 * max_shear)[0]
+            
+            if len(critical_drop_indices) > 0:
+                # Truncate at the first occurrence
+                first_drop_step = critical_drop_indices[0]
+                truncate_idx = first_drop_step + 1 
+                print(f"\n[Analysis Limit] Sudden strength drop (>20% Max) detected at Step {truncate_idx}. Truncating results.")
+        
+        if truncate_idx != -1:
+            roof_disp = roof_disp[:truncate_idx]
+            base_shear_total = base_shear_total[:truncate_idx]
+            df_disp = df_disp.iloc[:truncate_idx]
+
         df_pushover_curve = pd.DataFrame({
             'Roof_Displacement_m': roof_disp,
             'Base_Shear_N': base_shear_total,

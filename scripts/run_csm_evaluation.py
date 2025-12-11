@@ -185,7 +185,7 @@ def run_evaluation(results_dir: Path, config: dict):
         except: pass
 
     # 회전각 한계 (animate_results.py와 동일하게 적용)
-    # TODO: 추후 config에서 불러오도록 개선
+    # TODO: KDS 41 17 00 표 5.4.6 ~ 5.4.8을 참조하여 부재별 동적 허용기준 적용 고려 필요
     ROT_CP = 0.04 # Collapse Prevention Limit (rad)
     
     # --- CSM 평가 요약 데이터 추출 및 저장 ---
@@ -213,66 +213,100 @@ def run_evaluation(results_dir: Path, config: dict):
         # 성능점에서의 전단력이 최대 강도의 80% 미만으로 떨어졌는지 확인
         # (간접적인 중력 저항 능력 상실 또는 불안정성 척도)
         
+        # 푸쉬오버 곡선에서 최대 전단력 발생 시의 변위 찾기
+        abs_roof_disp = df_curve['Roof_Displacement_m'].abs()
+        abs_base_shear = df_curve['Base_Shear_N'].abs()
+        
+        peak_idx = abs_base_shear.idxmax()
+        disp_at_peak = abs_roof_disp.loc[peak_idx]
+        
         # 성능점 지붕 변위에서의 베이스 전단력을 푸쉬오버 곡선에서 보간하여 가져옴
-        current_base_shear = np.interp(abs(roof_disp_actual), df_curve['Roof_Displacement_m'].abs(), df_curve['Base_Shear_N'].abs())
+        current_base_shear = np.interp(abs(roof_disp_actual), abs_roof_disp, abs_base_shear)
         
-        stability_ratio = current_base_shear / max_base_shear if max_base_shear > 0 else 0
-        stability_status = "OK" if stability_ratio >= 0.8 else "WARNING"
+        # 실제 전단력 비율 계산
+        actual_shear_ratio = current_base_shear / max_base_shear if max_base_shear > 0 else 0
         
-        if stability_ratio < 0.8:
-             status = "FAIL (Instability)"
+        # Case A: 성능점이 최대 강도 도달 전 (pre-peak)
+        if abs(roof_disp_actual) < disp_at_peak:
+            # 최대 강도 도달 전에는 내력 저하가 없으므로 안정성 비율을 1.0으로 간주
+            stability_ratio = 1.0
+            stability_status = "OK" 
+            status = "PASS" if drift_ratio <= (design_params['target_drift_ratio'] * 100) else "FAIL" 
+        # Case B: 성능점이 최대 강도 도달 후 (post-peak)
+        else:
+            stability_ratio = actual_shear_ratio
+            if stability_ratio < 0.8:
+                 stability_status = "FAIL (Instability)"
+                 status = "FAIL (Instability)"
+            else:
+                 stability_status = "OK"
+                 status = "PASS" if drift_ratio <= (design_params['target_drift_ratio'] * 100) else "FAIL"
+        # else는 필요 없음. Instability가 아니면 다음 붕괴 부재 체크로 넘어감.
 
         # [NEW] 2. 붕괴 부재 판별 (Collapsed Members)
         collapsed_count = 0
-        collapsed_members = [] # Not used in current logic, but kept for context.
+        collapsed_members = [] 
         
         # 성능점 시점(Time) 찾기
         target_time = np.interp(abs(roof_disp_actual), df_curve['Roof_Displacement_m'].abs(), df_curve['Pseudo_Time'])
         
         # 해당 Time에 가장 가까운 스텝 인덱스 찾기
-        step_idx = 0 # <-- 이 부분을 여기에 위치시킵니다.
-        if col_rot_data is not None:
+        step_idx = 0 
+        if col_rot_data is not None and len(col_rot_data) > 0: # 데이터가 있고 비어있지 않은지 확인
             times = col_rot_data[:, 0]
             step_idx = (np.abs(times - target_time)).argmin()
             
-            # 해당 스텝의 회전각 확인
-            # 데이터 구조: Time, Ele1_IP1_eps, Ele1_IP1_kz, Ele1_IP1_ky, ...
-            # process_pushover_results 로직 참고: 
-            # num_data_cols = total_cols - 1
-            # cols_per_ele = num_data_cols / num_eles
-            # 5개 IP 가정
+            # 해당 스텝의 회전각 확인 (col_rot_data는 1열이 time, 나머지가 data)
+            # data는 각 IP당 eps, kz, ky 3개. 5개 IP 가정 (총 15개 데이터)
+            # col_rot_data의 형태: [time, ele1_ip1_eps, ele1_ip1_kz, ele1_ip1_ky, ..., eleN_ip5_ky]
             
-            # 단순화를 위해 모든 kz, ky 컬럼을 순회하며 체크 (태그 매핑 없이 개수만 파악)
-            # 1번째 컬럼은 Time이므로 제외
-            all_vals = col_rot_data[step_idx, 1:]
-            # 3개씩 묶음 (eps, kz, ky)
-            num_components = len(all_vals) // 3
-            for i in range(num_components):
-                kz = all_vals[i*3 + 1]
-                ky = all_vals[i*3 + 2]
-                theta = (abs(kz) + abs(ky)) * 0.5 # Lp=0.5m 가정
-                if theta > ROT_CP:
-                    collapsed_count += 1
-                    # 상세 태그 추적은 복잡하므로 개수만 카운트 (필요시 개선)
+            if col_rot_data.shape[1] > 1: # time 컬럼 외 데이터가 있는지 확인
+                all_vals = col_rot_data[step_idx, 1:]
+                # 3개씩 묶음 (eps, kz, ky)
+                # 각 요소의 적분점 수 = 5개 (model_builder의 num_int_pts)
+                # 따라서 각 요소당 데이터는 5 * 3 = 15개
+                # 전체 요소 수 = (all_vals의 길이) / 15
+                num_elements = int(len(all_vals) / (5*3)) # 각 요소에 5개의 적분점과 3가지 데이터 (eps, kz, ky)
+                
+                # 각 요소별로 가장 큰 회전각을 찾아서 확인
+                for i in range(num_elements):
+                    element_data = all_vals[i * 15 : (i+1) * 15] # 15개 데이터 (5개 IP * 3)
+                    max_theta_element = 0.0
+                    for ip_idx in range(5): # 5개 적분점
+                        kz = element_data[ip_idx * 3 + 1] # kz
+                        ky = element_data[ip_idx * 3 + 2] # ky
+                        theta_ip = (abs(kz) + abs(ky)) * 0.5 # Lp=0.5m 가정
+                        if theta_ip > max_theta_element:
+                            max_theta_element = theta_ip
+                    
+                    if max_theta_element > ROT_CP:
+                        collapsed_count += 1
         
         # 빔에 대해서도 동일 수행
-        if beam_rot_data is not None:
+        if beam_rot_data is not None and len(beam_rot_data) > 0: # 데이터가 있고 비어있지 않은지 확인
              times_b = beam_rot_data[:, 0]
              # step_idx가 col_rot_data가 없을 때 0으로 초기화되므로,
              # beam_rot_data의 times_b 길이보다 크지 않도록 다시 체크
-             if step_idx < len(times_b): # 인덱스 유효성 체크
+             if step_idx < len(times_b) and beam_rot_data.shape[1] > 1: # 인덱스 유효성 체크 및 데이터 확인
                  all_vals_b = beam_rot_data[step_idx, 1:]
-                 num_components_b = len(all_vals_b) // 3
-                 for i in range(num_components_b):
-                    kz = all_vals_b[i*3 + 1]
-                    ky = all_vals_b[i*3 + 2]
-                    theta = (abs(kz) + abs(ky)) * 0.5
-                    if theta > ROT_CP:
+                 num_elements_b = int(len(all_vals_b) / (5*3))
+                 
+                 for i in range(num_elements_b):
+                    element_data_b = all_vals_b[i * 15 : (i+1) * 15]
+                    max_theta_element_b = 0.0
+                    for ip_idx in range(5):
+                        kz_b = element_data_b[ip_idx * 3 + 1]
+                        ky_b = element_data_b[ip_idx * 3 + 2]
+                        theta_ip_b = (abs(kz_b) + abs(ky_b)) * 0.5
+                        if theta_ip_b > max_theta_element_b:
+                            max_theta_element_b = theta_ip_b
+                    
+                    if max_theta_element_b > ROT_CP:
                         collapsed_count += 1
         
         # [UPDATE] 붕괴 부재 발생 시 상태 업데이트
         # 안정성 실패(Instability)가 가장 심각하므로 그게 아닐 때만 체크
-        if "Instability" not in status and collapsed_count > 0:
+        if status != "FAIL (Instability)" and collapsed_count > 0: # 안정성 실패가 아니라면 붕괴 부재 여부로 최종 판정
             status = f"FAIL ({collapsed_count} Members Collapsed)"
 
         summary_results.append({
