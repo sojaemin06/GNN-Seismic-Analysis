@@ -192,5 +192,97 @@ def generate_figures():
     plt.savefig(output_dir / 'fig_error_histogram.png', dpi=300)
     print(f"Saved Error Histogram to {output_dir / 'fig_error_histogram.png'}")
 
+    # --- Task 4 Addition: Dataset Statistics & Correlation ---
+    print("Generating Dataset Statistics Figures...")
+    
+    # Extract features from ALL data (not just test set) for better distribution visibility
+    stats_data = []
+    
+    for data in data_list:
+        # Edge Features: fc (idx 4), fy (idx 5)
+        # Check if edge_attr exists
+        if data.edge_attr is not None and data.edge_attr.shape[0] > 0:
+            fc = data.edge_attr[0, 4].item() * 50.0 # MPa (Scale 50e6 -> 50)
+            fy = data.edge_attr[0, 5].item() * 600.0 # MPa (Scale 600e6 -> 600)
+        else:
+            fc, fy = 0.0, 0.0
+            
+        # Global Features: T1 (idx 4), PF1 (idx 5)
+        # Index 4 is T1 because 0-3 are direction one-hots
+        if data.u is not None and data.u.shape[1] > 5:
+            t1 = data.u[0, 4].item() * 5.0
+            pf1 = data.u[0, 5].item() * 2.0
+        else:
+            t1, pf1 = 0.0, 0.0
+            
+        # Target: Max Normalized Base Shear (Capacity)
+        if data.y is not None:
+            v_base_norm = data.y.max().item()
+        else:
+            v_base_norm = 0.0
+            
+        stats_data.append({
+            'fc (MPa)': fc,
+            'fy (MPa)': fy,
+            'T1 (s)': t1,
+            'PF1': pf1,
+            'V_base_norm': v_base_norm
+        })
+    
+    df_stats = pd.DataFrame(stats_data)
+    
+    # 1. Histograms
+    fig, axes = plt.subplots(2, 3, figsize=(15, 10))
+    axes = axes.flatten()
+    
+    columns = ['fc (MPa)', 'fy (MPa)', 'T1 (s)', 'PF1', 'V_base_norm']
+    colors = ['skyblue', 'salmon', 'lightgreen', 'orange', 'purple']
+    
+    for i, col in enumerate(columns):
+        ax = axes[i]
+        ax.hist(df_stats[col], bins=30, color=colors[i], edgecolor='black', alpha=0.7)
+        ax.set_title(f'Distribution of {col}')
+        ax.set_xlabel(col)
+        ax.set_ylabel('Count')
+        ax.grid(True, linestyle='--', alpha=0.5)
+        
+        # Add stats text
+        mean_val = df_stats[col].mean()
+        std_val = df_stats[col].std()
+        ax.text(0.95, 0.95, f'$\mu={mean_val:.2f}$\n$\sigma={std_val:.2f}$', 
+                transform=ax.transAxes, ha='right', va='top', 
+                bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+
+    # Hide empty subplot
+    axes[-1].axis('off')
+    
+    plt.tight_layout()
+    plt.savefig(output_dir / 'fig_dataset_histograms.png', dpi=300)
+    print(f"Saved Dataset Histograms to {output_dir / 'fig_dataset_histograms.png'}")
+    
+    # 2. Correlation Matrix
+    plt.figure(figsize=(10, 8))
+    corr_matrix = df_stats.corr()
+    
+    # Manual Heatmap since seaborn is not guaranteed
+    im = plt.imshow(corr_matrix, cmap='coolwarm', vmin=-1, vmax=1)
+    plt.colorbar(im)
+    
+    # Ticks
+    plt.xticks(range(len(corr_matrix.columns)), corr_matrix.columns, rotation=45, ha='right')
+    plt.yticks(range(len(corr_matrix.columns)), corr_matrix.columns)
+    
+    # Annotate values
+    for i in range(len(corr_matrix.columns)):
+        for j in range(len(corr_matrix.columns)):
+            text_color = "white" if abs(corr_matrix.iloc[i, j]) > 0.5 else "black"
+            plt.text(j, i, f'{corr_matrix.iloc[i, j]:.2f}', 
+                     ha="center", va="center", color=text_color, fontweight='bold')
+            
+    plt.title('Correlation Matrix of Input Features and Performance', fontsize=15)
+    plt.tight_layout()
+    plt.savefig(output_dir / 'fig_correlation_matrix.png', dpi=300)
+    print(f"Saved Correlation Matrix to {output_dir / 'fig_correlation_matrix.png'}")
+
 if __name__ == '__main__':
     generate_figures()

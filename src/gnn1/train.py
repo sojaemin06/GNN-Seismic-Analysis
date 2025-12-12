@@ -40,6 +40,14 @@ class PushoverDataset(InMemoryDataset):
         for raw_file_name in tqdm(self.raw_file_names, desc="Processing raw data"):
             raw_path = os.path.join(self.raw_dir, raw_file_name)
             data = torch.load(raw_path, weights_only=False)
+            
+            # Extract structure_id from filename (e.g., 'data_0_X_neg.pt' -> 0)
+            try:
+                structure_id_str = raw_file_name.split('_')[1]
+                data.structure_id = int(structure_id_str)
+            except (IndexError, ValueError):
+                data.structure_id = -1 # Assign a default or handle error
+            
             data_list.append(data)
 
         if self.pre_filter is not None:
@@ -86,22 +94,30 @@ def train_model(dataset_dir_name='processed_csm', model_name='best_pushover_gnn_
     dataset = CustomPushoverDataset(root=str(dataset_processed_dir))
     
     # --- 2. 데이터 분할 및 샘플링 ---
+    # `data_list`의 각 Data 객체는 `structure_id` 속성을 가지고 있음
     data_list = [dataset[i] for i in range(len(dataset))]
     
-    # [NEW] 데이터 수 조절 (실험용)
+    # [NEW] 데이터 수 조절 (실험용) - sample_count는 구조물의 개수를 의미
     if sample_count is not None:
-        if sample_count > len(data_list):
-            if not silent: print(f"Warning: Requested sample_count {sample_count} > total samples {len(data_list)}. Using all data.")
+        import random
+        random.seed(42) # 재현성을 위해 seed 고정
+        
+        all_structure_ids = list(set([data.structure_id for data in data_list if hasattr(data, 'structure_id')]))
+        
+        if sample_count > len(all_structure_ids):
+            if not silent: print(f"Warning: Requested sample_count (structures) {sample_count} > total unique structures {len(all_structure_ids)}. Using all unique structures.")
+            selected_structure_ids = all_structure_ids
         else:
-            # 일관된 실험을 위해 shuffle 후 슬라이싱 (seed 고정 필요)
-            import random
-            random.seed(42)
-            random.shuffle(data_list)
-            data_list = data_list[:sample_count]
-            if not silent: print(f"Using subset of data: {len(data_list)} samples")
+            selected_structure_ids = random.sample(all_structure_ids, sample_count)
+            if not silent: print(f"Using subset of data: {len(selected_structure_ids)} unique structures")
+
+        # 선택된 구조물 ID에 해당하는 모든 데이터 파일 포함
+        filtered_data_list = [data for data in data_list if hasattr(data, 'structure_id') and data.structure_id in selected_structure_ids]
+        data_list = filtered_data_list
+        if not silent: print(f"Total data files (including all directions) for selected structures: {len(data_list)} files")
 
     if not data_list:
-        return {'test_loss': float('nan'), 'test_r2': float('nan')}
+        return {'test_loss': float('nan'), 'test_r2': float('nan'), 'train_loss': float('nan'), 'val_loss': float('nan')}
 
     train_data, test_data = train_test_split(data_list, test_size=0.2, random_state=42)
     # Validation data should be split from train data
@@ -158,6 +174,7 @@ def train_model(dataset_dir_name='processed_csm', model_name='best_pushover_gnn_
 
     # --- 6. 학습 루프 ---
     best_val_loss = float('inf')
+    avg_train_loss = 0.0
     
     # 모델 저장 경로는 실험 중 덮어쓰기 방지를 위해 별도 처리하거나 임시 경로 사용 권장
     # 여기서는 간단히 덮어씀 (실험 스크립트에서 관리 필요 시 수정)
@@ -262,7 +279,10 @@ def train_model(dataset_dir_name='processed_csm', model_name='best_pushover_gnn_
 
     return {
         'dataset': dataset_dir_name,
-        'test_r2': r2_score
+        'test_r2': r2_score,
+        'test_loss': avg_test_loss,
+        'train_loss': avg_train_loss,
+        'val_loss': best_val_loss
     }
 
 if __name__ == '__main__':

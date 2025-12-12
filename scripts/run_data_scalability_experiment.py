@@ -44,7 +44,7 @@ def run_experiment():
         
         # 학습 실행 (Metrics 반환)
         try:
-            metrics = train_model(sample_count=count, epochs=epochs, silent=True)
+            metrics = train_model(sample_count=count, epochs=epochs, silent=True, dataset_dir_name='processed')
         except Exception as e:
             print(f"Error during training with {count} samples: {e}")
             continue
