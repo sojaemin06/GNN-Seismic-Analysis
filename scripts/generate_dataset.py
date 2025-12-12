@@ -2,7 +2,7 @@ import math
 import sys
 import os
 import json
-import time # [NEW]
+import time 
 import pandas as pd
 from pathlib import Path 
 import random
@@ -21,10 +21,9 @@ from src.core.model_builder import build_model
 from src.core.analysis_runner import run_gravity_analysis, run_eigen_analysis, run_pushover_analysis
 from src.core.post_processor import process_pushover_results
 from src.data.graph_exporter import extract_graph_data, process_pushover_curve
-from src.core.verification import verify_nsp_applicability # [NEW] Import verification module
+from src.core.verification import verify_nsp_applicability 
 
-# --- 헬퍼 함수 임포트 (generate_dataset.py 자체에 포함) ---
-# 여기서 get_fc_expected_strength_factor, get_fy_expected_strength_factor 정의
+# --- 헬퍼 함수 임포트 ---
 def get_fc_expected_strength_factor(fc):
     if fc <= 20: return 1.25
     elif fc <= 30: return 1.20
@@ -37,10 +36,6 @@ def get_fy_expected_strength_factor(fy):
     else: return 1.03
 
 def generate_random_design_parameters(config_path):
-    """
-    dataset_config.json에서 임의의 설계안 하나를 생성하여 반환합니다.
-    run_single_analysis.py의 get_single_run_parameters와 유사.
-    """
     with open(config_path, 'r', encoding='utf-8') as f:
         config = json.load(f)
 
@@ -58,14 +53,12 @@ def generate_random_design_parameters(config_path):
     fc_factor = get_fc_expected_strength_factor(fc_nominal_mpa)
     fy_factor = get_fy_expected_strength_factor(fy_nominal_mpa)
 
-    # [NEW] 철근 직경 선택 (기둥/보 분리)
     col_rebar_pool = member_params.get('rebar_col_list', [{'name': 'D25', 'area': 0.000507}])
     beam_rebar_pool = member_params.get('rebar_beam_list', [{'name': 'D22', 'area': 0.000387}])
     
     selected_col_rebar = random.choice(col_rebar_pool)
     selected_beam_rebar = random.choice(beam_rebar_pool)
     
-    # [NEW] 목표 철근비 선택 (Random Range)
     target_rho_col = random.uniform(0.010, 0.025)
     target_rho_beam = random.uniform(0.006, 0.015)
     
@@ -75,7 +68,6 @@ def generate_random_design_parameters(config_path):
     num_story_groups = math.ceil(num_stories / 2)
 
     for group_idx in reversed(range(num_story_groups)):
-        # --- Column Section ---
         ext_col_choices = [tuple(d) for d in member_params['col_section_tiers_m']['exterior'] if d[0] >= last_ext_col_dim[0]]
         int_col_choices_all = [tuple(d) for d in member_params['col_section_tiers_m']['interior'] if d[0] >= last_int_col_dim[0]]
         
@@ -83,14 +75,13 @@ def generate_random_design_parameters(config_path):
         int_col_choices_filtered = [d for d in int_col_choices_all if d[0] >= current_ext_col_dim[0]]
         current_int_col_dim = random.choice(int_col_choices_filtered if int_col_choices_filtered else int_col_choices_all)
         
-        # [Logic] Calculate Number of Bars for Columns
         def calc_col_bars(dims, rho, bar_area):
             Ag = dims[0] * dims[1]
             As_req = Ag * rho
             num_total = max(4, round(As_req / bar_area))
-            if num_total % 2 != 0: num_total += 1 # 짝수 보정
+            if num_total % 2 != 0: num_total += 1 
             n_side = max(2, int(num_total / 4) + 1)
-            return n_side, n_side # num_bars_z, num_bars_x (number of bars along the face)
+            return n_side, n_side 
 
         ext_nz, ext_nx = calc_col_bars(current_ext_col_dim, target_rho_col, selected_col_rebar['area'])
         int_nz, int_nx = calc_col_bars(current_int_col_dim, target_rho_col, selected_col_rebar['area'])
@@ -107,16 +98,14 @@ def generate_random_design_parameters(config_path):
         }
         last_ext_col_dim, last_int_col_dim = current_ext_col_dim, current_int_col_dim
 
-        # --- Beam Section ---
         ext_beam_dim = tuple(random.choice(member_params['beam_section_tiers_m']['exterior']))
         int_beam_dim = tuple(random.choice(member_params['beam_section_tiers_m']['interior']))
         
-        # [Logic] Calculate Number of Bars for Beams (Top/Bot)
         def calc_beam_bars(dims, rho, bar_area):
             Ag = dims[0] * dims[1]
             As_req = Ag * rho
             num_one_side = max(2, round((As_req / 2) / bar_area))
-            return num_one_side, num_one_side # top, bot
+            return num_one_side, num_one_side 
 
         ext_top, ext_bot = calc_beam_bars(ext_beam_dim, target_rho_beam, selected_beam_rebar['area'])
         int_top, int_bot = calc_beam_bars(int_beam_dim, target_rho_beam, selected_beam_rebar['area'])
@@ -134,9 +123,9 @@ def generate_random_design_parameters(config_path):
     
     params = {
         'analysis_name': 'Generated_RC_Moment_Frame',
-        'output_dir': Path('results_temp/Generated_RC_Moment_Frame'), # 임시 결과 저장 디렉토리
+        'output_dir': Path('results_temp/Generated_RC_Moment_Frame'),
         'target_drift': 0.04, 
-        'num_steps': config['analysis_parameters']['num_steps'], # [MODIFIED] Use value from config
+        'num_steps': config['analysis_parameters']['num_steps'], 
         'num_modes': 20,
         'num_int_pts': 5, 'plot_z_line_index': 0, 'plot_x_line_index': 0,
         'num_bays_x': num_bays_x, 'num_bays_z': num_bays_z, 'num_stories': num_stories,
@@ -144,7 +133,7 @@ def generate_random_design_parameters(config_path):
         'bay_width_z': random.choice(geo_params['bay_width_z_m_range']),
         'story_height': 3.5,
         'seismic_zone_factor': 0.11, 'hazard_factor': 1.0, 'soil_type': 'S4',
-        'skip_post_processing': True, # 데이터 생성 시 플롯 건너뛰기
+        'skip_post_processing': True, 
         'g': 9.81, 'dead_load_pa': 5000, 'live_load_pa': 2500,
         'cover': 0.04, 
         'E_steel': 200e9,
@@ -157,16 +146,12 @@ def generate_random_design_parameters(config_path):
     return {**params, **config['nonlinear_materials']}
 
 
-def run_and_export_graph_data(sample_id, dataset_config_path, output_data_dir):
-    """
-    단일 해석을 수행하고 결과를 GNN 그래프 데이터로 변환하여 저장합니다.
-    """
-    start_time = time.time() # [NEW] Start timer
+def run_and_export_graph_data(run_id, save_id, dataset_config_path, output_data_dir):
+    start_time = time.time() 
     params = generate_random_design_parameters(dataset_config_path)
     
-    # 임시 결과 저장 디렉토리를 각 샘플별로 고유하게 설정
-    temp_results_dir_name = f"temp_results_{os.getpid()}_{sample_id}"
-    params['output_dir'] = Path(os.getcwd()) / temp_results_dir_name # 프로젝트 루트 아래
+    temp_results_dir_name = f"temp_results_{os.getpid()}_{run_id}"
+    params['output_dir'] = Path(os.getcwd()) / temp_results_dir_name 
     
     try:
         params['output_dir'].mkdir(parents=True, exist_ok=True)
@@ -174,36 +159,30 @@ def run_and_export_graph_data(sample_id, dataset_config_path, output_data_dir):
         print(f"Error creating temporary directory {params['output_dir']}: {e}")
         return False, f"Dir_Error: {e}", time.time() - start_time
 
-    graph_data_list = []
+    data_to_save = [] 
     directions = ['X', 'Z']
-    signs = ['pos', 'neg'] # target_drift 부호는 analysis_runner에서 처리
+    signs = ['pos', 'neg'] 
 
     for direction in directions:
         for sign_str in signs:
-            # 매 실행마다 OpenSees 모델을 초기화해야 하므로, build_model 호출 전에 wipe
-            ops.wipe() # Assuming ops is imported and available
+            ops.wipe() 
             
-            # 각 방향/부호별로 파라미터 복사 및 이름/디렉토리 설정
             params_for_run = params.copy()
-            params_for_run['analysis_name'] = f"{params['analysis_name']}_{sample_id}_{direction}_{sign_str}"
+            params_for_run['analysis_name'] = f"{params['analysis_name']}_{run_id}_{direction}_{sign_str}"
             params_for_run['output_dir'] = params['output_dir'] / f"{direction}_{sign_str}"
             
-            # 임시 결과 디렉토리 생성
             try:
                 params_for_run['output_dir'].mkdir(parents=True, exist_ok=True)
             except Exception as e:
                 return False, f"SubDir_Error: {e}", time.time() - start_time
 
-            # target_drift 설정
             if sign_str == 'neg':
                 params_for_run['target_drift'] = -abs(params_for_run['target_drift'])
             else:
                 params_for_run['target_drift'] = abs(params_for_run['target_drift'])
 
-            # Model Build
             model_nodes_info = build_model(params_for_run)
             
-            # [NEW] Calculate Mass Properties (for Node Features)
             node_mass_map = {}
             for node_tag in model_nodes_info['all_node_coords']:
                 mass_vals = ops.nodeMass(node_tag)
@@ -214,21 +193,17 @@ def run_and_export_graph_data(sample_id, dataset_config_path, output_data_dir):
             
             params_for_run['node_mass_map'] = node_mass_map
             
-            # Gravity Analysis (Get accurate weight from reactions)
             ok_gravity, total_reaction_y = run_gravity_analysis(params_for_run, model_nodes_info)
             if not ok_gravity:
                 return False, f"Gravity_Fail_{direction}_{sign_str}", time.time() - start_time
             
-            params_for_run['total_weight'] = abs(total_reaction_y) # Use Reaction Y as Total Weight
+            params_for_run['total_weight'] = abs(total_reaction_y) 
             
-            # Eigen Analysis
             ok_eigen, modal_props = run_eigen_analysis(params_for_run, model_nodes_info, silent=True)
             if not ok_eigen:
                 return False, f"Eigen_Fail_{direction}_{sign_str}", time.time() - start_time
 
-            # [NEW] 130% 룰 검증 (NSP 적용 타당성 검토)
-            # verify_nsp_applicability는 X와 Z 방향 모두를 검증하므로, 현재 direction에 해당하는 결과만 사용
-            is_nsp_valid_x, is_nsp_valid_z = verify_nsp_applicability(params_for_run, model_nodes_info, modal_props, silent=True) # silent=True 추가
+            is_nsp_valid_x, is_nsp_valid_z = verify_nsp_applicability(params_for_run, model_nodes_info, modal_props, silent=True) 
             
             is_current_direction_valid = False
             if direction == 'X':
@@ -237,55 +212,56 @@ def run_and_export_graph_data(sample_id, dataset_config_path, output_data_dir):
                 is_current_direction_valid = is_nsp_valid_z
             
             if not is_current_direction_valid:
-                # 130% 룰 위반 시 해당 샘플은 실패 처리
                 return False, f"BadData_130Rule_Fail_{direction}_{sign_str}", time.time() - start_time
             
-            # Pushover Analysis
             ok_pushover, dominant_mode = run_pushover_analysis(params_for_run, model_nodes_info, modal_props, direction=direction)
             if not ok_pushover:
                 return False, f"Pushover_Fail_{direction}_{sign_str}", time.time() - start_time
             
-            # Post-processing (Results CSV to DataFrame)
             df_curve, _, _, _ = process_pushover_results(params_for_run, model_nodes_info, dominant_mode, direction=direction, skip_plots=True)
             
             if df_curve is None or df_curve.empty or len(df_curve) < 2:
                 return False, f"PostProcess_Fail_{direction}_{sign_str}", time.time() - start_time
 
-            # Graph Data Extraction
-            graph_data = extract_graph_data(model_nodes_info, params_for_run, direction) # params_for_run 전달
+            direction_modal_props = {}
+            if dominant_mode:
+                dir_lower = direction.lower()
+                direction_modal_props = {
+                    'T1': dominant_mode.get('period', 0.0),
+                    'PF1': dominant_mode.get(f'gamma_{dir_lower}', 0.0),
+                    'MassRatio': dominant_mode.get(f'mpr_{dir_lower}', 0.0),
+                    'PhiRoof': dominant_mode.get(f'phi_{dir_lower}', [0.0])[-1] 
+                }
             
-            if graph_data is None: # None이 반환되면 실패 처리
+            graph_data = extract_graph_data(model_nodes_info, params_for_run, direction, modal_props=direction_modal_props) 
+            
+            if graph_data is None: 
                 return False, f"GraphData_Extraction_Fail_{direction}_{sign_str}", time.time() - start_time
             
-            # Target (Pushover Curve) Processing
             max_roof_disp = abs(params_for_run['target_drift'] * params_for_run['story_height'] * params_for_run['num_stories'])
             processed_curve = process_pushover_curve(df_curve, max_roof_disp, total_weight=params_for_run.get('total_weight'))
             
             if processed_curve is None:
                 return False, f"CurveProcess_Fail_{direction}_{sign_str}", time.time() - start_time
             
-            # [NEW] Data Quality Checks
-            # 1. Check for Flat Curve (Simulation failed to converge or produced constant output)
             if torch.std(processed_curve) < 1e-4:
                 return False, f"BadData_FlatCurve_{direction}_{sign_str}", time.time() - start_time
             
-            # 2. Check for Extremely Low Strength (Physics violation)
-            # processed_curve is normalized (V/W), so values should be roughly 0.05 ~ 2.0
-            # If max value is < 0.001 (0.1% of weight), it's likely an error.
             if torch.max(torch.abs(processed_curve)) < 0.001:
                  return False, f"BadData_LowStrength_{direction}_{sign_str}", time.time() - start_time
 
-            graph_data.y = processed_curve.unsqueeze(0) # [1, 100] 형태로 저장
+            graph_data.y = processed_curve.unsqueeze(0) 
 
-            # Save Graph Data
-            output_file_path = output_data_dir / f"data_{sample_id}_{direction}_{sign_str}.pt"
-            torch.save(graph_data, output_file_path)
-            graph_data_list.append(graph_data)
+            output_file_path = output_data_dir / f"data_{save_id}_{direction}_{sign_str}.pt"
+            data_to_save.append((graph_data, output_file_path))
+    
+    for data, path in data_to_save:
+        torch.save(data, path)
             
     return True, "Success", time.time() - start_time
 
 
-def main_generate_dataset(num_samples: int = 100):
+def main_generate_dataset(num_samples: int = 500):
     dataset_config_path = Path(__file__).parent / 'dataset_config.json'
     processed_data_dir = Path(project_root) / 'data' / 'processed'
     processed_data_dir.mkdir(parents=True, exist_ok=True)
@@ -295,15 +271,12 @@ def main_generate_dataset(num_samples: int = 100):
 
     success_count = 0
     failure_count = 0
-    skipped_count = 0 # [NEW] Skipped count
-
-    # [NEW] Find the starting sample ID to avoid overwriting
+    
     existing_files = list(processed_data_dir.glob('data_*.pt'))
     existing_sample_ids = []
     for f in existing_files:
         try:
-            # Extract sample_id from filename like "data_X_X_pos.pt"
-            parts = f.stem.split('_') # e.g., ['data', '0', 'X', 'pos']
+            parts = f.stem.split('_') 
             if len(parts) >= 2 and parts[1].isdigit():
                 existing_sample_ids.append(int(parts[1]))
         except ValueError:
@@ -314,71 +287,68 @@ def main_generate_dataset(num_samples: int = 100):
         start_sample_id = max(existing_sample_ids) + 1
     
     print(f"Starting data generation from Sample ID: {start_sample_id}")
+    print(f"Target: Generate {num_samples} NEW successful samples.")
     
-    session_start_time = time.time() # [NEW] Session timer
+    session_start_time = time.time() 
+
+    current_save_id = start_sample_id
+    total_attempts = 0 
 
     with open(log_file_path, 'a', encoding='utf-8') as log_f, \
-         open(error_log_file_path, 'a', encoding='utf-8') as error_f: # Append mode for logs
+         open(error_log_file_path, 'a', encoding='utf-8') as error_f: 
         
         log_f.write(f"\n--- Dataset Generation Session Started: {pd.Timestamp.now()} ---\n")
-        log_f.write(f"Attempting to generate {num_samples} NEW samples (starting from ID {start_sample_id}).\n\n")
+        log_f.write(f"Target: {num_samples} successful samples (Starting ID: {start_sample_id}).\n\n")
         
-        for i in tqdm(range(num_samples), desc="Generating Dataset"):
-            current_sample_id = start_sample_id + i
-            
-            # [NEW] Check if sample already exists (all 4 directions)
-            all_directions_exist = True
-            for direction in ['X', 'Z']:
-                for sign_str in ['pos', 'neg']:
-                    output_file_path = processed_data_dir / f"data_{current_sample_id}_{direction}_{sign_str}.pt"
-                    if not output_file_path.exists():
-                        all_directions_exist = False
-                        break
-                if not all_directions_exist:
-                    break
-            
-            if all_directions_exist:
-                skipped_count += 1
-                log_f.write(f"Sample {current_sample_id}: SKIPPED (already exists)\n")
-                continue # Skip to next sample
-            
-            try:
-                success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
-                if success:
-                    success_count += 1
-                    log_f.write(f"Sample {current_sample_id}: SUCCESS - {message} (Time: {elapsed:.2f}s)\n")
-                else:
+        with tqdm(total=num_samples, desc="Generating Dataset") as pbar:
+            while success_count < num_samples:
+                run_id = start_sample_id + total_attempts 
+                
+                try:
+                    success, message, elapsed = run_and_export_graph_data(run_id, current_save_id, dataset_config_path, processed_data_dir)
+                    
+                    if success:
+                        success_count += 1
+                        log_f.write(f"Sample {current_save_id} (Run {run_id}): SUCCESS - {message} (Time: {elapsed:.2f}s)\n")
+                        current_save_id += 1
+                        pbar.update(1)
+                    else:
+                        failure_count += 1
+                        error_f.write(f"Run {run_id} (Target {current_save_id}): FAILED - {message} (Time: {elapsed:.2f}s)\n")
+                        
+                except Exception:
                     failure_count += 1
-                    error_f.write(f"Sample {current_sample_id}: FAILED - {message} (Time: {elapsed:.2f}s)\n")
-                    log_f.write(f"Sample {current_sample_id}: FAILED - {message} (Time: {elapsed:.2f}s)\n")
-            except Exception:
-                failure_count += 1
-                error_detail = traceback.format_exc()
-                error_f.write(f"Sample {current_sample_id}: UNCAUGHT EXCEPTION:\n{error_detail}\n")
-                log_f.write(f"Sample {current_sample_id}: UNCAUGHT EXCEPTION - See error log for details.\n")
-            finally:
-                # 임시 결과 디렉토리 삭제
-                temp_dir_name = f"temp_results_{os.getpid()}_{current_sample_id}"
-                temp_dir_path = Path(os.getcwd()) / temp_dir_name
-                if temp_dir_path.exists():
-                    import shutil
-                    shutil.rmtree(temp_dir_path)
+                    error_detail = traceback.format_exc()
+                    error_f.write(f"Run {run_id} (Target {current_save_id}): UNCAUGHT EXCEPTION:\n{error_detail}\n")
+                    log_f.write(f"Run {run_id}: UNCAUGHT EXCEPTION - See error log.\n")
+                
+                finally:
+                    temp_dir_name = f"temp_results_{os.getpid()}_{run_id}"
+                    temp_dir_path = Path(os.getcwd()) / temp_dir_name
+                    if temp_dir_path.exists():
+                        import shutil
+                        try:
+                            shutil.rmtree(temp_dir_path)
+                        except Exception as e:
+                            print(f"Warning: Failed to delete temp dir {temp_dir_path}: {e}")
+                
+                total_attempts += 1
         
         session_end_time = time.time()
         total_duration = session_end_time - session_start_time
         
         log_f.write(f"\n--- Dataset Generation Session Finished: {pd.Timestamp.now()} ---\n")
-        log_f.write(f"Total Attempts (New Samples): {num_samples}\n")
+        log_f.write(f"Total Attempts: {total_attempts}\n")
         log_f.write(f"Successful New Samples: {success_count}\n")
-        log_f.write(f"Failed New Samples: {failure_count}\n")
-        log_f.write(f"Skipped Existing Samples: {skipped_count}\n")
+        log_f.write(f"Failed Attempts: {failure_count}\n")
         log_f.write(f"Total Session Duration: {total_duration:.2f}s ({total_duration/60:.2f} min)\n")
         
-    print(f"\nDataset generation completed. Successful New: {success_count}, Failed: {failure_count}, Skipped: {skipped_count}")
+    print(f"\nDataset generation completed.")
+    print(f"Generated {success_count} samples (ID {start_sample_id} to {current_save_id - 1}).")
+    print(f"Total Attempts: {total_attempts}, Failures: {failure_count}")
     print(f"Total Duration: {time.time() - session_start_time:.2f}s")
     print(f"Logs: {log_file_path}")
     print(f"Errors: {error_log_file_path}")
 
 if __name__ == '__main__':
-    # 기본 100개 샘플 생성. 필요시 argparse로 개수 조절 가능
-    main_generate_dataset(num_samples=5) # [MODIFIED] 500 samples for better generalization
+    main_generate_dataset(num_samples=500) 

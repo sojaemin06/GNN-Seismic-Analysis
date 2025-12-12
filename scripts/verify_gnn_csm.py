@@ -15,8 +15,8 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 # --- 모듈 임포트 ---
-from src.gnn.models import PushoverGNN
-from src.gnn.train import PushoverDataset
+from src.gnn1.models import PushoverGNN
+from src.gnn1.train import PushoverDataset
 from src.core.capacity_spectrum import calculate_performance_point_csm
 from src.core.kds_2022_spectrum import calculate_design_acceleration, determine_seismic_design_category
 
@@ -30,7 +30,7 @@ def verify_gnn_csm():
     scaler_path = Path(project_root) / 'results' / 'models' / 'scaler.pt'
     
     # 2. 데이터셋 로드
-    dataset_processed_dir = Path(project_root) / 'data' / 'processed'
+    dataset_processed_dir = Path(project_root) / 'data' / 'processed' # [MODIFIED] Standard path
     class CustomPushoverDataset(PushoverDataset):
         @property
         def raw_dir(self): return self.root 
@@ -46,7 +46,7 @@ def verify_gnn_csm():
     model = PushoverGNN(
         node_dim=sample_data.x.shape[1],
         edge_dim=sample_data.edge_attr.shape[1] if sample_data.edge_attr is not None else 0,
-        global_dim=sample_data.u.shape[1] if sample_data.u is not None else 0,
+        global_dim=8, # [MODIFIED] Updated global dim
         hidden_dim=64, output_dim=100, num_layers=3, heads=2, dropout=0.1
     ).to(device)
     model.load_state_dict(torch.load(model_path))
@@ -88,45 +88,75 @@ def verify_gnn_csm():
     with torch.no_grad():
         batch = Batch.from_data_list([data.to(device)])
         out = model(batch.x, batch.edge_index, batch.edge_attr, batch.batch, batch.u)
-        pred_curve = (out * y_std + y_mean).cpu().numpy().flatten()
-        actual_curve = data.y.cpu().numpy().flatten()
+        pred_curve_norm = (out * y_std + y_mean).cpu().numpy().flatten() # Normalized V/W
+        actual_curve_norm = data.y.cpu().numpy().flatten() # Normalized V/W
 
-    # 5. CSM 입력 데이터 준비
-    # 모달 정보 (임시값: 실제로는 데이터 생성 시 저장된 modal_properties.json 필요)
-    # GNN 데이터셋에는 모달 정보가 직접 포함되어 있지 않으므로, 
-    # 여기서는 논리 검증을 위해 '일반적인 3~5층 RC 건물의 모달 값'을 가정합니다.
-    # (추후 dataset 생성 시 global feature에 period 등을 포함시키면 정확해짐)
+    # 5. CSM 입력 데이터 준비 (Dynamically derived from graph data)
     
-    # 가정된 모달 특성 (Typical Low-rise RC)
-    # Period T1 ~ 0.4s, Mass Participation ~ 80%
-    # GNN이 예측하는 것은 V-D Curve 자체이므로, 이를 ADRS로 변환하는 계수만 동일하게 적용하면 비교 가능.
+    # [Dynamic] Extract Building Height
+    # data.x node features: [x, y, z, is_base, mass_norm, degree_norm]
+    # Index 1 is y-coordinate (height)
+    building_height = data.x[:, 1].max().item()
+    print(f"Detected Building Height: {building_height:.2f} m")
+
+    # [Dynamic] Extract Total Weight
+    # Index 4 is mass_norm (mass / 100000.0)
+    MASS_SCALE = 100000.0
+    total_mass = data.x[:, 4].sum().item() * MASS_SCALE
+    total_weight = total_mass * 9.81
+    print(f"Estimated Total Weight: {total_weight/1000:.2f} kN")
+    
+    # Target Drift used in generation was 0.04 (4%)
+    max_roof_disp = building_height * 0.04
+    
+    # [MODIFIED] Extract Modal Properties from Global Features
+    # u: [Dir_X+, Dir_X-, Dir_Z+, Dir_Z-, T1_norm, PF1_norm, MassRatio, PhiRoof_norm]
+    u = data.u.cpu().numpy().flatten()
+    
+    t1 = u[4] * 5.0
+    pf1 = u[5] * 2.0
+    m_ratio = u[6]
+    phi_roof = u[7] * 2.0
+    
+    # Effective Modal Mass = Total Mass * Mass Ratio
+    # Note: This is an approximation if MassRatio is MPR (Mass Participation Ratio).
+    # MPR = (Gamma * L) / TotalMass. So Effective Mass = MPR * TotalMass is correct for single mode approx.
+    m_eff_t1 = total_mass * m_ratio
+    
+    print(f"Extracted Modal Props: T1={t1:.3f}s, PF1={pf1:.3f}, MassRatio={m_ratio:.3f}, PhiRoof={phi_roof:.3f}")
+
     csm_modal_props = {
-        'pf1': 1.3,        # Modal Participation Factor
-        'm_eff_t1': 200000, # Effective Modal Mass (kg) - Arbitrary but consistent
-        'phi_roof': 1.0     # Mode Shape at Roof (Normalized)
+        'pf1': pf1,        
+        'm_eff_t1': m_eff_t1,
+        'phi_roof': phi_roof
     }
     
     # 가상의 지진 하중 (Design Spectrum)
     design_params = [{
         'objective_name': 'Life Safety (LS)',
-        'description': '2400년 재현주기 지진의 2/3 수준',
+        'description': 'Design Basis Earthquake',
         'method': 'spectrum',
-        'site_class': 'S4', # [FIX] Add site class
+        'site_class': 'S4', 
         'S': 0.22, # Zone Factor 0.22g
         'target_drift_ratio': 0.015, # 1.5%
         'repetition_period': 'Design Basis'
     }]
     
     # DataFrame 변환 (CSM 함수 입력용)
+    # X축: Roof Displacement (0 ~ max_roof_disp)
+    # Y축: Base Shear Force (Normalized V/W * Total Weight)
+    
+    x_axis_disp = np.linspace(0, max_roof_disp, 100)
+    
     # 실제 데이터
     df_actual = pd.DataFrame({
-        'Roof_Displacement_m': np.linspace(0, 0.04*3.5*3, 100), # X축 (Drift 가정)
-        'Base_Shear_N': actual_curve * 9.81 * csm_modal_props['m_eff_t1'] # Y축 (V/W * W) 역산
+        'Roof_Displacement_m': x_axis_disp, 
+        'Base_Shear_N': actual_curve_norm * total_weight
     })
     # 예측 데이터
     df_pred = pd.DataFrame({
-        'Roof_Displacement_m': np.linspace(0, 0.04*3.5*3, 100),
-        'Base_Shear_N': pred_curve * 9.81 * csm_modal_props['m_eff_t1']
+        'Roof_Displacement_m': x_axis_disp,
+        'Base_Shear_N': pred_curve_norm * total_weight
     })
     
     # 6. CSM 실행

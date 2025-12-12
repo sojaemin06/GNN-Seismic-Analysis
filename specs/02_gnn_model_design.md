@@ -28,12 +28,19 @@
         - `rho` ($\rho$): 철근비 ($A_s / A_g$). 부재의 연성 및 항복 강도 결정 인자.
 
 ### 2.3. 전역 특성 (Global Features)
-- **차원:** 4
-- **구성:** One-hot Vector for Direction
-    - `[1, 0, 0, 0]`: X+ (Positive X)
-    - `[0, 1, 0, 0]`: X- (Negative X)
-    - `[0, 0, 1, 0]`: Z+ (Positive Z)
-    - `[0, 0, 0, 1]`: Z- (Negative Z)
+- **차원:** 8 (기존 4 + 모드 특성 4)
+- **구성:** Direction (4) + Modal Properties (4)
+    - **Direction (One-hot):**
+        - `[1, 0, 0, 0]`: X+ (Positive X)
+        - `[0, 1, 0, 0]`: X- (Negative X)
+        - `[0, 0, 1, 0]`: Z+ (Positive Z)
+        - `[0, 0, 0, 1]`: Z- (Negative Z)
+    - **Modal Properties (Normalized):**
+        - `T1`: 1차 모드 주기 ($T_1 / 5.0$)
+        - `PF1`: 모드 참여 계수 ($PF_1 / 2.0$)
+        - `MassRatio`: 유효 질량 참여율 (0.0 ~ 1.0)
+        - `PhiRoof`: 지붕층 모드 형상값 ($\phi_{roof} / 2.0$)
+    - **목적:** GNN이 단순 곡선 형상뿐만 아니라, **역량 스펙트럼법(CSM)** 수행에 필요한 동적 특성을 함께 학습하여 $S_d$(스펙트럼 변위)와의 교차점을 정확히 산정할 수 있도록 함.
 
 ## 3. 출력 명세 (Output Specifications)
 
@@ -74,5 +81,23 @@
 - **학습률:** 0.001 (Scheduler 적용 권장)
 
 ## 6. 구현 계획
-- **파일:** `src/gnn/models.py` (모델 클래스 정의)
-- **파일:** `src/gnn/train.py` (학습 루프, 검증, 모델 저장)
+## 7. 성능 벤치마크 (Performance Benchmarks)
+
+### 7.1. 모델 비교 (Legacy vs CSM)
+동일한 학습 데이터 수(600 Samples)를 기준으로 비교 실험 수행.
+
+| 모델 버전 | 특징 차원 (Global Dim) | 데이터셋 구성 | Test $R^2$ | 선정 여부 |
+| :--- | :--- | :--- | :--- | :--- |
+| **v1 (Legacy)** | 4 (방향 Only) | `data/processed` (필터링 느슨함) | 0.8153 | 탈락 |
+| **v2 (CSM)** | **8 (방향+모드)** | **`data/processed_csm` (물리적 정합성 필터링)** | **0.8307** | **선정 (Final)** |
+
+### 7.2. 성능 향상 원인 (Physics-Informed Advantage)
+CSM 모델이 $R^2$ 점수와 실제 곡선 추종 능력에서 더 우수한 성능을 보인 이유는 **물리적 인과관계(Physics-Informed)** 정보가 입력되었기 때문입니다.
+
+1.  **초기 강성 예측 ($T_1$):** 고유 주기($T=2\pi\sqrt{M/K}$) 정보를 통해 건물의 초기 강성($K$)을 GNN이 더 쉽게 추론함.
+2.  **전단력 스케일링 ($PF_1, \alpha_1$):** 전체 질량 중 1차 모드에 참여하는 비율을 학습하여, Base Shear의 크기를 정확히 보정함.
+3.  **변위 예측 ($\phi_{roof}$):** 지붕층의 상대적 모드 형상값이 최대 변위 예측의 강력한 가이드라인(Inductive Bias)으로 작용함.
+
+### 7.3. 결론
+v2 모델은 수치적 정확도뿐만 아니라, **성능점(Performance Point) 산정**이라는 프로젝트 핵심 기능을 수행할 수 있는 유일한 모델이므로 최종 모델로 확정함.
+

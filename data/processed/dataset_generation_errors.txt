@@ -1,0 +1,1374 @@
+Sample 0: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 1: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 2: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 3: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 4: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 5: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 6: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.17s)
+Sample 7: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 8: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 9: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 10: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 11: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 12: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 13: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 14: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 15: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 16: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 17: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 18: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 19: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 20: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 21: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.45s)
+Sample 22: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 23: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 24: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.31s)
+Sample 25: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 26: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 27: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 28: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 29: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 30: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 31: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 32: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 33: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.45s)
+Sample 34: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 35: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.30s)
+Sample 36: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 37: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 38: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.44s)
+Sample 39: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 40: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 41: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 42: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 43: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 44: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.49s)
+Sample 45: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 46: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.45s)
+Sample 47: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 48: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 49: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 50: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.43s)
+Sample 51: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 52: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.65s)
+Sample 53: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 54: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 55: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.34s)
+Sample 56: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 57: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.63s)
+Sample 58: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 59: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 60: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 61: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 62: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 63: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 64: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 65: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 66: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 67: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 68: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 69: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.49s)
+Sample 70: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 71: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 72: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.38s)
+Sample 73: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 74: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 75: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 76: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 77: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 78: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.30s)
+Sample 79: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 80: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 81: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 82: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.33s)
+Sample 83: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 84: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 85: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 86: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 87: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 88: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 89: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 90: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.34s)
+Sample 91: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 92: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 93: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.44s)
+Sample 94: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 95: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 96: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 97: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 98: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 99: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 100: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 101: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.35s)
+Sample 102: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 103: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.42s)
+Sample 104: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 105: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 106: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 107: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 108: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 109: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 110: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.44s)
+Sample 111: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 112: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.55s)
+Sample 113: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 114: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 115: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 116: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 117: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 118: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 119: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 120: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 121: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 122: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 123: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.27s)
+Sample 124: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 125: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.17s)
+Sample 126: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 127: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 128: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 129: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 130: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 131: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 132: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 133: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 134: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 135: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 136: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 137: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 138: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 139: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.35s)
+Sample 140: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.44s)
+Sample 141: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 142: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 143: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.48s)
+Sample 144: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.41s)
+Sample 145: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.33s)
+Sample 146: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 147: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 148: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.32s)
+Sample 149: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 150: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 151: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 152: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.22s)
+Sample 153: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 154: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 155: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 156: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 157: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.30s)
+Sample 158: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 159: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 160: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.14s)
+Sample 161: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.84s)
+Sample 162: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 163: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 164: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 165: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.30s)
+Sample 166: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 167: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 168: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 169: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 170: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 171: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.54s)
+Sample 172: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 173: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 174: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 175: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 176: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.26s)
+Sample 177: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.16s)
+Sample 178: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 179: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 180: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.25s)
+Sample 181: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.23s)
+Sample 182: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.35s)
+Sample 183: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 184: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 185: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 186: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 187: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 188: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.46s)
+Sample 189: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 190: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.46s)
+Sample 191: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 192: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 193: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 194: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 195: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 196: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 197: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.81s)
+Sample 198: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 199: UNCAUGHT EXCEPTION:
+Traceback (most recent call last):
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 352, in main_generate_dataset
+    success, message, elapsed = run_and_export_graph_data(current_sample_id, dataset_config_path, processed_data_dir)
+  File "C:\SCI_GNN_pushover\GNN_Project\scripts\generate_dataset_csm.py", line 256, in run_and_export_graph_data
+    direction_modal_props = modal_props.get(direction, {})
+AttributeError: 'list' object has no attribute 'get'
+
+Sample 3: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.41s)
+Sample 17: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.25s)
+Sample 18: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.33s)
+Sample 19: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.33s)
+Sample 29: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.24s)
+Sample 36: FAILED - BadData_130Rule_Fail_Z_pos (Time: 5.97s)
+Sample 38: FAILED - BadData_130Rule_Fail_Z_pos (Time: 19.23s)
+Sample 40: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.28s)
+Sample 41: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.36s)
+Sample 43: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.34s)
+Sample 44: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.47s)
+Sample 46: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.35s)
+Sample 52: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.26s)
+Sample 54: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.18s)
+Sample 60: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.32s)
+Sample 64: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.32s)
+Sample 79: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.40s)
+Sample 94: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.38s)
+Sample 95: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.21s)
+Sample 100: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.55s)
+Sample 101: FAILED - BadData_130Rule_Fail_Z_pos (Time: 19.00s)
+Sample 106: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.30s)
+Sample 109: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.28s)
+Sample 111: FAILED - BadData_130Rule_Fail_Z_pos (Time: 13.87s)
+Sample 115: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.41s)
+Sample 117: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.28s)
+Sample 123: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.54s)
+Sample 125: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.28s)
+Sample 127: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.23s)
+Sample 128: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.59s)
+Sample 129: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.32s)
+Sample 130: FAILED - BadData_130Rule_Fail_Z_pos (Time: 16.55s)
+Sample 135: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.39s)
+Sample 139: FAILED - BadData_130Rule_Fail_Z_pos (Time: 8.03s)
+Sample 148: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.44s)
+Sample 149: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.30s)
+Sample 151: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.54s)
+Sample 152: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.13s)
+Sample 154: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.39s)
+Sample 166: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.38s)
+Sample 172: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.29s)
+Sample 173: FAILED - BadData_130Rule_Fail_Z_pos (Time: 13.95s)
+Sample 180: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.14s)
+Sample 182: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.77s)
+Sample 187: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.30s)
+Sample 190: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.21s)
+Sample 195: FAILED - BadData_130Rule_Fail_X_pos (Time: 0.24s)
+Run 154 (Target 154): FAILED - BadData_130Rule_Fail_X_pos (Time: 0.28s)
+Run 159 (Target 158): FAILED - BadData_130Rule_Fail_X_pos (Time: 0.30s)
+Run 164 (Target 162): FAILED - BadData_130Rule_Fail_Z_pos (Time: 14.95s)
+Run 167 (Target 164): FAILED - BadData_130Rule_Fail_X_pos (Time: 0.27s)
+Run 175 (Target 171): FAILED - BadData_130Rule_Fail_X_pos (Time: 0.20s)
+Run 177 (Target 172): FAILED - BadData_130Rule_Fail_X_pos (Time: 0.40s)
+Run 179 (Target 173): FAILED - BadData_130Rule_Fail_X_pos (Time: 0.21s)
+Run 180 (Target 173): FAILED - BadData_130Rule_Fail_X_pos (Time: 0.47s)
+Run 184 (Target 176): FAILED - BadData_130Rule_Fail_Z_pos (Time: 7.34s)
+Run 185 (Target 176): FAILED - BadData_130Rule_Fail_X_pos (Time: 0.49s)
+Run 190 (Target 180): FAILED - BadData_130Rule_Fail_X_pos (Time: 0.72s)
+Run 192 (Target 181): FAILED - BadData_130Rule_Fail_X_pos (Time: 0.38s)
+Run 195 (Target 183): FAILED - BadData_130Rule_Fail_X_pos (Time: 0.30s)
+Run 201 (Target 188): FAILED - BadData_130Rule_Fail_X_pos (Time: 0.42s)
+Run 215 (Target 201): FAILED - BadData_130Rule_Fail_X_pos (Time: 0.30s)
+Run 217 (Target 202): FAILED - BadData_130Rule_Fail_X_pos (Time: 0.41s)
+Run 218 (Target 202): FAILED - BadData_130Rule_Fail_X_pos (Time: 0.17s)
+Run 222 (Target 205): FAILED - BadData_130Rule_Fail_Z_pos (Time: 17.69s)
+Run 227 (Target 209): FAILED - BadData_130Rule_Fail_X_pos (Time: 0.20s)
+Run 228 (Target 209): FAILED - BadData_130Rule_Fail_X_pos (Time: 0.18s)
+Run 236 (Target 216): FAILED - BadData_130Rule_Fail_X_pos (Time: 0.39s)
+Run 239 (Target 218): FAILED - BadData_130Rule_Fail_X_pos (Time: 0.29s)
+Run 248 (Target 226): FAILED - BadData_130Rule_Fail_X_pos (Time: 0.39s)
+Run 249 (Target 226): FAILED - BadData_130Rule_Fail_X_pos (Time: 0.24s)
+Run 255 (Target 231): FAILED - BadData_130Rule_Fail_X_pos (Time: 0.13s)
+Run 259 (Target 234): FAILED - BadData_130Rule_Fail_X_pos (Time: 0.40s)
+Run 263 (Target 237): FAILED - BadData_130Rule_Fail_X_pos (Time: 0.51s)
+Run 272 (Target 245): FAILED - BadData_130Rule_Fail_X_pos (Time: 0.57s)
+Run 273 (Target 245): FAILED - BadData_130Rule_Fail_Z_pos (Time: 34.29s)
+Run 274 (Target 245): FAILED - BadData_130Rule_Fail_X_pos (Time: 0.21s)
+Run 275 (Target 245): FAILED - BadData_130Rule_Fail_X_pos (Time: 0.27s)
+Run 277 (Target 246): FAILED - BadData_130Rule_Fail_X_pos (Time: 0.28s)
+Run 279 (Target 247): FAILED - BadData_130Rule_Fail_X_pos (Time: 0.18s)
+Run 281 (Target 248): FAILED - BadData_130Rule_Fail_X_pos (Time: 0.42s)
+Run 284 (Target 250): FAILED - BadData_130Rule_Fail_X_pos (Time: 0.31s)

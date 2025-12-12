@@ -689,8 +689,8 @@ def generate_html_report(results_root_dir):
         <table>
             <thead>
                 <tr>
-                    <th>해석 방향</th>
                     <th>성능 목표 (재현 주기)</th>
+                    <th>해석 방향</th>
                     <th>층간변위비 (허용/계산)</th>
                     <th>중력하중 저항능력</th>
                     <th>붕괴 부재 수</th>
@@ -701,11 +701,13 @@ def generate_html_report(results_root_dir):
     """).strip()
     html_content += html_block
 
-    # [NEW] 모든 결과 수집하여 표 생성
+    # [NEW] 모든 결과 수집하여 표 생성 (재현주기 기준 그룹화)
     overall_status = "PASS"
+    results_map = {} # { objective_name: [ (dir_label, item), ... ] }
     
+    # 1. 데이터 수집
     for direction, sign_str, sign in cases:
-        # csm_evaluation_summary_X_pos.json 읽기
+        dir_label = f"{direction}({sign})"
         target_dir = next((d for d in result_dirs if d.name.endswith(f"_{direction}_{sign_str}")), None)
         if not target_dir: continue
         
@@ -715,24 +717,72 @@ def generate_html_report(results_root_dir):
                 csm_summary = json.load(f)
                 
             for item in csm_summary:
-                status_class = "pass-text" if item['status'] == "PASS" else "fail-text"
+                # Overall Status Check
                 if "FAIL" in item['status']: overall_status = "FAIL"
-                if "INVALID" in item['status']: 
-                    overall_status = "INVALID"
-                    status_class = "fail-text"
+                if "INVALID" in item['status']: overall_status = "INVALID"
                 
-                # 안정성 지표 및 붕괴 부재 수 (이전 버전 json에 없을 경우 대비)
+                obj_name = item['objective_name']
+                if obj_name not in results_map:
+                    results_map[obj_name] = []
+                results_map[obj_name].append((dir_label, item))
+
+    # 2. 테이블 행 생성 (성능 목표 순서대로)
+    # performance_objectives 리스트 순서에 맞춰 출력하되, 결과가 있는 것만 출력
+    processed_objectives = set()
+    
+    # 우선 performance_objectives 순서대로 출력
+    for obj in performance_objectives:
+        obj_name = obj['name']
+        if obj_name in results_map:
+            processed_objectives.add(obj_name)
+            results_list = results_map[obj_name]
+            
+            rowspan = len(results_list)
+            for i, (dir_label, item) in enumerate(results_list):
+                status_class = "pass-text" if item['status'] == "PASS" else "fail-text"
+                if "INVALID" in item['status']: status_class = "fail-text"
+                
                 stability_ratio = item.get('stability_ratio', 1.0)
                 stability_text = f"{stability_ratio*100:.0f}% (OK)" if stability_ratio >= 0.8 else f"{stability_ratio*100:.0f}% (WARNING)"
                 collapsed_count = item.get('collapsed_member_count', 0)
                 
+                collapsed_class = "fail-text" if collapsed_count > 0 else ""
+
+                html_content += "<tr>"
+                
+                # 첫 번째 행에만 재현주기 셀 추가 (Rowspan)
+                if i == 0:
+                    html_content += f'<td rowspan="{rowspan}" style="vertical-align: middle; background-color: #fff; font-weight: bold;">{obj_name}<br>({item["repetition_period"]})</td>'
+                
                 html_content += f"""
-                <tr>
-                    <td>{direction}({sign})</td>
-                    <td>{item['objective_name']} ({item['repetition_period']})</td>
+                    <td>{dir_label}</td>
                     <td>{item['allowed_drift_pct']:.2f}% / {item['calculated_drift_pct']:.3f}%</td>
                     <td>{stability_text}</td>
-                    <td>{collapsed_count}개</td>
+                    <td><span class="{collapsed_class}">{collapsed_count}개</span></td>
+                    <td class="{status_class}">{item['status']}</td>
+                </tr>
+                """
+    
+    # 혹시 performance_objectives에 없는데 결과에는 있는 항목 처리 (예외적 상황)
+    for obj_name, results_list in results_map.items():
+        if obj_name not in processed_objectives:
+            rowspan = len(results_list)
+            for i, (dir_label, item) in enumerate(results_list):
+                status_class = "pass-text" if item['status'] == "PASS" else "fail-text"
+                if "INVALID" in item['status']: status_class = "fail-text"
+                stability_ratio = item.get('stability_ratio', 1.0)
+                stability_text = f"{stability_ratio*100:.0f}% (OK)" if stability_ratio >= 0.8 else f"{stability_ratio*100:.0f}% (WARNING)"
+                collapsed_count = item.get('collapsed_member_count', 0)
+                collapsed_class = "fail-text" if collapsed_count > 0 else ""
+
+                html_content += "<tr>"
+                if i == 0:
+                    html_content += f'<td rowspan="{rowspan}" style="vertical-align: middle; background-color: #fff; font-weight: bold;">{obj_name}<br>({item["repetition_period"]})</td>'
+                html_content += f"""
+                    <td>{dir_label}</td>
+                    <td>{item['allowed_drift_pct']:.2f}% / {item['calculated_drift_pct']:.3f}%</td>
+                    <td>{stability_text}</td>
+                    <td><span class="{collapsed_class}">{collapsed_count}개</span></td>
                     <td class="{status_class}">{item['status']}</td>
                 </tr>
                 """

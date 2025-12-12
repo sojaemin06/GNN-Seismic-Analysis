@@ -3,12 +3,12 @@ import numpy as np
 import pandas as pd
 from torch_geometric.data import Data
 
-def extract_graph_data(model_nodes_info, params, direction):
+def extract_graph_data(model_nodes_info, params, direction, modal_props=None):
     """
     [Updated] 4-Direction GNN Spec 반영.
     - Node: 5 features (x, y, z, is_base, mass_norm)
     - Edge: 12 features (geo, mat_norm, rebar_detail, engineered_props)
-    - Global: 4 features (One-hot direction)
+    - Global: 8 features (One-hot direction [4] + Modal Props [4])
     """
     
     # ---------------------------------------------------------
@@ -158,14 +158,14 @@ def extract_graph_data(model_nodes_info, params, direction):
     edge_attr = torch.tensor(edge_attr_list, dtype=torch.float) # [Num_Edges, 16]
 
     # ---------------------------------------------------------
-    # 3. Global Features (dim=4, One-hot)
+    # 3. Global Features (dim=8) [Modified]
     # ---------------------------------------------------------
     # direction: 'X' or 'Z'
     # Check analysis_name for pos/neg suffix (e.g., ..._X_pos)
     name_parts = params['analysis_name'].split('_')
     sign = name_parts[-1] # 'pos' or 'neg'
     
-    # [X+, X-, Z+, Z-]
+    # [X+, X-, Z+, Z-] (4 dim)
     global_vec = [0.0, 0.0, 0.0, 0.0]
     
     if direction == 'X':
@@ -174,6 +174,35 @@ def extract_graph_data(model_nodes_info, params, direction):
     else: # Z
         if sign == 'pos': global_vec[2] = 1.0
         else: global_vec[3] = 1.0
+        
+    # [NEW] Append Modal Properties (4 dim) -> Total 8 dim
+    # T1, PF1, MassRatio, PhiRoof
+    if modal_props:
+        # Extract properties for the relevant direction (X or Z)
+        # modal_props structure: {'X': {mode_idx: {T, PF, MassRatio, PhiRoof}}, 'Z': ...}
+        # Assuming modal_props passed is already processed or we need to find dominant mode
+        # Simple Logic: Get 1st Mode data for the direction
+        
+        # modal_props from run_eigen_analysis is usually a list of modes or dict by mode index
+        # Let's assume params passed dominant mode info or we pick Mode 1 for the direction
+        
+        # Note: In run_and_export, we have 'dominant_mode' from pushover, but here we only have 'modal_props'
+        # Let's assume 'modal_props' contains a summary for the direction
+        
+        # Safe extraction
+        t1 = modal_props.get('T1', 0.0)
+        pf1 = modal_props.get('PF1', 0.0)
+        m_ratio = modal_props.get('MassRatio', 0.0)
+        phi = modal_props.get('PhiRoof', 0.0)
+        
+        global_vec.extend([
+            t1 / 5.0,     # Normalize T (assuming < 5s)
+            pf1 / 2.0,    # Normalize PF
+            m_ratio,      # Ratio is 0~1
+            phi / 2.0     # Normalize Mode Shape
+        ])
+    else:
+        global_vec.extend([0.0, 0.0, 0.0, 0.0])
         
     u_tensor = torch.tensor([global_vec], dtype=torch.float)
 

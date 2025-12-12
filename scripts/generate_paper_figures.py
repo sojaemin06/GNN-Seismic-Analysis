@@ -14,8 +14,8 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from src.gnn.models import PushoverGNN
-from src.gnn.train import PushoverDataset 
+from src.gnn1.models import PushoverGNN
+from src.gnn1.train import PushoverDataset 
 
 def generate_figures():
     # --- 설정 ---
@@ -167,6 +167,30 @@ def generate_figures():
     plt.tight_layout()
     plt.savefig(output_dir / 'fig_representative_curves.png', dpi=300)
     print(f"Saved Representative Curves to {output_dir / 'fig_representative_curves.png'}")
+
+    # --- Figure 3: Error Histogram ---
+    errors = all_preds - all_targets
+    mean_error = np.mean(errors)
+    std_error = np.std(errors)
+    
+    plt.figure(figsize=(8, 6))
+    plt.hist(errors, bins=50, color='skyblue', edgecolor='black', alpha=0.7, density=True)
+    
+    # Normal Distribution Fit Curve (Optional comparison)
+    xmin, xmax = plt.xlim()
+    x = np.linspace(xmin, xmax, 100)
+    p = (1 / (np.sqrt(2 * np.pi) * std_error)) * np.exp(-0.5 * ((x - mean_error) / std_error) ** 2)
+    plt.plot(x, p, 'r--', linewidth=2, label=f'Fit ($\mu={mean_error:.4f}, \sigma={std_error:.4f}$)')
+    
+    plt.axvline(mean_error, color='k', linestyle='dashed', linewidth=1)
+    plt.xlabel('Prediction Error (Predicted - Actual)', fontsize=12)
+    plt.ylabel('Density', fontsize=12)
+    plt.title('Distribution of Prediction Errors', fontsize=14)
+    plt.legend()
+    plt.grid(True, linestyle='--', alpha=0.5)
+    plt.tight_layout()
+    plt.savefig(output_dir / 'fig_error_histogram.png', dpi=300)
+    print(f"Saved Error Histogram to {output_dir / 'fig_error_histogram.png'}")
 
 if __name__ == '__main__':
     generate_figures()

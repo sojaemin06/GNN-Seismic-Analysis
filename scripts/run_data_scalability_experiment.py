@@ -11,13 +11,13 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from src.gnn.train import train_model
+from src.gnn1.train import train_model
 
 def run_experiment():
     # --- 실험 설정 ---
-    # 현재 확보된 데이터 최대 개수 확인 (약 328개 예상)
+    # 현재 확보된 데이터 최대 개수 확인 (약 363개)
     # 실험 단계 설정 (데이터 개수)
-    sample_counts = [50, 100, 150, 200, 250, 300, 328]
+    sample_counts = [50, 100, 150, 200, 250, 300]
     
     # 생성 시간 추정치 (샘플당 초, 이전 로그 기반 평균)
     avg_gen_time_per_sample = 60.0 
