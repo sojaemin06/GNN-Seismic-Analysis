@@ -250,7 +250,19 @@ def run_and_export_graph_data(run_id, save_id, dataset_config_path, output_data_
             if torch.max(torch.abs(processed_curve)) < 0.001:
                  return False, f"BadData_LowStrength_{direction}_{sign_str}", time.time() - start_time
 
-            graph_data.y = processed_curve.unsqueeze(0) 
+            graph_data.y = processed_curve.unsqueeze(0)
+
+            # Store max_roof_disp_sim and Sd_at_peak_actual as attributes
+            # max_roof_disp_sim is the max displacement used for interpolation
+            graph_data.max_roof_disp_sim = torch.tensor(max_roof_disp, dtype=torch.float)
+            
+            # Sd_at_peak_actual: Displacement corresponding to the maximum normalized base shear
+            # We need to re-generate standard_displacements to find the corresponding displacement
+            num_points = 100 # From process_pushover_curve default
+            standard_displacements = np.linspace(0, max_roof_disp, num_points)
+            peak_shear_idx = torch.argmax(processed_curve).item()
+            graph_data.Sd_at_peak_actual = torch.tensor(standard_displacements[peak_shear_idx], dtype=torch.float)
+
 
             output_file_path = output_data_dir / f"data_{save_id}_{direction}_{sign_str}.pt"
             data_to_save.append((graph_data, output_file_path))

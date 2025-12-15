@@ -72,6 +72,10 @@ def generate_figures():
     all_targets = []
     sample_r2_scores = []
     
+    # Lists for Sd (Spectral Displacement)
+    all_sd_preds = []
+    all_sd_targets = []
+    
     with torch.no_grad():
         for data in test_loader:
             data = data.to(device)
@@ -94,11 +98,34 @@ def generate_figures():
                 sample_r2_scores.append(r2)
             else:
                 sample_r2_scores.append(0.0)
+            
+            # --- Calculate Sd (Displacement at Peak Base Shear) ---
+            # 1. Get Building Height (Max Y coordinate in Node Features)
+            # data.x column 1 is Y coordinate
+            h_building = data.x[:, 1].max().item()
+            
+            # 2. Reconstruct Displacement Array
+            # Logic from generate_dataset.py: max_roof_disp = 0.04 * H
+            max_disp = h_building * 0.04
+            displacements = np.linspace(0, max_disp, len(target_np))
+            
+            # 3. Find index of Peak Base Shear
+            idx_peak_target = np.argmax(target_np)
+            idx_peak_pred = np.argmax(pred_np)
+            
+            # 4. Get Sd
+            sd_target = displacements[idx_peak_target]
+            sd_pred = displacements[idx_peak_pred]
+            
+            all_sd_targets.append(sd_target)
+            all_sd_preds.append(sd_pred)
 
     all_preds = np.array(all_preds)
     all_targets = np.array(all_targets)
+    all_sd_preds = np.array(all_sd_preds)
+    all_sd_targets = np.array(all_sd_targets)
     
-    # --- Figure 1: Parity Plot (All Points) ---
+    # --- Figure 1: Parity Plot (All Points - Base Shear) ---
     plt.figure(figsize=(7, 7))
     plt.scatter(all_targets, all_preds, alpha=0.3, s=10, c='blue', edgecolors='none')
     
@@ -191,6 +218,29 @@ def generate_figures():
     plt.tight_layout()
     plt.savefig(output_dir / 'fig_error_histogram.png', dpi=300)
     print(f"Saved Error Histogram to {output_dir / 'fig_error_histogram.png'}")
+
+    # --- Figure 4: Parity Plot (Spectral Displacement) ---
+    plt.figure(figsize=(7, 7))
+    plt.scatter(all_sd_targets, all_sd_preds, alpha=0.5, s=30, c='green', edgecolors='black', linewidth=0.5)
+    
+    # Reference Line (y=x)
+    min_sd = min(all_sd_targets.min(), all_sd_preds.min())
+    max_sd = max(all_sd_targets.max(), all_sd_preds.max())
+    plt.plot([min_sd, max_sd], [min_sd, max_sd], 'r--', lw=2, label='Perfect Prediction')
+    
+    # Metrics
+    sd_r2 = r2_score(all_sd_targets, all_sd_preds)
+    plt.text(min_sd + 0.05 * (max_sd - min_sd), max_sd - 0.1 * (max_sd - min_sd), 
+             f'$R^2 = {sd_r2:.4f}$', fontsize=14, fontweight='bold')
+    
+    plt.xlabel('Ground Truth $S_d$ (m)', fontsize=12)
+    plt.ylabel('Predicted $S_d$ (m)', fontsize=12)
+    plt.title('Parity Plot: Spectral Displacement ($S_d$)', fontsize=14)
+    plt.legend()
+    plt.grid(True, linestyle='--', alpha=0.6)
+    plt.tight_layout()
+    plt.savefig(output_dir / 'fig_parity_plot_sd.png', dpi=300)
+    print(f"Saved Sd Parity Plot to {output_dir / 'fig_parity_plot_sd.png'}")
 
     # --- Task 4 Addition: Dataset Statistics & Correlation ---
     print("Generating Dataset Statistics Figures...")

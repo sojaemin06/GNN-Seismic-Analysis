@@ -18,19 +18,19 @@
 
 ## 작업 범위: 논문 작성 지원 및 시각화 (Phase 4 - In Progress)
 
-### Task 4: 논문용 Figure 데이터 생성 및 추출
+### Task 4: 논문용 Figure 데이터 생성 및 추출 (완료)
 
 **목표:** 논문 게재를 위해 선정된 **CSM 모델**의 결과를 고해상도 이미지 및 원본 데이터(CSV)로 추출.
 
 - [x] **모델 비교 그래프:** `results/paper_figures/model_comparison_600_samples.png` 생성 완료.
-- [ ] **데이터셋 통계 시각화 (Dataset Statistics)**
-  - [ ] 입력 변수 분포도 (Histograms): $f_c$, $f_y$, $T_1$, $PF_1$ 등
-  - [ ] 상관관계 분석 (Correlation Matrix): 모드 변수 vs 구조 성능 지표($V_{base}$)
-- [ ] **성능 평가 시각화 (Evaluation Results)**
-  - [ ] **Parity Plots (Scatter):** 실제값 vs 예측값 ($x=y$ line 비교)
-    - $S_d$ (Spectral Displacement)
-    - $V_{base}$ (Base Shear)
-  - [ ] **Representative Pushover Curves:** Best/Average/Worst Case 추출.
+- [x] **데이터셋 통계 시각화 (Dataset Statistics)**
+  - [x] 입력 변수 분포도 (Histograms): $f_c$, $f_y$, $T_1$, $PF_1$ 등
+  - [x] 상관관계 분석 (Correlation Matrix): 모드 변수 vs 구조 성능 지표($V_{base}$)
+- [x] **성능 평가 시각화 (Evaluation Results)**
+  - [x] **Parity Plots (Scatter):** 실제값 vs 예측값 ($x=y$ line 비교)
+    - [x] $S_d$ (Spectral Displacement)
+    - [x] $V_{base}$ (Base Shear)
+  - [x] **Representative Pushover Curves:** Best/Average/Worst Case 추출.
 
 ### Task 5: 프로젝트 마무리 및 패키징
 - [ ] **CLI 통합:** `verify_gnn_csm.py` 등을 사용자가 쉽게 쓸 수 있는 명령어로 정리.
