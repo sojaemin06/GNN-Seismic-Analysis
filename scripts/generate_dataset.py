@@ -4,6 +4,7 @@ import os
 import json
 import time 
 import pandas as pd
+import numpy as np
 from pathlib import Path 
 import random
 import torch
@@ -363,4 +364,4 @@ def main_generate_dataset(num_samples: int = 500):
     print(f"Errors: {error_log_file_path}")
 
 if __name__ == '__main__':
-    main_generate_dataset(num_samples=500) 
+    main_generate_dataset(num_samples=300) 

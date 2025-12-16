@@ -829,3 +829,492 @@ Total Attempts: 697
 Successful New Samples: 500
 Failed Attempts: 197
 Total Session Duration: 24581.09s (409.68 min)
+
+--- Dataset Generation Session Started: 2025-12-15 14:42:47.775917 ---
+Target: 300 successful samples (Starting ID: 753).
+
+Run 753: UNCAUGHT EXCEPTION - See error log.
+Run 754: UNCAUGHT EXCEPTION - See error log.
+Run 755: UNCAUGHT EXCEPTION - See error log.
+Run 756: UNCAUGHT EXCEPTION - See error log.
+Run 758: UNCAUGHT EXCEPTION - See error log.
+Run 759: UNCAUGHT EXCEPTION - See error log.
+Run 760: UNCAUGHT EXCEPTION - See error log.
+Run 761: UNCAUGHT EXCEPTION - See error log.
+Run 762: UNCAUGHT EXCEPTION - See error log.
+Run 763: UNCAUGHT EXCEPTION - See error log.
+Run 766: UNCAUGHT EXCEPTION - See error log.
+Run 767: UNCAUGHT EXCEPTION - See error log.
+Run 768: UNCAUGHT EXCEPTION - See error log.
+Run 769: UNCAUGHT EXCEPTION - See error log.
+Run 770: UNCAUGHT EXCEPTION - See error log.
+Run 771: UNCAUGHT EXCEPTION - See error log.
+Run 772: UNCAUGHT EXCEPTION - See error log.
+Run 773: UNCAUGHT EXCEPTION - See error log.
+Run 774: UNCAUGHT EXCEPTION - See error log.
+Run 775: UNCAUGHT EXCEPTION - See error log.
+Run 776: UNCAUGHT EXCEPTION - See error log.
+Run 777: UNCAUGHT EXCEPTION - See error log.
+Run 780: UNCAUGHT EXCEPTION - See error log.
+Run 781: UNCAUGHT EXCEPTION - See error log.
+Run 782: UNCAUGHT EXCEPTION - See error log.
+Run 783: UNCAUGHT EXCEPTION - See error log.
+Run 785: UNCAUGHT EXCEPTION - See error log.
+Run 786: UNCAUGHT EXCEPTION - See error log.
+Run 787: UNCAUGHT EXCEPTION - See error log.
+Run 789: UNCAUGHT EXCEPTION - See error log.
+Run 791: UNCAUGHT EXCEPTION - See error log.
+Run 792: UNCAUGHT EXCEPTION - See error log.
+Run 793: UNCAUGHT EXCEPTION - See error log.
+Run 794: UNCAUGHT EXCEPTION - See error log.
+Run 796: UNCAUGHT EXCEPTION - See error log.
+Run 797: UNCAUGHT EXCEPTION - See error log.
+Run 799: UNCAUGHT EXCEPTION - See error log.
+Run 800: UNCAUGHT EXCEPTION - See error log.
+Run 801: UNCAUGHT EXCEPTION - See error log.
+Run 802: UNCAUGHT EXCEPTION - See error log.
+Run 804: UNCAUGHT EXCEPTION - See error log.
+Run 806: UNCAUGHT EXCEPTION - See error log.
+Run 808: UNCAUGHT EXCEPTION - See error log.
+Run 809: UNCAUGHT EXCEPTION - See error log.
+Run 810: UNCAUGHT EXCEPTION - See error log.
+Run 811: UNCAUGHT EXCEPTION - See error log.
+Run 812: UNCAUGHT EXCEPTION - See error log.
+Run 813: UNCAUGHT EXCEPTION - See error log.
+Run 814: UNCAUGHT EXCEPTION - See error log.
+Run 815: UNCAUGHT EXCEPTION - See error log.
+Run 816: UNCAUGHT EXCEPTION - See error log.
+Run 817: UNCAUGHT EXCEPTION - See error log.
+Run 818: UNCAUGHT EXCEPTION - See error log.
+Run 819: UNCAUGHT EXCEPTION - See error log.
+Run 820: UNCAUGHT EXCEPTION - See error log.
+Run 822: UNCAUGHT EXCEPTION - See error log.
+Run 823: UNCAUGHT EXCEPTION - See error log.
+Run 824: UNCAUGHT EXCEPTION - See error log.
+Run 825: UNCAUGHT EXCEPTION - See error log.
+Run 826: UNCAUGHT EXCEPTION - See error log.
+Run 828: UNCAUGHT EXCEPTION - See error log.
+Run 831: UNCAUGHT EXCEPTION - See error log.
+Run 833: UNCAUGHT EXCEPTION - See error log.
+Run 834: UNCAUGHT EXCEPTION - See error log.
+Run 835: UNCAUGHT EXCEPTION - See error log.
+Run 837: UNCAUGHT EXCEPTION - See error log.
+Run 838: UNCAUGHT EXCEPTION - See error log.
+Run 839: UNCAUGHT EXCEPTION - See error log.
+Run 841: UNCAUGHT EXCEPTION - See error log.
+Run 843: UNCAUGHT EXCEPTION - See error log.
+Run 844: UNCAUGHT EXCEPTION - See error log.
+Run 845: UNCAUGHT EXCEPTION - See error log.
+Run 846: UNCAUGHT EXCEPTION - See error log.
+Run 847: UNCAUGHT EXCEPTION - See error log.
+Run 848: UNCAUGHT EXCEPTION - See error log.
+Run 849: UNCAUGHT EXCEPTION - See error log.
+Run 850: UNCAUGHT EXCEPTION - See error log.
+Run 852: UNCAUGHT EXCEPTION - See error log.
+Run 853: UNCAUGHT EXCEPTION - See error log.
+Run 854: UNCAUGHT EXCEPTION - See error log.
+Run 855: UNCAUGHT EXCEPTION - See error log.
+Run 856: UNCAUGHT EXCEPTION - See error log.
+Run 858: UNCAUGHT EXCEPTION - See error log.
+Run 860: UNCAUGHT EXCEPTION - See error log.
+Run 861: UNCAUGHT EXCEPTION - See error log.
+Run 863: UNCAUGHT EXCEPTION - See error log.
+Run 864: UNCAUGHT EXCEPTION - See error log.
+Run 867: UNCAUGHT EXCEPTION - See error log.
+Run 869: UNCAUGHT EXCEPTION - See error log.
+Run 870: UNCAUGHT EXCEPTION - See error log.
+Run 871: UNCAUGHT EXCEPTION - See error log.
+Run 872: UNCAUGHT EXCEPTION - See error log.
+Run 873: UNCAUGHT EXCEPTION - See error log.
+Run 874: UNCAUGHT EXCEPTION - See error log.
+Run 878: UNCAUGHT EXCEPTION - See error log.
+Run 879: UNCAUGHT EXCEPTION - See error log.
+Run 880: UNCAUGHT EXCEPTION - See error log.
+Run 882: UNCAUGHT EXCEPTION - See error log.
+Run 883: UNCAUGHT EXCEPTION - See error log.
+Run 884: UNCAUGHT EXCEPTION - See error log.
+Run 885: UNCAUGHT EXCEPTION - See error log.
+Run 886: UNCAUGHT EXCEPTION - See error log.
+Run 887: UNCAUGHT EXCEPTION - See error log.
+Run 888: UNCAUGHT EXCEPTION - See error log.
+Run 890: UNCAUGHT EXCEPTION - See error log.
+Run 891: UNCAUGHT EXCEPTION - See error log.
+Run 894: UNCAUGHT EXCEPTION - See error log.
+Run 895: UNCAUGHT EXCEPTION - See error log.
+Run 899: UNCAUGHT EXCEPTION - See error log.
+Run 901: UNCAUGHT EXCEPTION - See error log.
+Run 902: UNCAUGHT EXCEPTION - See error log.
+Run 903: UNCAUGHT EXCEPTION - See error log.
+Run 904: UNCAUGHT EXCEPTION - See error log.
+Run 906: UNCAUGHT EXCEPTION - See error log.
+Run 907: UNCAUGHT EXCEPTION - See error log.
+Run 908: UNCAUGHT EXCEPTION - See error log.
+Run 909: UNCAUGHT EXCEPTION - See error log.
+Run 910: UNCAUGHT EXCEPTION - See error log.
+Run 913: UNCAUGHT EXCEPTION - See error log.
+Run 914: UNCAUGHT EXCEPTION - See error log.
+Run 915: UNCAUGHT EXCEPTION - See error log.
+Run 916: UNCAUGHT EXCEPTION - See error log.
+Run 917: UNCAUGHT EXCEPTION - See error log.
+Run 918: UNCAUGHT EXCEPTION - See error log.
+Run 919: UNCAUGHT EXCEPTION - See error log.
+Run 920: UNCAUGHT EXCEPTION - See error log.
+Run 921: UNCAUGHT EXCEPTION - See error log.
+Run 922: UNCAUGHT EXCEPTION - See error log.
+Run 923: UNCAUGHT EXCEPTION - See error log.
+Run 924: UNCAUGHT EXCEPTION - See error log.
+Run 927: UNCAUGHT EXCEPTION - See error log.
+Run 928: UNCAUGHT EXCEPTION - See error log.
+Run 929: UNCAUGHT EXCEPTION - See error log.
+Run 930: UNCAUGHT EXCEPTION - See error log.
+Run 931: UNCAUGHT EXCEPTION - See error log.
+Run 932: UNCAUGHT EXCEPTION - See error log.
+Run 933: UNCAUGHT EXCEPTION - See error log.
+Run 934: UNCAUGHT EXCEPTION - See error log.
+Run 936: UNCAUGHT EXCEPTION - See error log.
+Run 937: UNCAUGHT EXCEPTION - See error log.
+Run 938: UNCAUGHT EXCEPTION - See error log.
+Run 939: UNCAUGHT EXCEPTION - See error log.
+Run 940: UNCAUGHT EXCEPTION - See error log.
+Run 942: UNCAUGHT EXCEPTION - See error log.
+Run 943: UNCAUGHT EXCEPTION - See error log.
+Run 944: UNCAUGHT EXCEPTION - See error log.
+Run 946: UNCAUGHT EXCEPTION - See error log.
+Run 947: UNCAUGHT EXCEPTION - See error log.
+Run 948: UNCAUGHT EXCEPTION - See error log.
+Run 949: UNCAUGHT EXCEPTION - See error log.
+Run 950: UNCAUGHT EXCEPTION - See error log.
+Run 953: UNCAUGHT EXCEPTION - See error log.
+Run 954: UNCAUGHT EXCEPTION - See error log.
+Run 955: UNCAUGHT EXCEPTION - See error log.
+Run 956: UNCAUGHT EXCEPTION - See error log.
+Run 958: UNCAUGHT EXCEPTION - See error log.
+Run 959: UNCAUGHT EXCEPTION - See error log.
+Run 960: UNCAUGHT EXCEPTION - See error log.
+Run 961: UNCAUGHT EXCEPTION - See error log.
+Run 962: UNCAUGHT EXCEPTION - See error log.
+Run 963: UNCAUGHT EXCEPTION - See error log.
+Run 964: UNCAUGHT EXCEPTION - See error log.
+Run 965: UNCAUGHT EXCEPTION - See error log.
+Run 966: UNCAUGHT EXCEPTION - See error log.
+Run 968: UNCAUGHT EXCEPTION - See error log.
+Run 969: UNCAUGHT EXCEPTION - See error log.
+Run 970: UNCAUGHT EXCEPTION - See error log.
+Run 971: UNCAUGHT EXCEPTION - See error log.
+Run 972: UNCAUGHT EXCEPTION - See error log.
+Run 973: UNCAUGHT EXCEPTION - See error log.
+Run 974: UNCAUGHT EXCEPTION - See error log.
+Run 975: UNCAUGHT EXCEPTION - See error log.
+Run 976: UNCAUGHT EXCEPTION - See error log.
+Run 977: UNCAUGHT EXCEPTION - See error log.
+Run 979: UNCAUGHT EXCEPTION - See error log.
+
+--- Dataset Generation Session Started: 2025-12-15 17:02:22.500822 ---
+Target: 300 successful samples (Starting ID: 753).
+
+Sample 753 (Run 753): SUCCESS - Success (Time: 34.88s)
+Sample 754 (Run 754): SUCCESS - Success (Time: 39.77s)
+Sample 755 (Run 755): SUCCESS - Success (Time: 55.74s)
+Sample 756 (Run 756): SUCCESS - Success (Time: 44.22s)
+Sample 757 (Run 757): SUCCESS - Success (Time: 73.56s)
+Sample 758 (Run 758): SUCCESS - Success (Time: 81.52s)
+Sample 759 (Run 760): SUCCESS - Success (Time: 73.75s)
+Sample 760 (Run 761): SUCCESS - Success (Time: 81.84s)
+Sample 761 (Run 762): SUCCESS - Success (Time: 82.38s)
+Sample 762 (Run 763): SUCCESS - Success (Time: 82.64s)
+Sample 763 (Run 765): SUCCESS - Success (Time: 77.05s)
+Sample 764 (Run 766): SUCCESS - Success (Time: 49.35s)
+Sample 765 (Run 767): SUCCESS - Success (Time: 38.26s)
+Sample 766 (Run 768): SUCCESS - Success (Time: 21.12s)
+Sample 767 (Run 769): SUCCESS - Success (Time: 37.23s)
+Sample 768 (Run 770): SUCCESS - Success (Time: 43.15s)
+Sample 769 (Run 772): SUCCESS - Success (Time: 378.71s)
+Sample 770 (Run 773): SUCCESS - Success (Time: 70.69s)
+Sample 771 (Run 775): SUCCESS - Success (Time: 94.42s)
+Sample 772 (Run 776): SUCCESS - Success (Time: 41.15s)
+Sample 773 (Run 777): SUCCESS - Success (Time: 106.65s)
+Sample 774 (Run 778): SUCCESS - Success (Time: 80.12s)
+Sample 775 (Run 779): SUCCESS - Success (Time: 49.17s)
+Sample 776 (Run 780): SUCCESS - Success (Time: 43.00s)
+Sample 777 (Run 781): SUCCESS - Success (Time: 87.20s)
+Sample 778 (Run 782): SUCCESS - Success (Time: 89.26s)
+Sample 779 (Run 783): SUCCESS - Success (Time: 54.84s)
+Sample 780 (Run 786): SUCCESS - Success (Time: 60.32s)
+Sample 781 (Run 787): SUCCESS - Success (Time: 83.88s)
+Sample 782 (Run 789): SUCCESS - Success (Time: 169.19s)
+Sample 783 (Run 790): SUCCESS - Success (Time: 31.08s)
+Sample 784 (Run 791): SUCCESS - Success (Time: 70.35s)
+Sample 785 (Run 793): SUCCESS - Success (Time: 95.92s)
+Sample 786 (Run 794): SUCCESS - Success (Time: 100.79s)
+Sample 787 (Run 795): SUCCESS - Success (Time: 76.50s)
+Sample 788 (Run 796): SUCCESS - Success (Time: 82.72s)
+Sample 789 (Run 797): SUCCESS - Success (Time: 33.69s)
+Sample 790 (Run 799): SUCCESS - Success (Time: 38.05s)
+Sample 791 (Run 800): SUCCESS - Success (Time: 56.69s)
+Sample 792 (Run 801): SUCCESS - Success (Time: 37.28s)
+Sample 793 (Run 802): SUCCESS - Success (Time: 23.60s)
+Sample 794 (Run 803): SUCCESS - Success (Time: 135.62s)
+Sample 795 (Run 804): SUCCESS - Success (Time: 42.52s)
+Sample 796 (Run 805): SUCCESS - Success (Time: 32.92s)
+Sample 797 (Run 806): SUCCESS - Success (Time: 27.98s)
+Sample 798 (Run 807): SUCCESS - Success (Time: 47.42s)
+Sample 799 (Run 809): SUCCESS - Success (Time: 22.81s)
+Sample 800 (Run 810): SUCCESS - Success (Time: 35.14s)
+Sample 801 (Run 811): SUCCESS - Success (Time: 40.18s)
+Sample 802 (Run 812): SUCCESS - Success (Time: 72.30s)
+Sample 803 (Run 813): SUCCESS - Success (Time: 340.03s)
+Sample 804 (Run 814): SUCCESS - Success (Time: 36.93s)
+Sample 805 (Run 815): SUCCESS - Success (Time: 58.07s)
+Sample 806 (Run 817): SUCCESS - Success (Time: 62.63s)
+Sample 807 (Run 818): SUCCESS - Success (Time: 56.75s)
+Sample 808 (Run 819): SUCCESS - Success (Time: 88.67s)
+Sample 809 (Run 821): SUCCESS - Success (Time: 61.39s)
+Sample 810 (Run 822): SUCCESS - Success (Time: 49.36s)
+Sample 811 (Run 823): SUCCESS - Success (Time: 34.87s)
+Sample 812 (Run 824): SUCCESS - Success (Time: 61.59s)
+Sample 813 (Run 826): SUCCESS - Success (Time: 44.71s)
+Sample 814 (Run 827): SUCCESS - Success (Time: 57.55s)
+Sample 815 (Run 829): SUCCESS - Success (Time: 22.24s)
+Sample 816 (Run 830): SUCCESS - Success (Time: 67.02s)
+Sample 817 (Run 832): SUCCESS - Success (Time: 40.34s)
+Sample 818 (Run 834): SUCCESS - Success (Time: 59.41s)
+Sample 819 (Run 835): SUCCESS - Success (Time: 510.13s)
+Sample 820 (Run 836): SUCCESS - Success (Time: 42.37s)
+Sample 821 (Run 838): SUCCESS - Success (Time: 93.68s)
+Sample 822 (Run 839): SUCCESS - Success (Time: 79.89s)
+Sample 823 (Run 840): SUCCESS - Success (Time: 95.29s)
+Sample 824 (Run 841): SUCCESS - Success (Time: 54.57s)
+Sample 825 (Run 842): SUCCESS - Success (Time: 47.90s)
+Sample 826 (Run 843): SUCCESS - Success (Time: 64.77s)
+Sample 827 (Run 844): SUCCESS - Success (Time: 93.10s)
+Sample 828 (Run 845): SUCCESS - Success (Time: 44.00s)
+Sample 829 (Run 846): SUCCESS - Success (Time: 66.63s)
+Sample 830 (Run 847): SUCCESS - Success (Time: 1745.66s)
+Sample 831 (Run 848): SUCCESS - Success (Time: 30.23s)
+Sample 832 (Run 850): SUCCESS - Success (Time: 41.75s)
+Sample 833 (Run 851): SUCCESS - Success (Time: 30.36s)
+Sample 834 (Run 853): SUCCESS - Success (Time: 28.75s)
+Sample 835 (Run 856): SUCCESS - Success (Time: 32.64s)
+Sample 836 (Run 857): SUCCESS - Success (Time: 43.76s)
+Sample 837 (Run 858): SUCCESS - Success (Time: 41.16s)
+Sample 838 (Run 859): SUCCESS - Success (Time: 40.36s)
+Sample 839 (Run 860): SUCCESS - Success (Time: 57.42s)
+Sample 840 (Run 861): SUCCESS - Success (Time: 34.96s)
+Sample 841 (Run 863): SUCCESS - Success (Time: 50.73s)
+Sample 842 (Run 865): SUCCESS - Success (Time: 50.78s)
+Sample 843 (Run 866): SUCCESS - Success (Time: 39.60s)
+Sample 844 (Run 867): SUCCESS - Success (Time: 23.57s)
+Sample 845 (Run 868): SUCCESS - Success (Time: 55.72s)
+Sample 846 (Run 869): SUCCESS - Success (Time: 47.39s)
+Sample 847 (Run 870): SUCCESS - Success (Time: 21.23s)
+Sample 848 (Run 872): SUCCESS - Success (Time: 258.81s)
+Sample 849 (Run 874): SUCCESS - Success (Time: 46.15s)
+Sample 850 (Run 876): SUCCESS - Success (Time: 26.55s)
+Sample 851 (Run 877): SUCCESS - Success (Time: 54.46s)
+Sample 852 (Run 880): SUCCESS - Success (Time: 34.95s)
+Sample 853 (Run 881): SUCCESS - Success (Time: 43.27s)
+Sample 854 (Run 882): SUCCESS - Success (Time: 41.75s)
+Sample 855 (Run 885): SUCCESS - Success (Time: 20.46s)
+Sample 856 (Run 886): SUCCESS - Success (Time: 32.25s)
+Sample 857 (Run 887): SUCCESS - Success (Time: 45.80s)
+Sample 858 (Run 888): SUCCESS - Success (Time: 30.89s)
+Sample 859 (Run 889): SUCCESS - Success (Time: 32.60s)
+Sample 860 (Run 890): SUCCESS - Success (Time: 31.53s)
+Sample 861 (Run 891): SUCCESS - Success (Time: 32.13s)
+Sample 862 (Run 892): SUCCESS - Success (Time: 13.01s)
+Sample 863 (Run 893): SUCCESS - Success (Time: 49.97s)
+Sample 864 (Run 894): SUCCESS - Success (Time: 844.29s)
+Sample 865 (Run 895): SUCCESS - Success (Time: 18.02s)
+Sample 866 (Run 896): SUCCESS - Success (Time: 98.21s)
+Sample 867 (Run 897): SUCCESS - Success (Time: 59.02s)
+Sample 868 (Run 898): SUCCESS - Success (Time: 33.42s)
+Sample 869 (Run 899): SUCCESS - Success (Time: 44.70s)
+Sample 870 (Run 900): SUCCESS - Success (Time: 49.31s)
+Sample 871 (Run 902): SUCCESS - Success (Time: 43.99s)
+Sample 872 (Run 904): SUCCESS - Success (Time: 42.83s)
+Sample 873 (Run 905): SUCCESS - Success (Time: 58.98s)
+Sample 874 (Run 906): SUCCESS - Success (Time: 17.37s)
+Sample 875 (Run 907): SUCCESS - Success (Time: 211.90s)
+Sample 876 (Run 909): SUCCESS - Success (Time: 27.29s)
+Sample 877 (Run 912): SUCCESS - Success (Time: 42.92s)
+Sample 878 (Run 913): SUCCESS - Success (Time: 12.47s)
+Sample 879 (Run 914): SUCCESS - Success (Time: 15.74s)
+Sample 880 (Run 916): SUCCESS - Success (Time: 21.79s)
+Sample 881 (Run 917): SUCCESS - Success (Time: 13.06s)
+Sample 882 (Run 918): SUCCESS - Success (Time: 62.91s)
+Sample 883 (Run 919): SUCCESS - Success (Time: 32.00s)
+Sample 884 (Run 920): SUCCESS - Success (Time: 51.02s)
+Sample 885 (Run 921): SUCCESS - Success (Time: 67.89s)
+Sample 886 (Run 923): SUCCESS - Success (Time: 31.48s)
+Sample 887 (Run 924): SUCCESS - Success (Time: 21.60s)
+Sample 888 (Run 925): SUCCESS - Success (Time: 41.60s)
+Sample 889 (Run 926): SUCCESS - Success (Time: 47.47s)
+Sample 890 (Run 927): SUCCESS - Success (Time: 19.17s)
+Sample 891 (Run 928): SUCCESS - Success (Time: 221.11s)
+Sample 892 (Run 929): SUCCESS - Success (Time: 54.43s)
+Sample 893 (Run 930): SUCCESS - Success (Time: 29.43s)
+Sample 894 (Run 932): SUCCESS - Success (Time: 24.47s)
+Sample 895 (Run 933): SUCCESS - Success (Time: 44.77s)
+Sample 896 (Run 934): SUCCESS - Success (Time: 15.33s)
+Sample 897 (Run 935): SUCCESS - Success (Time: 42.67s)
+Sample 898 (Run 936): SUCCESS - Success (Time: 69.44s)
+Sample 899 (Run 938): SUCCESS - Success (Time: 36.42s)
+Sample 900 (Run 939): SUCCESS - Success (Time: 91.17s)
+Sample 901 (Run 940): SUCCESS - Success (Time: 36.27s)
+Sample 902 (Run 942): SUCCESS - Success (Time: 82.28s)
+Sample 903 (Run 943): SUCCESS - Success (Time: 43.38s)
+Sample 904 (Run 947): SUCCESS - Success (Time: 27.08s)
+Sample 905 (Run 948): SUCCESS - Success (Time: 16.87s)
+Sample 906 (Run 951): SUCCESS - Success (Time: 48.01s)
+Sample 907 (Run 952): SUCCESS - Success (Time: 48.95s)
+Sample 908 (Run 953): SUCCESS - Success (Time: 23.60s)
+Sample 909 (Run 954): SUCCESS - Success (Time: 114.95s)
+Sample 910 (Run 955): SUCCESS - Success (Time: 59.25s)
+Sample 911 (Run 957): SUCCESS - Success (Time: 66.20s)
+Sample 912 (Run 960): SUCCESS - Success (Time: 22.35s)
+Sample 913 (Run 962): SUCCESS - Success (Time: 52.38s)
+Sample 914 (Run 963): SUCCESS - Success (Time: 68.01s)
+Sample 915 (Run 964): SUCCESS - Success (Time: 63.23s)
+Sample 916 (Run 966): SUCCESS - Success (Time: 35.01s)
+Sample 917 (Run 967): SUCCESS - Success (Time: 23.70s)
+Sample 918 (Run 968): SUCCESS - Success (Time: 53.33s)
+Sample 919 (Run 970): SUCCESS - Success (Time: 21.45s)
+Sample 920 (Run 971): SUCCESS - Success (Time: 25.17s)
+Sample 921 (Run 972): SUCCESS - Success (Time: 28.42s)
+Sample 922 (Run 973): SUCCESS - Success (Time: 38.24s)
+Sample 923 (Run 975): SUCCESS - Success (Time: 92.32s)
+Sample 924 (Run 976): SUCCESS - Success (Time: 59.83s)
+Sample 925 (Run 977): SUCCESS - Success (Time: 49.24s)
+Sample 926 (Run 978): SUCCESS - Success (Time: 43.96s)
+Sample 927 (Run 979): SUCCESS - Success (Time: 28.99s)
+Sample 928 (Run 980): SUCCESS - Success (Time: 42.45s)
+Sample 929 (Run 983): SUCCESS - Success (Time: 32.31s)
+Sample 930 (Run 985): SUCCESS - Success (Time: 30.99s)
+Sample 931 (Run 987): SUCCESS - Success (Time: 23.40s)
+Sample 932 (Run 988): SUCCESS - Success (Time: 21.15s)
+Sample 933 (Run 989): SUCCESS - Success (Time: 20.57s)
+Sample 934 (Run 990): SUCCESS - Success (Time: 56.81s)
+Sample 935 (Run 991): SUCCESS - Success (Time: 37.34s)
+Sample 936 (Run 992): SUCCESS - Success (Time: 43.66s)
+Sample 937 (Run 993): SUCCESS - Success (Time: 178.70s)
+Sample 938 (Run 995): SUCCESS - Success (Time: 37.45s)
+Sample 939 (Run 996): SUCCESS - Success (Time: 48.31s)
+Sample 940 (Run 998): SUCCESS - Success (Time: 66.26s)
+Sample 941 (Run 1000): SUCCESS - Success (Time: 20.80s)
+Sample 942 (Run 1001): SUCCESS - Success (Time: 36.70s)
+Sample 943 (Run 1002): SUCCESS - Success (Time: 44.34s)
+Sample 944 (Run 1003): SUCCESS - Success (Time: 72.32s)
+Sample 945 (Run 1006): SUCCESS - Success (Time: 21.33s)
+Sample 946 (Run 1007): SUCCESS - Success (Time: 52.11s)
+Sample 947 (Run 1008): SUCCESS - Success (Time: 75.65s)
+Sample 948 (Run 1012): SUCCESS - Success (Time: 38.18s)
+Sample 949 (Run 1013): SUCCESS - Success (Time: 21.94s)
+Sample 950 (Run 1014): SUCCESS - Success (Time: 16.50s)
+Sample 951 (Run 1015): SUCCESS - Success (Time: 68.59s)
+Sample 952 (Run 1017): SUCCESS - Success (Time: 15.01s)
+Sample 953 (Run 1019): SUCCESS - Success (Time: 72.16s)
+Sample 954 (Run 1020): SUCCESS - Success (Time: 63.68s)
+Sample 955 (Run 1021): SUCCESS - Success (Time: 19.69s)
+Sample 956 (Run 1023): SUCCESS - Success (Time: 16.52s)
+Sample 957 (Run 1024): SUCCESS - Success (Time: 38.38s)
+Sample 958 (Run 1026): SUCCESS - Success (Time: 29.28s)
+Sample 959 (Run 1028): SUCCESS - Success (Time: 41.66s)
+Sample 960 (Run 1029): SUCCESS - Success (Time: 44.10s)
+Sample 961 (Run 1030): SUCCESS - Success (Time: 135.15s)
+Sample 962 (Run 1031): SUCCESS - Success (Time: 72.42s)
+Sample 963 (Run 1032): SUCCESS - Success (Time: 28.44s)
+Sample 964 (Run 1035): SUCCESS - Success (Time: 38.23s)
+Sample 965 (Run 1036): SUCCESS - Success (Time: 29.77s)
+Sample 966 (Run 1038): SUCCESS - Success (Time: 34.66s)
+Sample 967 (Run 1039): SUCCESS - Success (Time: 34.41s)
+Sample 968 (Run 1040): SUCCESS - Success (Time: 34.54s)
+Sample 969 (Run 1042): SUCCESS - Success (Time: 37.13s)
+Sample 970 (Run 1043): SUCCESS - Success (Time: 17.35s)
+Sample 971 (Run 1044): SUCCESS - Success (Time: 16.95s)
+Sample 972 (Run 1045): SUCCESS - Success (Time: 47.56s)
+Sample 973 (Run 1047): SUCCESS - Success (Time: 64.66s)
+Sample 974 (Run 1050): SUCCESS - Success (Time: 37.69s)
+Sample 975 (Run 1052): SUCCESS - Success (Time: 72.60s)
+Sample 976 (Run 1053): SUCCESS - Success (Time: 28.62s)
+Sample 977 (Run 1054): SUCCESS - Success (Time: 34.44s)
+Sample 978 (Run 1055): SUCCESS - Success (Time: 38.68s)
+Sample 979 (Run 1057): SUCCESS - Success (Time: 43.26s)
+Sample 980 (Run 1058): SUCCESS - Success (Time: 98.78s)
+Sample 981 (Run 1059): SUCCESS - Success (Time: 22.90s)
+Sample 982 (Run 1061): SUCCESS - Success (Time: 27.79s)
+Sample 983 (Run 1064): SUCCESS - Success (Time: 45.56s)
+Sample 984 (Run 1065): SUCCESS - Success (Time: 44.61s)
+Sample 985 (Run 1067): SUCCESS - Success (Time: 17.16s)
+Sample 986 (Run 1068): SUCCESS - Success (Time: 34.04s)
+Sample 987 (Run 1069): SUCCESS - Success (Time: 17.36s)
+Sample 988 (Run 1070): SUCCESS - Success (Time: 40.03s)
+Sample 989 (Run 1072): SUCCESS - Success (Time: 47.47s)
+Sample 990 (Run 1073): SUCCESS - Success (Time: 44.47s)
+Sample 991 (Run 1074): SUCCESS - Success (Time: 24.54s)
+Sample 992 (Run 1077): SUCCESS - Success (Time: 24.77s)
+Sample 993 (Run 1078): SUCCESS - Success (Time: 63.31s)
+Sample 994 (Run 1079): SUCCESS - Success (Time: 370.40s)
+Sample 995 (Run 1081): SUCCESS - Success (Time: 61.02s)
+Sample 996 (Run 1082): SUCCESS - Success (Time: 20.30s)
+Sample 997 (Run 1085): SUCCESS - Success (Time: 12.51s)
+Sample 998 (Run 1089): SUCCESS - Success (Time: 30.90s)
+Sample 999 (Run 1090): SUCCESS - Success (Time: 62.95s)
+Sample 1000 (Run 1091): SUCCESS - Success (Time: 78.19s)
+Sample 1001 (Run 1095): SUCCESS - Success (Time: 30.75s)
+Sample 1002 (Run 1096): SUCCESS - Success (Time: 18.94s)
+Sample 1003 (Run 1098): SUCCESS - Success (Time: 72.98s)
+Sample 1004 (Run 1099): SUCCESS - Success (Time: 85.75s)
+Sample 1005 (Run 1100): SUCCESS - Success (Time: 23.38s)
+Sample 1006 (Run 1101): SUCCESS - Success (Time: 26.25s)
+Sample 1007 (Run 1102): SUCCESS - Success (Time: 21.18s)
+Sample 1008 (Run 1104): SUCCESS - Success (Time: 40.26s)
+Sample 1009 (Run 1107): SUCCESS - Success (Time: 29.58s)
+Sample 1010 (Run 1108): SUCCESS - Success (Time: 10.73s)
+Sample 1011 (Run 1109): SUCCESS - Success (Time: 100.10s)
+Sample 1012 (Run 1111): SUCCESS - Success (Time: 43.12s)
+Sample 1013 (Run 1113): SUCCESS - Success (Time: 29.81s)
+Sample 1014 (Run 1114): SUCCESS - Success (Time: 46.97s)
+Sample 1015 (Run 1115): SUCCESS - Success (Time: 34.21s)
+Sample 1016 (Run 1116): SUCCESS - Success (Time: 29.97s)
+Sample 1017 (Run 1118): SUCCESS - Success (Time: 22.28s)
+Sample 1018 (Run 1119): SUCCESS - Success (Time: 61.48s)
+Sample 1019 (Run 1120): SUCCESS - Success (Time: 30.30s)
+Sample 1020 (Run 1121): SUCCESS - Success (Time: 19.90s)
+Sample 1021 (Run 1124): SUCCESS - Success (Time: 32.27s)
+Sample 1022 (Run 1125): SUCCESS - Success (Time: 114.73s)
+Sample 1023 (Run 1126): SUCCESS - Success (Time: 43.17s)
+Sample 1024 (Run 1127): SUCCESS - Success (Time: 31.77s)
+Sample 1025 (Run 1128): SUCCESS - Success (Time: 30.17s)
+Sample 1026 (Run 1129): SUCCESS - Success (Time: 223.09s)
+Sample 1027 (Run 1131): SUCCESS - Success (Time: 32.78s)
+Sample 1028 (Run 1135): SUCCESS - Success (Time: 40.10s)
+Sample 1029 (Run 1136): SUCCESS - Success (Time: 35.75s)
+Sample 1030 (Run 1137): SUCCESS - Success (Time: 43.72s)
+Sample 1031 (Run 1138): SUCCESS - Success (Time: 39.08s)
+Sample 1032 (Run 1139): SUCCESS - Success (Time: 74.82s)
+Sample 1033 (Run 1140): SUCCESS - Success (Time: 35.37s)
+Sample 1034 (Run 1141): SUCCESS - Success (Time: 24.59s)
+Sample 1035 (Run 1142): SUCCESS - Success (Time: 68.23s)
+Sample 1036 (Run 1143): SUCCESS - Success (Time: 30.46s)
+Sample 1037 (Run 1144): SUCCESS - Success (Time: 28.03s)
+Sample 1038 (Run 1147): SUCCESS - Success (Time: 58.97s)
+Sample 1039 (Run 1148): SUCCESS - Success (Time: 9.82s)
+Sample 1040 (Run 1149): SUCCESS - Success (Time: 53.60s)
+Sample 1041 (Run 1150): SUCCESS - Success (Time: 61.99s)
+Sample 1042 (Run 1151): SUCCESS - Success (Time: 21.68s)
+Sample 1043 (Run 1152): SUCCESS - Success (Time: 38.52s)
+Sample 1044 (Run 1154): SUCCESS - Success (Time: 56.62s)
+Sample 1045 (Run 1155): SUCCESS - Success (Time: 44.15s)
+Sample 1046 (Run 1156): SUCCESS - Success (Time: 30.05s)
+Sample 1047 (Run 1157): SUCCESS - Success (Time: 20.24s)
+Sample 1048 (Run 1159): SUCCESS - Success (Time: 45.39s)
+Sample 1049 (Run 1160): SUCCESS - Success (Time: 24.77s)
+Sample 1050 (Run 1162): SUCCESS - Success (Time: 82.45s)
+Sample 1051 (Run 1165): SUCCESS - Success (Time: 44.21s)
+Sample 1052 (Run 1167): SUCCESS - Success (Time: 32.15s)
+
+--- Dataset Generation Session Finished: 2025-12-15 22:18:40.226941 ---
+Total Attempts: 415
+Successful New Samples: 300
+Failed Attempts: 115
+Total Session Duration: 18977.73s (316.30 min)

@@ -15,12 +15,20 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from src.gnn1.models import PushoverGNN
+from src.gnn1.models import PushoverGNN, SimpleMLP, BaselineGCN
 
 class PushoverDataset(InMemoryDataset):
     def __init__(self, root, transform=None, pre_transform=None):
         super().__init__(root, transform, pre_transform)
         self.data, self.slices = torch.load(self.processed_paths[0], weights_only=False)
+
+    @property
+    def raw_dir(self):
+        return self.root
+
+    @property
+    def processed_dir(self):
+        return self.root
 
     @property
     def raw_file_names(self):
@@ -58,18 +66,19 @@ class PushoverDataset(InMemoryDataset):
         data, slices = self.collate(data_list)
         torch.save((data, slices), self.processed_paths[0])
 
-def train_model(dataset_dir_name='processed_csm', model_name='best_pushover_gnn_model.pt', sample_count=None, epochs=200, silent=False):
+def train_model(dataset_dir_name='processed_csm', model_name='best_pushover_gnn_model.pt', model_type='gnn', sample_count=None, epochs=300, silent=False, fixed_test_ids=None):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     if not silent:
         print(f"Using device: {device}")
         print(f"Dataset: {dataset_dir_name}")
+        print(f"Model Type: {model_type.upper()}")
         print(f"Model Output: {model_name}")
 
     # 모델 및 스케일러 저장 경로 정의
     model_save_dir = Path(project_root) / 'results' / 'models'
     model_save_dir.mkdir(parents=True, exist_ok=True) # 디렉토리가 없으면 생성
     model_path = model_save_dir / model_name
-    scaler_path = model_save_dir / "scaler.pt"
+    scaler_path = model_save_dir / f"scaler_{model_name.replace('.pt', '')}.pt"
 
     # --- 1. 데이터셋 로드 ---
     dataset_root = Path(project_root) / 'data'
@@ -97,40 +106,71 @@ def train_model(dataset_dir_name='processed_csm', model_name='best_pushover_gnn_
     # `data_list`의 각 Data 객체는 `structure_id` 속성을 가지고 있음
     data_list = [dataset[i] for i in range(len(dataset))]
     
-    # [NEW] 데이터 수 조절 (실험용) - sample_count는 구조물의 개수를 의미
-    if sample_count is not None:
-        import random
-        random.seed(42) # 재현성을 위해 seed 고정
+    if fixed_test_ids is not None:
+        # Fixed Test Set Strategy
+        test_data = [d for d in data_list if hasattr(d, 'structure_id') and d.structure_id in fixed_test_ids]
+        train_pool = [d for d in data_list if hasattr(d, 'structure_id') and d.structure_id not in fixed_test_ids]
         
-        all_structure_ids = list(set([data.structure_id for data in data_list if hasattr(data, 'structure_id')]))
-        
-        if sample_count > len(all_structure_ids):
-            if not silent: print(f"Warning: Requested sample_count (structures) {sample_count} > total unique structures {len(all_structure_ids)}. Using all unique structures.")
-            selected_structure_ids = all_structure_ids
+        # Sample Train Data
+        if sample_count is not None:
+            # We need to filter by unique structure IDs
+            pool_structure_ids = list(set([d.structure_id for d in train_pool]))
+            
+            if sample_count > len(pool_structure_ids):
+                if not silent: print(f"Warning: Requested sample_count {sample_count} > available train pool {len(pool_structure_ids)}. Using all.")
+                selected_train_ids = pool_structure_ids
+            else:
+                import random
+                # Ensure reproducibility for training sampling
+                # Note: Setting seed here might affect outer loops, but good for consistency
+                # random.seed(42) 
+                selected_train_ids = random.sample(pool_structure_ids, sample_count)
+            
+            train_val_data = [d for d in train_pool if d.structure_id in selected_train_ids]
         else:
-            selected_structure_ids = random.sample(all_structure_ids, sample_count)
-            if not silent: print(f"Using subset of data: {len(selected_structure_ids)} unique structures")
-
-        # 선택된 구조물 ID에 해당하는 모든 데이터 파일 포함
-        filtered_data_list = [data for data in data_list if hasattr(data, 'structure_id') and data.structure_id in selected_structure_ids]
-        data_list = filtered_data_list
-        if not silent: print(f"Total data files (including all directions) for selected structures: {len(data_list)} files")
-
-    if not data_list:
-        return {'test_loss': float('nan'), 'test_r2': float('nan'), 'train_loss': float('nan'), 'val_loss': float('nan')}
-
-    train_data, test_data = train_test_split(data_list, test_size=0.2, random_state=42)
-    # Validation data should be split from train data
-    if len(train_data) > 1:
-        train_data, val_data = train_test_split(train_data, test_size=0.25, random_state=42) # 0.25 * 0.8 = 0.2
+            train_val_data = train_pool
+            
+        # Split Train/Val from train_val_data
+        if len(train_val_data) > 1:
+            train_data, val_data = train_test_split(train_val_data, test_size=0.2, random_state=42)
+        else:
+            train_data, val_data = train_val_data, []
+            
     else:
-        val_data = [] # 데이터가 너무 적을 경우 예외 처리
+        # Original Random Split Logic
+        if sample_count is not None:
+            import random
+            random.seed(42) # 재현성을 위해 seed 고정
+            
+            all_structure_ids = list(set([data.structure_id for data in data_list if hasattr(data, 'structure_id')]))
+            
+            if sample_count > len(all_structure_ids):
+                if not silent: print(f"Warning: Requested sample_count (structures) {sample_count} > total unique structures {len(all_structure_ids)}. Using all unique structures.")
+                selected_structure_ids = all_structure_ids
+            else:
+                selected_structure_ids = random.sample(all_structure_ids, sample_count)
+                if not silent: print(f"Using subset of data: {len(selected_structure_ids)} unique structures")
+
+            # 선택된 구조물 ID에 해당하는 모든 데이터 파일 포함
+            filtered_data_list = [data for data in data_list if hasattr(data, 'structure_id') and data.structure_id in selected_structure_ids]
+            data_list = filtered_data_list
+            if not silent: print(f"Total data files (including all directions) for selected structures: {len(data_list)} files")
+
+        if not data_list:
+            return {'test_loss': float('nan'), 'test_r2': float('nan'), 'train_loss': float('nan'), 'val_loss': float('nan')}
+
+        train_data, test_data = train_test_split(data_list, test_size=0.2, random_state=42)
+        # Validation data should be split from train data
+        if len(train_data) > 1:
+            train_data, val_data = train_test_split(train_data, test_size=0.25, random_state=42) # 0.25 * 0.8 = 0.2
+        else:
+            val_data = [] # 데이터가 너무 적을 경우 예외 처리
 
     if not silent:
-        print(f"Total samples: {len(data_list)}")
+        print(f"Total samples (Train+Val+Test): {len(train_data) + len(val_data) + len(test_data)}")
         print(f"Train samples: {len(train_data)}")
         print(f"Validation samples: {len(val_data)}")
-        print(f"Test samples: {len(test_data)}")
+        print(f"Test samples (Fixed): {len(test_data)}" if fixed_test_ids is not None else f"Test samples: {len(test_data)}")
 
     # --- 3. 데이터 로더 ---
     batch_size = 32
@@ -156,16 +196,38 @@ def train_model(dataset_dir_name='processed_csm', model_name='best_pushover_gnn_
     if not silent:
         print(f"Node Dim: {node_dim}, Edge Dim: {edge_dim}, Global Dim: {global_dim}")
 
-    model = PushoverGNN(
-        node_dim=node_dim,
-        edge_dim=edge_dim,
-        global_dim=global_dim,
-        hidden_dim=64,
-        output_dim=output_dim,
-        num_layers=3, 
-        heads=2,
-        dropout=0.1
-    ).to(device)
+    if model_type.lower() == 'gnn':
+        model = PushoverGNN(
+            node_dim=node_dim,
+            edge_dim=edge_dim,
+            global_dim=global_dim,
+            hidden_dim=128, # Optimized
+            output_dim=output_dim,
+            num_layers=4,   # Optimized
+            heads=4,        # Optimized
+            dropout=0.2     # Optimized
+        ).to(device)
+    elif model_type.lower() == 'mlp':
+        model = SimpleMLP(
+            node_dim=node_dim,
+            edge_dim=edge_dim,
+            global_dim=global_dim,
+            hidden_dim=128,
+            output_dim=output_dim,
+            dropout=0.2
+        ).to(device)
+    elif model_type.lower() == 'gcn':
+        model = BaselineGCN(
+            node_dim=node_dim,
+            edge_dim=edge_dim,
+            global_dim=global_dim,
+            hidden_dim=128,
+            output_dim=output_dim,
+            num_layers=4,
+            dropout=0.2
+        ).to(device)
+    else:
+        raise ValueError(f"Unknown model_type: {model_type}")
 
     # --- 5. 손실 함수 및 최적화 ---
     criterion = nn.MSELoss()
@@ -240,6 +302,10 @@ def train_model(dataset_dir_name='processed_csm', model_name='best_pushover_gnn_
     y_true_all = []
     y_pred_all = []
 
+    # Inference Time Measurement
+    import time
+    start_inference = time.time()
+
     with torch.no_grad():
         for batch_data in test_loader:
             batch_data = batch_data.to(device)
@@ -258,6 +324,13 @@ def train_model(dataset_dir_name='processed_csm', model_name='best_pushover_gnn_
             y_true_all.append(y_true_original.cpu())
             y_pred_all.append(y_pred_original.cpu())
     
+    end_inference = time.time()
+    total_inference_time = end_inference - start_inference
+    
+    # Calculate per-sample time in milliseconds
+    num_test_samples = len(test_data)
+    inference_time_per_sample_ms = (total_inference_time / num_test_samples) * 1000 if num_test_samples > 0 else 0.0
+
     avg_test_loss = test_loss / test_steps if test_steps > 0 else 0
     
     # R2 Score
@@ -276,21 +349,32 @@ def train_model(dataset_dir_name='processed_csm', model_name='best_pushover_gnn_
     if not silent:
         print(f"Test Loss: {avg_test_loss:.6f}")
         print(f"Test R2 Score: {r2_score:.4f}")
+        print(f"Inference Time per Sample: {inference_time_per_sample_ms:.4f} ms")
 
     return {
         'dataset': dataset_dir_name,
         'test_r2': r2_score,
         'test_loss': avg_test_loss,
         'train_loss': avg_train_loss,
-        'val_loss': best_val_loss
+        'val_loss': best_val_loss,
+        'inference_time_per_sample_ms': inference_time_per_sample_ms,
+        'y_true': y_true_all,
+        'y_pred': y_pred_all
     }
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train Pushover GNN')
     parser.add_argument('--dataset_dir', type=str, default='processed', help='Directory name under data/')
     parser.add_argument('--model_name', type=str, default='best_pushover_gnn_model.pt', help='Filename for saving the model')
-    parser.add_argument('--epochs', type=int, default=200, help='Number of epochs')
+    parser.add_argument('--model_type', type=str, default='gnn', choices=['gnn', 'mlp'], help='Model architecture: gnn or mlp')
+    parser.add_argument('--epochs', type=int, default=300, help='Number of epochs')
     parser.add_argument('--sample_count', type=int, default=None, help='Number of samples to use')
     args = parser.parse_args()
 
-    train_model(dataset_dir_name=args.dataset_dir, model_name=args.model_name, epochs=args.epochs, sample_count=args.sample_count)
+    train_model(
+        dataset_dir_name=args.dataset_dir, 
+        model_name=args.model_name, 
+        model_type=args.model_type,
+        epochs=args.epochs, 
+        sample_count=args.sample_count
+    )
