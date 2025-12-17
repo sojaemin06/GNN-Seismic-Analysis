@@ -92,7 +92,11 @@ def train_model(dataset_dir_name='processed_csm', model_name='best_pushover_gnn_
     class CustomPushoverDataset(PushoverDataset):
         @property
         def raw_dir(self):
-            return self.root 
+            return self.root
+        
+        @property
+        def processed_dir(self):
+            return self.root
 
     # processed_dir needs to be unique per dataset to avoid caching conflicts
     # We can force re-processing or use a unique suffix

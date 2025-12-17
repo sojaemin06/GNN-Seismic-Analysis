@@ -18,13 +18,13 @@ def run_experiment():
     # --- 실험 설정 ---
     # 현재 확보된 데이터 최대 개수 확인 (약 750개)
     # 실험 단계 설정 (데이터 개수)
-    sample_counts = [100, 200, 300, 400, 500, 600, 700]
+    sample_counts = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]
     
     # 생성 시간 추정치 (샘플당 초, 이전 로그 기반 평균)
     avg_gen_time_per_sample = 60.0 
     
     # 학습 에포크 (빠른 실험을 위해 50, 실제 논문용은 200~300 권장)
-    epochs = 50 
+    epochs = 200
     
     print(f"--- Starting Data Scalability Experiment (Fixed Test Set) ---")
     print(f"Sample Counts: {sample_counts}")
